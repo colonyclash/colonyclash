@@ -1311,7 +1311,11 @@ function showPanel(name) {
   if (name === 'build')   renderBuildPanel();
   if (name === 'troops')  renderTroopsPanel();
   if (name === 'info')    renderInfoPanel();
-  if (name === 'shop')    renderShopPanel();
+}
+
+function openShop() {
+  showPanel('build');
+  filterBuildTab('shop');
 }
 
 function closePanels() {
@@ -1371,11 +1375,20 @@ function renderBuildPanel() {
 
 window.filterBuildTab = function(tab) {
   document.querySelectorAll('.panel-tabs .tab').forEach((el, i) => {
-    el.classList.toggle('active', (tab === 'all' && i === 0) || (tab === 'shop' && i === 1) || (tab === 'shield' && i === 2));
+    el.classList.toggle('active', 
+      (tab === 'all' && i === 0) || 
+      (tab === 'shop' && i === 1) || 
+      (tab === 'res' && i === 2) || 
+      (tab === 'shield' && i === 3)
+    );
   });
   
+  const head = gel('build-panel-head');
+  if (head) head.style.display = tab === 'all' ? 'block' : 'none';
+
   if (tab === 'all') renderBuildPanel();
   else if (tab === 'shop') renderShopTab();
+  else if (tab === 'res') renderResourcesTab();
   else if (tab === 'shield') renderShieldTab();
 };
 
@@ -1397,15 +1410,45 @@ function renderShopTab() {
       <div class="bn-title">${pkg.name}</div>
       <div style="font-size:40px;margin:15px 0">${pkg.icon}</div>
       <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${pkg.gems} 💎</div>
-      <div class="bn-cost-bar" style="background:#27ae60">
-        <span class="bn-cost-val">${pkg.price}</span>
+      <div class="bn-cost-bar" style="background:#444">
+        <span class="bn-cost-val" style="font-size:9px">EM BREVE</span>
+      </div>
+    `;
+    card.onclick = () => notify('A loja de gemas estará disponível em breve!', 'info');
+    grid.appendChild(card);
+  });
+}
+
+function renderResourcesTab() {
+  const grid = gel('build-panel-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  const offers = [
+    { name: 'Minérios', amount: 10000, cost: 50, icon: '⛏️', type: 'mineral' },
+    { name: 'Oxigênio', amount: 10000, cost: 50, icon: '💨', type: 'oxygen' },
+    { name: 'Energia',  amount: 5000,  cost: 50, icon: '⚡', type: 'energy' }
+  ];
+
+  offers.forEach(off => {
+    const card = document.createElement('div');
+    card.className = 'build-card-new';
+    card.innerHTML = `
+      <div class="bn-title">${off.name}</div>
+      <div style="font-size:40px;margin:15px 0">${off.icon}</div>
+      <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">+${fmtNum(off.amount)}</div>
+      <div class="bn-cost-bar">
+        <span class="bn-cost-val">${off.cost} 💎</span>
       </div>
     `;
     card.onclick = () => {
-      G.base.gems = (G.base.gems || 0) + pkg.gems;
+      if ((G.base.gems || 0) < off.cost) return notify('Gemas insuficientes!', 'error');
+      G.base.gems -= off.cost;
+      G.base.resources[off.type] += off.amount;
+      clampResources();
       updateHUD();
       saveData();
-      notify(`Você adquiriu ${pkg.gems} gemas!`, 'success');
+      notify(`Você comprou ${fmtNum(off.amount)} de ${off.name}!`, 'success');
     };
     grid.appendChild(card);
   });

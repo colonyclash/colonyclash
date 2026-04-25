@@ -89,7 +89,7 @@
       <div class="res-chip mineral">⛏️<span id="hud-mineral">1500</span></div>
       <div class="res-chip oxygen"> 💨<span id="hud-oxygen">1000</span></div>
       <div class="res-chip energy"> ⚡<span id="hud-energy">0</span></div>
-      <div class="res-chip gem" onclick="showPanel('shop')" style="cursor:pointer"> 💎<span id="hud-gems">10</span></div>
+      <div class="res-chip gem" onclick="openShop()" style="cursor:pointer"> 💎 <span id="hud-gems">10</span></div>
     </div>
 
     <div class="hud-right">
@@ -111,19 +111,13 @@
     <!-- Floating Action Buttons -->
     <div id="fab-group">
       <button class="fab-btn fab-build"  id="nav-build"  onclick="showPanel('build')"   title="Construir">
-        <span class="fab-icon">🏗️</span><span class="fab-label">BUILD</span>
+        <img src="build.png" class="fab-img">
       </button>
       <button class="fab-btn fab-attack" id="nav-attack" onclick="showOpponentScreen()" title="Atacar">
-        <span class="fab-icon">⚔️</span><span class="fab-label">ATTACK</span>
+        <img src="attack.png" class="fab-img">
       </button>
       <button class="fab-btn fab-troops" id="nav-troops" onclick="showPanel('troops')"  title="Tropas">
-        <span class="fab-icon">🪖</span><span class="fab-label">TROOPS</span>
-      </button>
-      <button class="fab-btn fab-shop"   id="nav-shop"   onclick="showPanel('shop')"    title="Loja">
-        <span class="fab-icon">💎</span><span class="fab-label">LOJA</span>
-      </button>
-      <button class="fab-btn fab-info"   id="nav-info"   onclick="showPanel('info')"    title="Perfil">
-        <span class="fab-icon">👤</span><span class="fab-label" data-t="profile">PERFIL</span>
+        <img src="troops.png" class="fab-img">
       </button>
     </div>
   </div>
@@ -144,12 +138,13 @@
   <!-- Build Panel -->
   <div class="panel new-design" id="build-panel">
     <div class="panel-tabs">
-      <div class="tab active" onclick="filterBuildTab('all')">🏗️</div>
-      <div class="tab" onclick="filterBuildTab('shop')">💎</div>
-      <div class="tab" onclick="filterBuildTab('shield')">🛡️</div>
+      <div class="tab active" onclick="filterBuildTab('all')"><img src="construct.png" class="tab-img"></div>
+      <div class="tab" onclick="filterBuildTab('shop')"><img src="gems.png" class="tab-img"></div>
+      <div class="tab" onclick="filterBuildTab('res')"><img src="resources.png" class="tab-img"></div>
+      <div class="tab" onclick="filterBuildTab('shield')"><img src="shield.png" class="tab-img"></div>
     </div>
     <div class="panel-inner">
-      <div class="panel-head-new" data-t="available_buildings">CONSTRUÇÕES DISPONÍVEIS</div>
+      <div class="panel-head-new" id="build-panel-head" data-t="available_buildings">CONSTRUÇÕES DISPONÍVEIS</div>
       <div class="build-grid-new" id="build-panel-grid"></div>
     </div>
   </div>
@@ -181,13 +176,7 @@
     <div id="info-content" style="padding:4px 0 8px"></div>
   </div>
 
-  <!-- Shop Panel -->
-  <div class="panel" id="shop-panel">
-    <div class="panel-handle"></div>
-    <div class="panel-head" data-t="crystal_shop">💎 Loja de Cristais</div>
-    <div class="shop-grid" id="shop-grid"></div>
-    <p style="text-align:center; font-size:10px; color:#555; padding:0 20px; margin-bottom:15px" data-t="shop_desc">Cristais permitem acelerar construções e tropas. Em breve compra disponível!</p>
-  </div>
+
 
   <!-- Settings Panel -->
   <div class="panel" id="settings-panel">
