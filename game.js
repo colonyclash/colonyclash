@@ -655,7 +655,7 @@ function spawnBldEl(b) {
   wrap.dataset.id = b.id;
 
   const img = document.createElement('img');
-  img.src = def.getAsset(b.level); img.alt = def.name; img.draggable = false;
+  img.src = def.getAsset(b.level, b.id); img.alt = def.name; img.draggable = false;
   wrap.appendChild(img);
 
   if (bldInProgress(b)) {
@@ -813,6 +813,7 @@ function showBldPopup(bId, cx, cy) {
   const delBtn = gel('popup-destroy');
   if (def.isObstacle) {
     delBtn.style.display = 'block';
+    delBtn.textContent = `🗑️ Remover (100 ⛏️)`;
     delBtn.onclick = () => removeObstacle(bId);
     moveBtn.style.display = 'none';
   } else {

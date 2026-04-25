@@ -29,7 +29,7 @@ const BUILDINGS = {
         }
       },
       {
-        hp: 4000, buildTime: 900, cost: { mineral: 8000, oxygen: 3000 },
+        hp: 4000, buildTime: 900, cost: { mineral: 5000, oxygen: 2500 },
         theme: 'energy', desc: 'Centro expandido com núcleo de energia. Tema: Energia.',
         unlocks: {
           buildings: {
@@ -43,7 +43,7 @@ const BUILDINGS = {
         }
       },
       {
-        hp: 6000, buildTime: 1800, cost: { mineral: 30000, oxygen: 15000 },
+        hp: 6000, buildTime: 1800, cost: { mineral: 15000, oxygen: 8000 },
         theme: 'gold', desc: 'Supremo centro de comando banhado a ouro. Tema: Ouro.',
         unlocks: {
           buildings: {
@@ -416,7 +416,7 @@ const TRANSLATIONS = {
     laboratory: "🔬 Laboratório",
     speedup: "⚡ ACELERAR",
     move: "↔ Mover",
-    destroy: "🗑 Demolir",
+    destroy: "🗑 Remover",
     confirm: "CONFIRMAR",
     cancel: "CANCELAR",
     search_opponent: "⚔️ Busca de Oponente",
