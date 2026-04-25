@@ -3,6 +3,12 @@
 // COLONY CLASH - Game Engine
 // ============================================================
 
+const MISSIONS = [
+  { id: 0, text: 'CONSTRUIR 2 EXTRATORES DE MINERIOS', goal: 2, type: 'build', bldType: 'mineral_extractor', reward: 10 },
+  { id: 1, text: 'CONSTRUIR 2 EXTRATORES DE OXIGENIO', goal: 2, type: 'build', bldType: 'oxygen_extractor', reward: 10 },
+  { id: 2, text: 'GANHAR UM ATAQUE USANDO DRONE ROBO', goal: 1, type: 'attack_win', reward: 10 }
+];
+
 // ---- Global State ----
 const G = {
   user: null,
@@ -142,6 +148,7 @@ async function loadData() {
 
 async function saveData() {
   if (!G.pid || !G.db) return;
+  checkMissionProgress();
   try {
     G.base.lastSave = Date.now();
     await G.db.collection('colonies').doc(G.pid).set({
@@ -178,7 +185,8 @@ function createStarterBase() {
     playerName: G.user?.displayName || 'Colono',
     nameChanged: false,
     lastObstacleSpawn: Date.now(),
-    tutorialDone: false
+    tutorialDone: false,
+    missions: { currentId: 0, completed: [], claimed: [], progress: 0 }
   };
 }
 
@@ -1311,6 +1319,7 @@ function showPanel(name) {
   if (name === 'build')   renderBuildPanel();
   if (name === 'troops')  renderTroopsPanel();
   if (name === 'info')    renderInfoPanel();
+  if (name === 'mission') renderMissionPanel();
 }
 
 function openShop() {
@@ -1470,7 +1479,7 @@ function renderShieldTab() {
     card.className = 'build-card-new';
     card.innerHTML = `
       <div class="bn-title">${s.name}</div>
-      <div style="font-size:40px;margin:15px 0">🛡️</div>
+      <img src="shield.png" style="width:50px; height:50px; object-fit:contain; margin:15px 0">
       <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${s.hours}h</div>
       <div class="bn-cost-bar">
         <span class="bn-cost-val">${s.cost} 💎</span>
@@ -1491,7 +1500,109 @@ function renderShieldTab() {
   });
 }
 
-function renderTroopsPanel() {
+function renderMissionPanel() {
+  const cont = gel('mission-content');
+  if (!cont) return;
+  
+  if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0 };
+  const curId = G.base.missions.currentId;
+  const curMis = MISSIONS[curId];
+  
+  let html = `<div class="mission-title">MISSOES</div>`;
+  
+  if (curMis) {
+    const isDone = G.base.missions.progress >= curMis.goal;
+    const pct = Math.min(100, Math.floor((G.base.missions.progress / curMis.goal) * 100));
+    const isClaimed = G.base.missions.claimed.includes(curId);
+    
+    html += `
+      <div class="section-label">MISSAO ATUAL</div>
+      <div class="mission-box-current">
+        <div class="mission-badge">Missão Atual</div>
+        <div class="mission-flex">
+          <div class="mission-info">
+            <div class="mission-text">${curMis.text}</div>
+            <div class="mission-prog-wrap">
+              <div class="mission-prog-bar">
+                <div class="mission-prog-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
+              </div>
+              <div class="mission-prog-pct">${pct}%</div>
+            </div>
+          </div>
+          <button class="btn-claim-mission" ${(!isDone || isClaimed) ? 'disabled' : ''} onclick="claimMissionReward(${curId})">
+            ${isClaimed ? 'RESGATADO' : `RESGATAR<br>${curMis.reward} JOIAS`}
+          </button>
+        </div>
+      </div>
+    `;
+  } else {
+    html += `<p style="color:#888;text-align:center;padding:20px;">Todas as missões concluídas!</p>`;
+  }
+  
+  const nextMis = MISSIONS.slice(curId + 1);
+  if (nextMis.length > 0) {
+    html += `<div class="section-label">PROXIMAS MISSOES</div>`;
+    nextMis.forEach((m, idx) => {
+      html += `
+        <div class="mission-card-next">
+          <div class="mission-flex">
+            <div class="mission-info">
+              <div class="mission-text">MISSAO ${m.id + 1}: ${m.text}</div>
+              <div class="mission-reward-label">GANHAR ${m.reward} JOIAS</div>
+              <div class="mission-prog-wrap">
+                <div class="mission-prog-bar">
+                  <div class="mission-prog-fill" style="width:0%"></div>
+                </div>
+                <div class="mission-prog-pct">0%</div>
+              </div>
+            </div>
+            <button class="btn-claim-mission" disabled style="background:#555;">
+              RECOMPENSA<br>BLOQUEADA
+            </button>
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  cont.innerHTML = html;
+}
+
+function checkMissionProgress() {
+  if (!G.base.missions) return;
+  const curId = G.base.missions.currentId;
+  const curMis = MISSIONS[curId];
+  if (!curMis) return;
+  
+  if (curMis.type === 'build') {
+    const count = getBuildingCountOfType(curMis.bldType);
+    G.base.missions.progress = count;
+  }
+  
+  if (G.base.missions.progress > curMis.goal) G.base.missions.progress = curMis.goal;
+  if (G.ui.panel === 'mission') renderMissionPanel();
+}
+
+function claimMissionReward(id) {
+  const m = MISSIONS[id];
+  if (!m || G.base.missions.claimed.includes(id)) return;
+  if (G.base.missions.progress < m.goal) return;
+  
+  G.base.missions.claimed.push(id);
+  G.base.gems = (G.base.gems || 0) + m.reward;
+  
+  // Próxima missão
+  G.base.missions.currentId++;
+  G.base.missions.progress = 0; // Reset progresso para a próxima
+  
+  // Re-checar imediatamente se a próxima missão já está completa (ex: já tem os prédios)
+  checkMissionProgress();
+  
+  updateHUD();
+  notify(`Recompensa resgatada: +${m.reward} 💎`, 'success');
+  saveData();
+  renderMissionPanel();
+}
   const list     = gel('troops-list');
   const capFill  = gel('cap-bar-fill');
   const capLabel = gel('cap-bar-label-val');
@@ -2393,6 +2504,10 @@ async function endBattle() {
       leagueRewardStr = `<br>🎉 ${newLeague.emoji} ${newLeague.name}! +💎${newLeague.gemReward} gemas!`;
       setTimeout(() => notify(`🎉 Nova Liga: ${newLeague.emoji} ${newLeague.name}! +💎${newLeague.gemReward}`, 'success'), 2000);
     }
+  }
+
+  if (won && G.base.missions && MISSIONS[G.base.missions.currentId]?.type === 'attack_win') {
+    G.base.missions.progress = 1;
   }
 
   await saveData();

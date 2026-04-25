@@ -110,6 +110,9 @@
     
     <!-- Floating Action Buttons -->
     <div id="fab-group">
+      <button class="fab-btn fab-mission" id="nav-mission" onclick="showPanel('mission')" title="Missões">
+        <img src="mission.png" class="fab-img">
+      </button>
       <button class="fab-btn fab-build"  id="nav-build"  onclick="showPanel('build')"   title="Construir">
         <img src="build.png" class="fab-img">
       </button>
@@ -147,6 +150,11 @@
       <div class="panel-head-new" id="build-panel-head" data-t="available_buildings">CONSTRUÇÕES DISPONÍVEIS</div>
       <div class="build-grid-new" id="build-panel-grid"></div>
     </div>
+  </div>
+
+  <!-- Mission Panel -->
+  <div class="panel mission-design" id="mission-panel">
+    <div class="mission-inner" id="mission-content"></div>
   </div>
 
   <!-- Troops Panel -->

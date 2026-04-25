@@ -167,18 +167,17 @@ html, body {
   display: flex; flex-direction: column; gap: 12px; z-index: 55;
 }
 .fab-btn {
-  width: 56px; height: 56px; border-radius: 50%; border: none;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(8, 14, 32, 0.9); border: 1px solid rgba(255,255,255,0.1);
-  color: #fff; cursor: pointer; transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.5); position: relative;
+  width: 64px; height: 64px; border: none;
+  display: flex; align-items: center; justify-content: center;
+  background: none;
+  cursor: pointer; transition: 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  padding: 0;
 }
-.fab-img { width: 32px; height: 32px; object-fit: contain; }
-.fab-btn:hover { transform: scale(1.08); background: rgba(8, 14, 32, 1); }
+.fab-img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+.fab-btn:hover { transform: scale(1.1); }
 
-.fab-attack { border-color: var(--c-secondary); box-shadow: 0 0 20px rgba(255,140,0,0.3); }
-.fab-build { border-color: var(--c-primary); }
-.fab-troops { border-color: var(--c-oxygen); }
+.fab-attack, .fab-build, .fab-troops { border: none !important; box-shadow: none !important; }
 
 .tab-img { width: 32px; height: 32px; object-fit: contain; transition: 0.2s; }
 .tab.active .tab-img { transform: scale(1.2); }
@@ -639,4 +638,142 @@ html, body {
   #hud { flex-wrap: wrap; }
   .hud-resources { order: 3; width: 100%; margin-top: 5px; }
   .hud-right { order: 2; }
+}
+
+/* ========== MISSION PANEL DESIGN ========== */
+.panel.mission-design {
+  background: #0B172A;
+  border: 4px solid #4884B4;
+  border-radius: 20px;
+  padding: 15px;
+  max-width: 500px;
+  left: 50% !important;
+  transform: translate(-50%, 102%) !important;
+  bottom: 50px !important;
+  height: auto !important;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.panel.mission-design.visible { transform: translate(-50%, 0) !important; }
+
+.mission-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mission-title {
+  font-family: var(--font-hd);
+  font-size: 24px;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 2px;
+}
+
+.mission-box-current {
+  border: 2px solid #D15E0F;
+  border-radius: 12px;
+  padding: 20px 15px;
+  position: relative;
+  background: rgba(0,0,0,0.2);
+}
+
+.mission-badge {
+  position: absolute;
+  top: -2px; left: -2px;
+  background: #FF6B00;
+  color: #fff;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 900;
+  border-radius: 10px 0 20px 0;
+  text-transform: uppercase;
+}
+
+.mission-card-next {
+  border: 2px solid #1A4A6E;
+  border-radius: 12px;
+  padding: 15px;
+  background: rgba(0,0,0,0.1);
+  margin-top: 10px;
+}
+
+.mission-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.mission-info { flex: 1; }
+
+.mission-text {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.mission-reward-label {
+  font-size: 10px;
+  color: #E2E62F;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.mission-prog-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mission-prog-bar {
+  flex: 1;
+  height: 12px;
+  background: #000;
+  border: 1px solid #4884B4;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mission-prog-fill {
+  height: 100%;
+  background: #D15E0F;
+  border-radius: 6px;
+  transition: 0.5s;
+}
+.mission-prog-fill.done { background: #00D215; }
+
+.mission-prog-pct { font-size: 10px; color: #fff; }
+
+.btn-claim-mission {
+  background: #00D215;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 10px;
+  font-family: var(--font-hd);
+  font-size: 11px;
+  cursor: pointer;
+  min-width: 100px;
+  text-align: center;
+  line-height: 1.2;
+}
+.btn-claim-mission:hover { filter: brightness(1.1); }
+.btn-claim-mission:disabled {
+  background: #555;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.section-label {
+  font-family: var(--font-hd);
+  font-size: 12px;
+  color: #fff;
+  margin-top: 10px;
+  text-transform: uppercase;
 }
