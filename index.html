@@ -142,10 +142,16 @@
   <div class="panel-backdrop" onclick="closePanels()"></div>
 
   <!-- Build Panel -->
-  <div class="panel" id="build-panel">
-    <div class="panel-handle"></div>
-    <div class="panel-head" data-t="available_buildings">🏗️ Construções Disponíveis</div>
-    <div class="build-grid" id="build-panel-grid"></div>
+  <div class="panel new-design" id="build-panel">
+    <div class="panel-tabs">
+      <div class="tab active" onclick="filterBuildTab('all')">🏗️</div>
+      <div class="tab" onclick="filterBuildTab('eco')">⛏️</div>
+      <div class="tab" onclick="filterBuildTab('mil')">⚔️</div>
+    </div>
+    <div class="panel-inner">
+      <div class="panel-head-new" data-t="available_buildings">CONSTRUÇÕES DISPONÍVEIS</div>
+      <div class="build-grid-new" id="build-panel-grid"></div>
+    </div>
   </div>
 
   <!-- Troops Panel -->

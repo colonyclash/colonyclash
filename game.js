@@ -1339,28 +1339,41 @@ function renderBuildPanel() {
     const cur  = getBuildingCountOfType(type);
     const lv1  = def.levels[1];
     const locked = max === 0;
-    const maxed  = cur >= max && max > 0;
 
     const card = document.createElement('div');
-    card.className = `build-card${locked ? ' locked' : ''}${maxed ? ' maxed' : ''}`;
-    const nameTranslated = t(type);
+    card.className = 'build-card-new' + (locked ? ' locked' : '');
+    
+    const costVal = lv1.cost.mineral || lv1.cost.oxygen || 0;
+    const costIcon = lv1.cost.mineral !== undefined ? '⛏️' : '💨';
+
     card.innerHTML = `
-      <img src="${def.getAsset(1)}" alt="${nameTranslated}">
-      <div class="bc-name">${nameTranslated}</div>
-      <div class="bc-cost">
-        ${lv1.cost?.mineral > 0 ? `⛏️${fmtNum(lv1.cost.mineral)}` : ''}
-        ${lv1.cost?.oxygen  > 0 ? `💨${fmtNum(lv1.cost.oxygen)}`  : ''}
-        ${!lv1.cost?.mineral && !lv1.cost?.oxygen ? t('cancel') : ''}
+      <div class="bn-title">${t(type)}</div>
+      <img src="${def.getAsset(1)}" class="bn-img">
+      <div class="bn-count">${cur}/${max}</div>
+      <div class="bn-cost-bar">
+        <span class="bn-cost-val">${fmtNum(costVal)}</span>
+        <span style="font-size:12px">${costIcon}</span>
       </div>
-      <div class="bc-count">${cur}/${max}</div>
-      ${locked ? '<span class="bc-lock-badge">🔒CC</span>' : ''}
+      ${locked ? `<div class="bn-lock">🔒</div>` : ''}
     `;
-    if (!locked && !maxed) {
+
+    if (!locked && cur < max) {
       card.onclick = () => { closePanels(); enterBuildMode(type); };
+    } else if (locked) {
+      card.onclick = () => notify(`Desbloqueie melhorando o Centro de Comando!`, 'info');
+    } else {
+      card.onclick = () => notify(`Limite atingido!`, 'info');
     }
     grid.appendChild(card);
   }
 }
+
+window.filterBuildTab = function(tab) {
+  document.querySelectorAll('.panel-tabs .tab').forEach((el, i) => {
+    el.classList.toggle('active', (tab === 'all' && i === 0) || (tab === 'eco' && i === 1) || (tab === 'mil' && i === 2));
+  });
+  renderBuildPanel();
+};
 
 function renderTroopsPanel() {
   const list     = gel('troops-list');
