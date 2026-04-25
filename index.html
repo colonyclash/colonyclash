@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Colony Clash – Conquiste a Lua</title>
+  <meta name="description" content="Construa sua base lunar, treine tropas e conquiste colônias inimigas!">
+  <meta name="theme-color" content="#07091a">
+  <link rel="icon" href="colony_clash_logo.png" type="image/png">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="stars-layer"></div>
+<div class="notif-stack"></div>
+
+<!-- ===================== LOADING ===================== -->
+<div id="loading-screen" class="screen">
+  <img src="colony_clash_logo.png" class="loading-logo" alt="Colony Clash">
+  <div class="loading-bar-wrap">
+    <div class="loading-bar" id="loading-bar"></div>
+  </div>
+  <p class="loading-text" data-t="loading">Carregando</p>
+</div>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen" class="screen hidden">
+  <div class="login-content">
+    <img src="colony_clash_logo.png" class="login-logo" alt="Colony Clash">
+    <p class="login-tagline" data-t="conquer_moon">Conquiste a Lua</p>
+
+    <!-- Auth Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"    onclick="switchAuthTab('login')" data-t="login">Entrar</button>
+      <button class="auth-tab"        id="tab-register" onclick="switchAuthTab('register')" data-t="register">Cadastrar</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="form-login" class="auth-form" onsubmit="event.preventDefault(); loginEmail()">
+      <input type="email"    id="inp-email" class="auth-input" placeholder="E-mail" data-t-placeholder="email" autocomplete="email" required>
+      <input type="password" id="inp-pass"  class="auth-input" placeholder="Senha"  data-t-placeholder="password" autocomplete="current-password" required>
+      <div class="auth-error" id="login-error"></div>
+      <button type="submit" class="btn-auth" data-t="login">ENTRAR</button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="form-register" class="auth-form" style="display:none" onsubmit="event.preventDefault(); registerEmail()">
+      <input type="text"     id="inp-reg-name"    class="auth-input" placeholder="Nome de usuário" data-t-placeholder="username" required>
+      <input type="email"    id="inp-reg-email"   class="auth-input" placeholder="E-mail" data-t-placeholder="email" autocomplete="email" required>
+      <input type="password" id="inp-reg-pass"    class="auth-input" placeholder="Senha (mín. 6 caracteres)" data-t-placeholder="password" minlength="6" required>
+      <input type="password" id="inp-reg-confirm" class="auth-input" placeholder="Confirmar senha" data-t-placeholder="confirm_password" required>
+      <div class="auth-error" id="reg-error"></div>
+      <button type="submit" class="btn-auth btn-register" data-t="create_account">CRIAR CONTA</button>
+    </form>
+
+    <div class="auth-divider"><span data-t="or">ou</span></div>
+
+    <button class="btn-google" onclick="loginGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      <span data-t="login_google">Entrar com Google</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===================== GAME SCREEN ===================== -->
+<div id="game-screen" class="screen hidden">
+
+  <!-- HUD top bar -->
+  <div id="hud">
+    <div class="hud-player" onclick="showPanel('info')">
+      <div class="hud-avatar" id="hud-avatar">C</div>
+      <div class="hud-meta">
+        <span class="hud-name" id="hud-name" data-t="colono">Colono</span>
+        <span class="hud-cc"   id="hud-cc">CC 1</span>
+        <span class="hud-league" id="hud-league">⚙️ <span data-t="ferro">Ferro</span></span>
+      </div>
+    </div>
+
+    <div class="hud-resources">
+      <div class="res-chip builders" onclick="showBuildersModal()" style="cursor:pointer">👨‍🚀<span id="hud-builders">0 / 1</span></div>
+      <div class="res-chip mineral">⛏️<span id="hud-mineral">1500</span></div>
+      <div class="res-chip oxygen"> 💨<span id="hud-oxygen">1000</span></div>
+      <div class="res-chip energy"> ⚡<span id="hud-energy">0</span></div>
+      <div class="res-chip gem" onclick="showPanel('shop')" style="cursor:pointer"> 💎<span id="hud-gems">10</span></div>
+    </div>
+
+    <div class="hud-right">
+      <div class="hud-shield" id="hud-shield" style="display:none">🛡️</div>
+      <div class="hud-trophy">🏆<span id="hud-trophies">100</span></div>
+      <button class="hud-settings-btn" onclick="showPanel('settings')" style="pointer-events:auto; background:rgba(8,14,32,0.85); border:1px solid rgba(0,212,255,0.2); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:white; cursor:pointer; margin-left:5px;">⚙️</button>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map-wrapper">
+    <div id="map-container">
+      <div id="map-zoom-wrapper">
+        <canvas id="game-canvas"></canvas>
+        <div id="buildings-layer"></div>
+      </div>
+    </div>
+    
+    <!-- Floating Action Buttons -->
+    <div id="fab-group">
+      <button class="fab-btn fab-build"  id="nav-build"  onclick="showPanel('build')"   title="Construir">
+        <span class="fab-icon">🏗️</span><span class="fab-label">BUILD</span>
+      </button>
+      <button class="fab-btn fab-attack" id="nav-attack" onclick="showOpponentScreen()" title="Atacar">
+        <span class="fab-icon">⚔️</span><span class="fab-label">ATTACK</span>
+      </button>
+      <button class="fab-btn fab-troops" id="nav-troops" onclick="showPanel('troops')"  title="Tropas">
+        <span class="fab-icon">🪖</span><span class="fab-label">TROOPS</span>
+      </button>
+      <button class="fab-btn fab-shop"   id="nav-shop"   onclick="showPanel('shop')"    title="Loja">
+        <span class="fab-icon">💎</span><span class="fab-label">LOJA</span>
+      </button>
+      <button class="fab-btn fab-info"   id="nav-info"   onclick="showPanel('info')"    title="Perfil">
+        <span class="fab-icon">👤</span><span class="fab-label" data-t="profile">PERFIL</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Build/Move mode bar -->
+  <div id="build-cancel-bar">
+    <button class="btn-confirm-build" onclick="confirmPlace()">✓ Confirmar</button>
+    <span id="build-mode-label">Posicionando...</span>
+    <button class="btn-cancel-build" onclick="cancelCurrentMode()">✕ Cancelar</button>
+  </div>
+
+</div>
+
+<!-- ===================== PANEL OVERLAY ===================== -->
+<div id="panel-overlay">
+  <div class="panel-backdrop" onclick="closePanels()"></div>
+
+  <!-- Build Panel -->
+  <div class="panel" id="build-panel">
+    <div class="panel-handle"></div>
+    <div class="panel-head" data-t="available_buildings">🏗️ Construções Disponíveis</div>
+    <div class="build-grid" id="build-panel-grid"></div>
+  </div>
+
+  <!-- Troops Panel -->
+  <div class="panel" id="troops-panel">
+    <div class="panel-handle"></div>
+    <div class="panel-head" data-t="manage_troops">🪖 Gerenciar Tropas</div>
+    <div class="cap-bar-wrap">
+      <div class="cap-bar-label">
+        <span data-t="capacity">Capacidade</span>
+        <span id="cap-bar-label-val">0 / 0</span>
+      </div>
+      <div class="cap-bar-track">
+        <div class="cap-bar-fill" id="cap-bar-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="troop-list" id="troops-list"></div>
+    <div class="queue-section">
+      <div class="queue-section-title" data-t="in_training">Em Treinamento</div>
+      <div id="training-queue-list"></div>
+    </div>
+  </div>
+
+  <!-- Info Panel -->
+  <div class="panel" id="info-panel">
+    <div class="panel-handle"></div>
+    <div class="panel-head" data-t="information">📊 Informações</div>
+    <div id="info-content" style="padding:4px 0 8px"></div>
+  </div>
+
+  <!-- Shop Panel -->
+  <div class="panel" id="shop-panel">
+    <div class="panel-handle"></div>
+    <div class="panel-head" data-t="crystal_shop">💎 Loja de Cristais</div>
+    <div class="shop-grid" id="shop-grid"></div>
+    <p style="text-align:center; font-size:10px; color:#555; padding:0 20px; margin-bottom:15px" data-t="shop_desc">Cristais permitem acelerar construções e tropas. Em breve compra disponível!</p>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="panel" id="settings-panel">
+    <div class="panel-handle"></div>
+    <div class="panel-head" data-t="settings">⚙️ Configurações</div>
+    <div style="padding: 20px;">
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-family: 'Orbitron'; font-size: 12px; color: #00D4FF; margin-bottom: 10px;" data-t="lang_select">Idioma</label>
+        <div style="display: flex; gap: 10px;">
+          <button onclick="setLanguage('pt')" class="btn-auth" style="flex:1; font-size: 10px; padding: 10px;">Português</button>
+          <button onclick="setLanguage('en')" class="btn-auth" style="flex:1; font-size: 10px; padding: 10px;">English</button>
+          <button onclick="setLanguage('es')" class="btn-auth" style="flex:1; font-size: 10px; padding: 10px;">Español</button>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()" data-t="logout">Sair da Conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== BUILDING POPUP ===================== -->
+<div id="building-popup">
+  <button class="popup-x" onclick="hideBldPopup()">×</button>
+  <div class="popup-header">
+    <img id="popup-img" src="" alt="" class="popup-img">
+    <div>
+      <div class="popup-name"  id="popup-name"></div>
+      <div class="popup-level" id="popup-level"></div>
+    </div>
+  </div>
+  <div class="popup-hp-bar">
+    <div class="popup-hp-fill" id="popup-hp-fill" style="width:100%"></div>
+  </div>
+  <div class="popup-desc" id="popup-desc"></div>
+  <div class="popup-actions">
+    <button class="popup-btn upgrade" id="popup-upgrade" data-t="upgrade">⬆ Melhorar</button>
+    <button class="popup-btn lab"     id="popup-lab" style="display:none" data-t="laboratory">🔬 Laboratório</button>
+    <button class="popup-btn speedup" id="popup-speedup" style="display:none" data-t="speedup">⚡ ACELERAR</button>
+    <button class="popup-btn move"    id="popup-move" data-t="move">↔ Mover</button>
+    <button class="popup-btn destroy" id="popup-destroy" data-t="destroy">🗑 Demolir</button>
+    <button class="popup-btn close"   onclick="hideBldPopup()" data-t="close">✕</button>
+  </div>
+</div>
+
+<!-- ===================== UPGRADE MODAL ===================== -->
+<div class="modal-overlay" id="upgrade-modal">
+  <div class="modal-box">
+    <div class="modal-icon"  id="modal-icon">⬆️</div>
+    <div class="modal-title" id="modal-title">Melhorar</div>
+    <div class="modal-desc"  id="modal-desc"></div>
+    <div class="modal-costs" id="modal-costs"></div>
+    <div class="modal-actions">
+      <button class="modal-confirm" id="modal-confirm" data-t="confirm">CONFIRMAR</button>
+      <button class="modal-cancel"  id="modal-cancel" data-t="cancel">CANCELAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== OPPONENT SCREEN (MATCHMAKING) ===================== -->
+<div id="opponent-screen" class="opp-screen-overlay">
+  <div class="opp-title" data-t="search_opponent">⚔️ Busca de Oponente</div>
+  <div id="matchmaking-area" style="padding:20px;text-align:center;"></div>
+  <button class="opp-back" onclick="(function(){var s=document.getElementById('opponent-screen');s.classList.remove('visible');s.classList.add('hidden');})()" data-t="back">← Voltar</button>
+</div>
+
+<!-- ===================== ATTACK SCREEN ===================== -->
+<div id="attack-screen" class="screen hidden">
+  <div class="attack-hud">
+    <div class="atk-label" data-t="battle_label">⚔️ BATALHA LUNAR</div>
+    <div class="atk-pct"   id="atk-pct">💥 0%</div>
+    <div class="atk-timer" id="atk-timer">3:00</div>
+  </div>
+  <canvas id="battle-canvas"></canvas>
+  <div class="troops-deploy-bar" id="troops-deploy-bar">
+    <span style="color:rgba(255,255,255,0.3);font-size:12px;padding:0 8px" data-t="deploy_tip">Selecione uma tropa e toque no mapa</span>
+  </div>
+</div>
+
+<!-- ===================== BATTLE RESULT ===================== -->
+<div id="battle-result">
+  <div class="result-card">
+    <div class="result-stars"   id="result-stars">☆☆☆</div>
+    <div class="result-title"   id="result-title">DERROTA</div>
+    <div class="result-pct"     id="result-pct">0%</div>
+    <div class="result-details" id="result-details"></div>
+    <button class="btn-result-close" onclick="closeBattleResult()" data-t="continue">CONTINUAR</button>
+  </div>
+</div>
+
+<!-- ===================== ADMIN PANEL ===================== -->
+<div id="admin-panel" class="screen hidden" style="z-index: 500; background: rgba(0,0,0,0.9); flex-direction: column; align-items: center; justify-content: center;">
+  <div style="background: #1a1a2e; padding: 20px; border: 2px solid #FF4466; border-radius: 10px; width: 300px; box-shadow: 0 0 30px rgba(255,68,102,0.5);">
+    <h2 style="color: #FF4466; text-align: center; font-family: 'Orbitron'; margin-bottom: 20px;" data-t="admin_panel">🛡️ PAINEL ADMIN</h2>
+    
+    <button onclick="adminFillResources()" style="cursor:pointer; width:100%; padding: 12px; background: linear-gradient(135deg, #FF4466, #ff1133); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 10px; font-family: 'Orbitron'; text-shadow: 0 1px 2px #000;" data-t="fill_resources">
+      Ganhar 1 Bilhão de Recursos
+    </button>
+    <button onclick="adminMaxCC()" style="cursor:pointer; width:100%; padding: 12px; background: linear-gradient(135deg, #FFD700, #b8860b); color: black; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 20px; font-family: 'Orbitron';" data-t="max_cc">
+      Elevar CC p/ Nível Máximo
+    </button>
+
+    <h3 style="color: rgba(255,255,255,0.7); font-size: 11px; margin-bottom: 8px; letter-spacing: 1px;" data-t="assign_player">ATRIBUIR A JOGADOR</h3>
+    <input type="text" id="admin-target-uid" placeholder="UID do Jogador" style="width:100%; padding: 10px; margin-bottom: 10px; background: #0f172a; border: 1px solid #334; color: white; border-radius: 5px; outline:none;">
+    
+    <select id="admin-give-type" style="width:100%; padding: 10px; margin-bottom: 10px; background: #0f172a; border: 1px solid #334; color: white; border-radius: 5px; outline:none;">
+      <option value="mineral">⛏️ Minério</option>
+      <option value="oxygen">💨 Oxigênio</option>
+      <option value="energy">⚡ Energia</option>
+      <option value="gems">💎 Gemas (Cristais)</option>
+      <option value="trophies">🏆 Troféus</option>
+      <option value="tank">🚀 Adicionar 100 Tanques</option>
+    </select>
+    
+    <input type="number" id="admin-give-amount" placeholder="Quantidade" value="10000" style="width:100%; padding: 10px; margin-bottom: 14px; background: #0f172a; border: 1px solid #334; color: white; border-radius: 5px; outline:none;">
+    
+    <button onclick="adminGiveToPlayer()" style="cursor:pointer; width:100%; padding: 12px; background: linear-gradient(135deg, #00D4FF, #005b88); color: white; border: none; border-radius: 5px; font-weight: bold; margin-bottom: 10px; font-family: 'Orbitron'; text-shadow: 0 1px 2px #000;" data-t="send">
+      ENVIAR
+    </button>
+
+    <button onclick="document.getElementById('admin-panel').classList.add('hidden')" style="cursor:pointer; width:100%; padding: 12px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 5px; font-weight: bold; font-family: 'Rajdhani'; transition: 0.2s;" data-t="close">
+      FECHAR
+    </button>
+  </div>
+</div>
+
+
+<!-- ===================== TUTORIAL OVERLAY ===================== -->
+<div id="tutorial-overlay" class="tutorial-overlay">
+  <div class="tutorial-box">
+    <div class="tutorial-header">
+      <span class="tutorial-icon">🚀</span>
+      <div class="tutorial-title" data-t="welcome">BEM-VINDO À COLÔNIA LUNAR!</div>
+    </div>
+    <div class="tutorial-body">
+      <p>Você começa com <strong>1.500 ⛏️ Minério</strong> e <strong>1.000 💨 Oxigênio</strong>.</p>
+      <div class="tutorial-steps">
+        <div class="tstep"><span class="tstep-num">1</span><span>Construa um <b>Extrator de Minério</b> (100⛏️) — gera minério passivamente.</span></div>
+        <div class="tstep"><span class="tstep-num">2</span><span>Construa um <b>Extrator de Oxigênio</b> (150⛏️) — gera oxigênio passivamente.</span></div>
+        <div class="tstep"><span class="tstep-num">3</span><span>Construa um <b>Quartel</b> (500⛏️ + 200💨) para treinar tropas.</span></div>
+        <div class="tstep"><span class="tstep-num">4</span><span>Construa um <b>Acampamento</b> (250⛏️ + 100💨) para abrigar as tropas.</span></div>
+        <div class="tstep"><span class="tstep-num">5</span><span data-t="tutorial_step5">Melhore o CC para nível 2 e 3 para desbloquear mais construções.</span></div>
+        <div class="tstep"><span class="tstep-num">6</span><span data-t="tutorial_step6">No CC nível 3 o Laboratório é desbloqueado — pesquise melhorias de tropas com ⚡ Energia.</span></div>
+      </div>
+      <div class="tutorial-tip" data-t="tutorial_tip">💡 Dica: Construa Armazéns para aumentar sua capacidade de recursos!</div>
+    </div>
+    <button class="tutorial-close-btn" onclick="closeTutorial()" data-t="tutorial_start">ENTENDIDO — COMEÇAR! 🚀</button>
+  </div>
+</div>
+
+<!-- ===================== LAB MODAL ===================== -->
+<div class="modal-overlay" id="lab-modal">
+  <div class="modal-box lab-modal-box">
+    <div class="modal-icon">🔬</div>
+    <div class="modal-title">LABORATÓRIO — Pesquisa de Tropas</div>
+    <div id="lab-modal-body" style="margin:12px 0; max-height:55vh; overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeLabModal()" data-t="close">FECHAR</button>
+    </div>
+  </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script src="game-config.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
