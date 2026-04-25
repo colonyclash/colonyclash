@@ -1349,6 +1349,7 @@ function renderBuildPanel() {
     card.innerHTML = `
       <div class="bn-title">${t(type)}</div>
       <img src="${def.getAsset(1)}" class="bn-img">
+      <div style="font-size:10px;color:#aaa;margin-bottom:5px">⏳ ${fmtTime(lv1.buildTime)}</div>
       <div class="bn-count">${cur}/${max}</div>
       <div class="bn-cost-bar">
         <span class="bn-cost-val">${fmtNum(costVal)}</span>
@@ -1370,10 +1371,82 @@ function renderBuildPanel() {
 
 window.filterBuildTab = function(tab) {
   document.querySelectorAll('.panel-tabs .tab').forEach((el, i) => {
-    el.classList.toggle('active', (tab === 'all' && i === 0) || (tab === 'eco' && i === 1) || (tab === 'mil' && i === 2));
+    el.classList.toggle('active', (tab === 'all' && i === 0) || (tab === 'shop' && i === 1) || (tab === 'shield' && i === 2));
   });
-  renderBuildPanel();
+  
+  if (tab === 'all') renderBuildPanel();
+  else if (tab === 'shop') renderShopTab();
+  else if (tab === 'shield') renderShieldTab();
 };
+
+function renderShopTab() {
+  const grid = gel('build-panel-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  const packages = [
+    { name: 'Punhado de Gemas', gems: 100, price: 'R$ 4,90', icon: '💎' },
+    { name: 'Pilha de Gemas', gems: 500, price: 'R$ 19,90', icon: '💎💎' },
+    { name: 'Caixa de Gemas', gems: 1200, price: 'R$ 39,90', icon: '💎💎💎' }
+  ];
+
+  packages.forEach(pkg => {
+    const card = document.createElement('div');
+    card.className = 'build-card-new';
+    card.innerHTML = `
+      <div class="bn-title">${pkg.name}</div>
+      <div style="font-size:40px;margin:15px 0">${pkg.icon}</div>
+      <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${pkg.gems} 💎</div>
+      <div class="bn-cost-bar" style="background:#27ae60">
+        <span class="bn-cost-val">${pkg.price}</span>
+      </div>
+    `;
+    card.onclick = () => {
+      G.base.gems = (G.base.gems || 0) + pkg.gems;
+      updateHUD();
+      saveData();
+      notify(`Você adquiriu ${pkg.gems} gemas!`, 'success');
+    };
+    grid.appendChild(card);
+  });
+}
+
+function renderShieldTab() {
+  const grid = gel('build-panel-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  const shields = [
+    { name: 'Escudo 24h', hours: 24, cost: 100 },
+    { name: 'Escudo 3 Dias', hours: 72, cost: 250 },
+    { name: 'Escudo 7 Dias', hours: 168, cost: 500 }
+  ];
+
+  shields.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'build-card-new';
+    card.innerHTML = `
+      <div class="bn-title">${s.name}</div>
+      <div style="font-size:40px;margin:15px 0">🛡️</div>
+      <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${s.hours}h</div>
+      <div class="bn-cost-bar">
+        <span class="bn-cost-val">${s.cost} 💎</span>
+      </div>
+    `;
+    card.onclick = () => {
+      if ((G.base.gems || 0) < s.cost) return notify('Gemas insuficientes!', 'error');
+      
+      G.base.gems -= s.cost;
+      const current = G.base.shieldUntil && G.base.shieldUntil > Date.now() ? G.base.shieldUntil : Date.now();
+      G.base.shieldUntil = current + (s.hours * 3600 * 1000);
+      
+      updateHUD();
+      saveData();
+      notify(`${s.name} ativado!`, 'success');
+    };
+    grid.appendChild(card);
+  });
+}
 
 function renderTroopsPanel() {
   const list     = gel('troops-list');
