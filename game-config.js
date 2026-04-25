@@ -101,7 +101,7 @@ const BUILDINGS = {
       { hp: 750,  buildTime: 900,  cost: { mineral: 3000,  oxygen: 1200 }, desc: 'Treina Drones e Robôs de batalha.',            availableTroops: ['drone', 'robot'] },
       { hp: 1000, buildTime: 1800, cost: { mineral: 10000, oxygen: 4000 }, desc: 'Treina todas as tropas, incluindo Tanques.', availableTroops: ['drone', 'robot', 'tank'] }
     ],
-    getAsset: (lvl) => `baracks_lvl${lvl}.png`,
+    getAsset: (lvl) => `barracks_lvl${lvl}.png`,
   },
   camp: {
     id: 'camp', name: 'Acampamento',
