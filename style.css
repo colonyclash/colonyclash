@@ -203,6 +203,18 @@ html, body {
 #panel-overlay.active .panel-backdrop { opacity: 1; }
 
 /* New Build Panel Design */
+.panel {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--bg-panel); border-top: 1px solid var(--border-glow);
+  border-radius: 24px 24px 0 0; padding: 0 0 20px;
+  transform: translateY(102%); transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: 80vh; overflow-y: auto; backdrop-filter: blur(24px);
+}
+.panel.visible { transform: translateY(0); }
+.panel-handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 3px; margin: 12px auto 6px; }
+.panel-head { font-family: var(--font-hd); font-size: 12px; letter-spacing: 2px; color: var(--c-primary); text-align: center; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); text-transform: uppercase; }
+
+/* New Build Panel Design */
 .panel.new-design {
   background: transparent;
   border-top: none;
@@ -277,6 +289,8 @@ html, body {
   padding: 20px 15px;
   position: relative;
   z-index: 1;
+  max-height: 55vh;
+  overflow-y: auto;
 }
 
 .build-card-new {
@@ -337,8 +351,8 @@ html, body {
   font-family: var(--font-hd);
   font-size: 12px;
 }
-.bn-cost-icon { width: 14px; height: 14px; }
-.bn-lock { position: absolute; top: 10px; right: 10px; font-size: 12px; }
+.bn-cost-icon { font-size: 14px; line-height: 1; }
+.bn-lock { position: absolute; top: 10px; right: 10px; font-size: 16px; text-shadow: 0 0 10px #000; }
 
 /* Troops Panel */
 .cap-bar-wrap { padding: 16px; }
