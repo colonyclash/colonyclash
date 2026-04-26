@@ -14,7 +14,12 @@ const MISSIONS = [
   { id: 7, text: 'CONSTRUIR 3 TORRETAS DE DEFESA', goal: 3, type: 'build', bldType: 'turret', reward: 10 },
   { id: 8, text: 'CONSTRUIR UM LABORATÓRIO', goal: 1, type: 'build', bldType: 'laboratory', reward: 10 },
   { id: 9, text: 'GANHAR 5 ATAQUES TOTAIS', goal: 5, type: 'attack_win_total', reward: 10 },
-  { id: 10, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 3', goal: 3, type: 'cc_level', reward: 10 }
+  { id: 10, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 3', goal: 3, type: 'cc_level', reward: 10 },
+  { id: 11, text: 'DESTRUIR 10 EDIFÍCIOS INIMIGOS NO TOTAL', goal: 10, type: 'destroy_buildings_total', reward: 20 },
+  { id: 12, text: 'TREINAR 10 DRONES', goal: 10, type: 'train_troop', troop: 'drone', reward: 10 },
+  { id: 13, text: 'VENÇA 3 BATALHAS SEGUIDAS', goal: 3, type: 'win_streak', reward: 30 },
+  { id: 14, text: 'REMOVA 1 ROCHA LUNAR', goal: 1, type: 'remove_obstacle', reward: 10 },
+  { id: 15, text: 'PESQUISAR 3 MELHORIAS DE TROPA NO LABORATÓRIO', goal: 3, type: 'research_total', reward: 30 }
 ];
 
 // ---- Global State ----
@@ -198,7 +203,12 @@ function createStarterBase() {
     lastObstacleSpawn: Date.now(),
     tutorialDone: false,
     totalWins: 0,
-    missions: { currentId: 0, completed: [], claimed: [], progress: 0 }
+    totalDestroyed: 0,
+    winStreak: 0,
+    totalObstaclesRemoved: 0,
+    totalResearch: 0,
+    totalDronesTrained: 0,
+    missions: { currentId: 0, completed: [], claimed: [], progress: 0, allProgress: {} }
   };
 }
 
@@ -508,6 +518,15 @@ function removeObstacle(bId) {
     if (idx >= 0) G.base.buildings.splice(idx, 1);
     gel('bld-' + bId)?.remove();
     
+    G.base.totalObstaclesRemoved = (G.base.totalObstaclesRemoved || 0) + 1;
+    if (G.base.missions && G.base.missions.allProgress) {
+      MISSIONS.forEach(m => {
+        if (m.type === 'remove_obstacle') {
+          G.base.missions.allProgress[m.id] = G.base.totalObstaclesRemoved;
+        }
+      });
+    }
+
     notify(`${t('obstacle_removed')} ${t('earn_reward')}: ${reward.amt} ${reward.type === 'gems' ? t('gems_unit') : t(reward.type)}`, 'success');
     updateHUD();
     saveData();
@@ -624,28 +643,49 @@ function mulberry32(a) {
 // ============================================================
 let bldLayer;
 const bldImgCache = {};
+const troopImgCache = {};
 
-function preloadBuildingImages() {
+function preloadAssets() {
+  const essential = [];
+  // Level 1 buildings
   for (const def of Object.values(BUILDINGS)) {
-    for (let lv = 1; lv <= (def.maxLevel || 1); lv++) {
-      const src = def.getAsset(lv, 'dummy');
+    essential.push(def.getAsset(1, 'dummy'));
+  }
+  // Troops
+  ['drone', 'robot', 'tank'].forEach(t => essential.push(`${t}_sprite.png`));
+  // Terrain & UI
+  essential.push('moon_crater_bg.png', 'cc_lvl1.png', 'cc_lvl2.png', 'cc_lvl3.png');
+
+  let loaded = 0;
+  const total = essential.length;
+
+  return Promise.all(essential.map(src => {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        loaded++;
+        const pct = 10 + (loaded / total) * 20; // 10% to 30% range
+        setLoadProgress(pct);
+        resolve();
+      };
+      img.src = src;
+      if (src.includes('sprite')) troopImgCache[src] = img;
+      else bldImgCache[src] = img;
+    });
+  }));
+}
+
+// Background preloading for higher levels
+function preloadExtraAssets() {
+  for (const def of Object.values(BUILDINGS)) {
+    for (let lv = 2; lv <= (def.maxLevel || 1); lv++) {
+      const src = def.getAsset(lv, 'bg-load');
       if (!bldImgCache[src]) {
         const img = new Image(); img.src = src;
         bldImgCache[src] = img;
       }
     }
   }
-}
-
-const troopImgCache = {};
-function preloadTroopImages() {
-  ['drone', 'robot', 'tank'].forEach(type => {
-    const src = `${type}_sprite.png`;
-    if (!troopImgCache[src]) {
-      const img = new Image(); img.src = src;
-      troopImgCache[src] = img;
-    }
-  });
 }
 
 function renderBuildingsLayer() {
@@ -1577,9 +1617,18 @@ function checkMissionProgress() {
       prog = getCurrentCCLevel();
     } else if (m.type === 'attack_win_total') {
       prog = G.base.totalWins || 0;
+    } else if (m.type === 'destroy_buildings_total') {
+      prog = G.base.totalDestroyed || 0;
+    } else if (m.type === 'win_streak') {
+      prog = G.base.winStreak || 0;
+    } else if (m.type === 'remove_obstacle') {
+      prog = G.base.totalObstaclesRemoved || 0;
+    } else if (m.type === 'research_total') {
+      prog = G.base.totalResearch || 0;
+    } else if (m.type === 'train_troop') {
+      if (m.troop === 'drone') prog = G.base.totalDronesTrained || 0;
+      // Adicione outros se necessário
     } else if (m.type === 'attack_win') {
-      // For 'attack_win', we might need to keep the existing logic or check a flag
-      // Actually, let's just use the existing progress if it was set during battle
       prog = G.base.missions.allProgress[m.id] || 0;
     }
     
@@ -1808,6 +1857,18 @@ function finishTraining(type, finishTime) {
   const idx = G.base.queue.findIndex(q => q.type === type && q.finishTime === finishTime);
   if (idx >= 0) G.base.queue.splice(idx, 1);
   G.base.troops[type] = (G.base.troops[type] || 0) + 1;
+  
+  if (type === 'drone') {
+    G.base.totalDronesTrained = (G.base.totalDronesTrained || 0) + 1;
+    if (G.base.missions && G.base.missions.allProgress) {
+      MISSIONS.forEach(m => {
+        if (m.type === 'train_troop' && m.troop === 'drone') {
+          G.base.missions.allProgress[m.id] = G.base.totalDronesTrained;
+        }
+      });
+    }
+  }
+  
   notify(`${TROOPS[type]?.emoji} ${t(type)} ${t('ready')}!`, 'success');
   if (G.ui.panel === 'troops') renderTroopsPanel();
   updateHUD();
@@ -2513,6 +2574,9 @@ async function endBattle() {
 
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
+    G.base.winStreak = (G.base.winStreak || 0) + 1;
+    G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
+    
     if (G.base.missions) {
       if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
       MISSIONS.forEach(m => {
@@ -2522,8 +2586,16 @@ async function endBattle() {
         if (m.type === 'attack_win_total') {
           G.base.missions.allProgress[m.id] = G.base.totalWins;
         }
+        if (m.type === 'win_streak') {
+          G.base.missions.allProgress[m.id] = G.base.winStreak;
+        }
+        if (m.type === 'destroy_buildings_total') {
+          G.base.missions.allProgress[m.id] = G.base.totalDestroyed;
+        }
       });
     }
+  } else {
+    G.base.winStreak = 0; // Perdeu a sequência
   }
 
   await saveData();
@@ -2697,6 +2769,16 @@ function doLabResearch(troopId, level, energyCost, mineralCost) {
   G.base.resources.energy  -= energyCost;
   G.base.resources.mineral -= mineralCost;
   G.base.troopUpgrades[troopId] = level;
+  
+  G.base.totalResearch = (G.base.totalResearch || 0) + 1;
+  if (G.base.missions && G.base.missions.allProgress) {
+    MISSIONS.forEach(m => {
+      if (m.type === 'research_total') {
+        G.base.missions.allProgress[m.id] = G.base.totalResearch;
+      }
+    });
+  }
+
   updateHUD();
   saveData();
   notify(`✓ ${TROOP_UPGRADES[troopId].name} — ${TROOP_UPGRADES[troopId].upgrades[level-1].name} desbloqueado!`, 'success');
@@ -2710,10 +2792,11 @@ async function init() {
   spawnLoginStars();
   setLoadProgress(10);
 
-  preloadBuildingImages();
-  preloadTroopImages();
+  await preloadAssets();
+  preloadExtraAssets(); // Background load levels 2+
+  
   const hasFirebase = initFirebase();
-  setLoadProgress(30);
+  setLoadProgress(35);
 
   if (!hasFirebase) {
     // Demo mode — no Firebase
