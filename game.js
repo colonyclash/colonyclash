@@ -139,6 +139,7 @@ async function loadData() {
       processOfflineQueue();
       processOfflineBuildings();
       processOfflineObstacles();
+      if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0 };
     } else {
       createStarterBase();
       await saveData();
@@ -1603,6 +1604,8 @@ function claimMissionReward(id) {
   saveData();
   renderMissionPanel();
 }
+
+function renderTroopsPanel() {
   const list     = gel('troops-list');
   const capFill  = gel('cap-bar-fill');
   const capLabel = gel('cap-bar-label-val');
