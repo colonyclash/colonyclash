@@ -6,7 +6,15 @@
 const MISSIONS = [
   { id: 0, text: 'CONSTRUIR 2 EXTRATORES DE MINERIOS', goal: 2, type: 'build', bldType: 'mineral_extractor', reward: 10 },
   { id: 1, text: 'CONSTRUIR 2 EXTRATORES DE OXIGENIO', goal: 2, type: 'build', bldType: 'oxygen_extractor', reward: 10 },
-  { id: 2, text: 'GANHAR UM ATAQUE USANDO DRONE ROBO', goal: 1, type: 'attack_win', reward: 10 }
+  { id: 2, text: 'CONSTRUIR 3 PAINÉIS SOLARES', goal: 3, type: 'build', bldType: 'solar_panel', reward: 10 },
+  { id: 3, text: 'CONSTRUIR UM QUARTEL', goal: 1, type: 'build', bldType: 'barracks', reward: 15 },
+  { id: 4, text: 'CONSTRUIR 2 ACAMPAMENTOS', goal: 2, type: 'build', bldType: 'camp', reward: 15 },
+  { id: 5, text: 'GANHAR UM ATAQUE USANDO DRONE ROBO', goal: 1, type: 'attack_win', reward: 20 },
+  { id: 6, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 2', goal: 2, type: 'cc_level', reward: 50 },
+  { id: 7, text: 'CONSTRUIR 3 TORRETAS DE DEFESA', goal: 3, type: 'build', bldType: 'turret', reward: 25 },
+  { id: 8, text: 'CONSTRUIR UM LABORATÓRIO', goal: 1, type: 'build', bldType: 'laboratory', reward: 30 },
+  { id: 9, text: 'GANHAR 5 ATAQUES TOTAIS', goal: 5, type: 'attack_win_total', reward: 100 },
+  { id: 10, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 3', goal: 3, type: 'cc_level', reward: 200 }
 ];
 
 // ---- Global State ----
@@ -22,7 +30,8 @@ const G = {
     queue: [],
     ccLevel: 1,
     trophies: 100,
-    playerName: 'Colono'
+    playerName: 'Colono',
+    totalWins: 0
   },
   ui: {
     screen: 'loading',
@@ -187,6 +196,7 @@ function createStarterBase() {
     nameChanged: false,
     lastObstacleSpawn: Date.now(),
     tutorialDone: false,
+    totalWins: 0,
     missions: { currentId: 0, completed: [], claimed: [], progress: 0 }
   };
 }
@@ -235,8 +245,7 @@ function processOfflineBuildings() {
       const bId = b.id;
       const defName = BUILDINGS[b.type]?.name || b.type;
       setTimeout(() => {
-        const bld = G.base.buildings.find(x => x.id === bId);
-        if (bld) { bld.buildFinish = 0; refreshBldEl(bId); notify(`${defName} pronto!`, 'success'); saveData(); }
+        if (bld) { bld.buildFinish = 0; refreshBldEl(bId); notify(`${t(b.type)} ${t('ready')}!`, 'success'); saveData(); }
       }, rem);
     }
     if (b.upgradeFinish && b.upgradeFinish > 0 && b.upgradeFinish <= now) {
@@ -301,7 +310,7 @@ window.adminFillResources = function() {
   G.base.resources.energy  = 99999999;
   updateHUD();
   saveData();
-  notify('Modo Admin: Ganhou 100M de Recursos!', 'success');
+  notify(t('admin_resources_gain'), 'success');
 };
 
 window.adminMaxCC = function() {
@@ -313,12 +322,12 @@ window.adminMaxCC = function() {
     updateHUD();
     saveData();
     refreshBldEl(cc.id);
-    notify('Modo Admin: CC no Nível Máximo!', 'success');
+    notify(t('admin_cc_max'), 'success');
   }
 };
 
 window.adminGiveToPlayer = async function() {
-  if (G.user?.email !== 'admin@colonyclash.com') { notify('Acesso negado', 'error'); return; }
+  if (G.user?.email !== 'admin@colonyclash.com') { notify(t('admin_access_denied'), 'error'); return; }
   const uid = document.getElementById('admin-target-uid').value.trim();
   const type = document.getElementById('admin-give-type').value;
   const amt = parseInt(document.getElementById('admin-give-amount').value, 10);
@@ -384,7 +393,7 @@ function hasFreeBuilder() {
 window.showBuildersModal = function() {
   const current = getTotalBuilders();
   if (current >= 4) {
-    notify('Você já tem o máximo de astronautas (4)!', 'info');
+    notify(t('max_builders_reached'), 'info');
     return;
   }
   
@@ -405,7 +414,7 @@ window.showBuildersModal = function() {
   confirmBtn.onclick = () => {
     G.base.gems -= cost;
     G.base.builders = (G.base.builders || 1) + 1;
-    notify('Novo astronauta contratado! 👨‍🚀', 'success');
+    notify(t('new_builder_hired'), 'success');
     closeModal();
     updateHUD();
     saveData();
@@ -456,10 +465,10 @@ function removeObstacle(bId) {
   if (b.removing) return;
 
   if (!hasFreeBuilder()) {
-    notify('Todos os astronautas estão ocupados!', 'error'); return;
+    notify(t('all_builders_busy'), 'error'); return;
   }
   if (G.base.resources.mineral < 100) {
-    notify('Minério insuficiente! (100 necessário)', 'error'); return;
+    notify(`${t('insufficient_minerals')} (100 ${t('ready')})`, 'error'); return;
   }
   
   G.base.resources.mineral -= 100;
@@ -471,7 +480,7 @@ function removeObstacle(bId) {
   updateHUD();
   saveData();
   
-  notify('Removendo rocha lunar (10s)...', 'info');
+  notify(t('removing_obstacle') + ' (10s)...', 'info');
   
   setTimeout(() => {
     const rewards = [
@@ -498,7 +507,7 @@ function removeObstacle(bId) {
     if (idx >= 0) G.base.buildings.splice(idx, 1);
     gel('bld-' + bId)?.remove();
     
-    notify(`Rocha removida! Ganhou: ${reward.amt} ${reward.type === 'gems' ? 'Joias' : t(reward.type)}`, 'success');
+    notify(`${t('obstacle_removed')} ${t('earn_reward')}: ${reward.amt} ${reward.type === 'gems' ? t('gems_unit') : t(reward.type)}`, 'success');
     updateHUD();
     saveData();
   }, 10000);
@@ -1030,7 +1039,7 @@ function confirmPlace() {
   if (!(G.ui.buildMode || G.ui.moveMode) || !G.ui.buildType) return;
   const { ghostX, ghostY, ghostValid, buildType } = G.ui;
   if (ghostX < 0 || ghostY < 0 || !ghostValid) {
-    notify('Escolha uma posição válida!', 'error'); return;
+    notify(t('invalid_position'), 'error'); return;
   }
   const def  = BUILDINGS[buildType];
 
@@ -1054,7 +1063,7 @@ function confirmPlace() {
   const oxyCost = lvl1.cost?.oxygen  || 0;
 
   if (G.base.resources.mineral < minCost || G.base.resources.oxygen < oxyCost) {
-    notify('Recursos insuficientes!', 'error'); return;
+    notify(t('insufficient_resources'), 'error'); return;
   }
 
   if (!hasFreeBuilder()) {
@@ -1064,7 +1073,7 @@ function confirmPlace() {
   const ccLvl  = getCurrentCCLevel();
   const maxAllowed = BUILDINGS.command_center.levels[ccLvl].unlocks.buildings?.[buildType] || 0;
   if (getBuildingCountOfType(buildType) >= maxAllowed) {
-    notify('Limite atingido! Melhore o CC.', 'error'); return;
+    notify(t('building_limit_reached'), 'error'); return;
   }
 
   G.base.resources.mineral -= minCost;
@@ -1079,13 +1088,13 @@ function confirmPlace() {
   };
   G.base.buildings.push(nb);
   if (lvl1.buildTime > 0) {
-    setTimeout(() => { nb.buildFinish = 0; refreshBldEl(nb.id); notify(`${def.name} pronto!`, 'success'); saveData(); }, lvl1.buildTime * 1000);
+    setTimeout(() => { nb.buildFinish = 0; refreshBldEl(nb.id); notify(`${t(buildType)} ${t('ready')}!`, 'success'); saveData(); }, lvl1.buildTime * 1000);
   }
   spawnBldEl(nb);
   exitBuildMode();
   updateHUD();
   saveData();
-  notify(`${def.name} construído!`, 'success');
+  notify(`${t(buildType)} ${t('ready')}!`, 'success');
 }
 
 // ============================================================
@@ -1509,7 +1518,7 @@ function renderMissionPanel() {
   const curId = G.base.missions.currentId;
   const curMis = MISSIONS[curId];
   
-  let html = `<div class="mission-title">MISSOES</div>`;
+  let html = `<div class="mission-title" data-t="mission_title">${t('mission_title')}</div>`;
   
   if (curMis) {
     const isDone = G.base.missions.progress >= curMis.goal;
@@ -1517,12 +1526,12 @@ function renderMissionPanel() {
     const isClaimed = G.base.missions.claimed.includes(curId);
     
     html += `
-      <div class="section-label">MISSAO ATUAL</div>
+      <div class="section-label" data-t="current_mission_label">${t('current_mission_label')}</div>
       <div class="mission-box-current">
-        <div class="mission-badge">Missão Atual</div>
+        <div class="mission-badge" data-t="current_mission_badge">${t('current_mission_badge')}</div>
         <div class="mission-flex">
           <div class="mission-info">
-            <div class="mission-text">${curMis.text}</div>
+            <div class="mission-text">${t('mission_' + curId)}</div>
             <div class="mission-prog-wrap">
               <div class="mission-prog-bar">
                 <div class="mission-prog-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
@@ -1530,26 +1539,26 @@ function renderMissionPanel() {
               <div class="mission-prog-pct">${pct}%</div>
             </div>
           </div>
-          <button class="btn-claim-mission" ${(!isDone || isClaimed) ? 'disabled' : ''} onclick="claimMissionReward(${curId})">
-            ${isClaimed ? 'RESGATADO' : `RESGATAR<br>${curMis.reward} JOIAS`}
+          <button class="btn-claim-mission ${(!isDone || isClaimed) ? 'disabled' : ''}" ${(!isDone || isClaimed) ? 'disabled' : ''} onclick="claimMissionReward(${curId})">
+            ${isClaimed ? t('claimed') : `${t('claim_reward')}<br>${curMis.reward} ${t('gems_unit')}`}
           </button>
         </div>
       </div>
     `;
   } else {
-    html += `<p style="color:#888;text-align:center;padding:20px;">Todas as missões concluídas!</p>`;
+    html += `<p style="color:#888;text-align:center;padding:20px;" data-t="all_missions_done">${t('all_missions_done')}</p>`;
   }
   
-  const nextMis = MISSIONS.slice(curId + 1);
+  const nextMis = MISSIONS.slice(curId + 1, curId + 4); // Show next 3
   if (nextMis.length > 0) {
-    html += `<div class="section-label">PROXIMAS MISSOES</div>`;
-    nextMis.forEach((m, idx) => {
+    html += `<div class="section-label" data-t="next_missions_label">${t('next_missions_label')}</div>`;
+    nextMis.forEach((m) => {
       html += `
         <div class="mission-card-next">
           <div class="mission-flex">
             <div class="mission-info">
-              <div class="mission-text">MISSAO ${m.id + 1}: ${m.text}</div>
-              <div class="mission-reward-label">GANHAR ${m.reward} JOIAS</div>
+              <div class="mission-text">${t('mission_' + m.id)}</div>
+              <div class="mission-reward-label">${t('earn_reward')} ${m.reward} ${t('gems_unit')}</div>
               <div class="mission-prog-wrap">
                 <div class="mission-prog-bar">
                   <div class="mission-prog-fill" style="width:0%"></div>
@@ -1557,8 +1566,8 @@ function renderMissionPanel() {
                 <div class="mission-prog-pct">0%</div>
               </div>
             </div>
-            <button class="btn-claim-mission" disabled style="background:#555;">
-              RECOMPENSA<br>BLOQUEADA
+            <button class="btn-claim-mission disabled" disabled>
+              ${t('reward_locked')}
             </button>
           </div>
         </div>
@@ -1578,6 +1587,12 @@ function checkMissionProgress() {
   if (curMis.type === 'build') {
     const count = getBuildingCountOfType(curMis.bldType);
     G.base.missions.progress = count;
+  } else if (curMis.type === 'cc_level') {
+    G.base.missions.progress = getCurrentCCLevel();
+  } else if (curMis.type === 'attack_win_total') {
+    // Note: Assuming we track total wins somewhere, or we can use G.base.totalWins if it exists.
+    // If not, we might need to add it. Let's check G.base first.
+    G.base.missions.progress = G.base.totalWins || 0;
   }
   
   if (G.base.missions.progress > curMis.goal) G.base.missions.progress = curMis.goal;
@@ -1600,7 +1615,7 @@ function claimMissionReward(id) {
   checkMissionProgress();
   
   updateHUD();
-  notify(`Recompensa resgatada: +${m.reward} 💎`, 'success');
+  notify(`${t('reward_claimed_success')}: +${m.reward} 💎`, 'success');
   saveData();
   renderMissionPanel();
 }
@@ -1754,7 +1769,7 @@ window.promptChangeName = function() {
     return;
   }
   if ((G.base.gems || 0) < 100) {
-    notify('Gemas insuficientes! (100 necessárias)', 'error');
+    notify(`${t('not_enough_gems')} (100 ${t('ready')})`, 'error');
     return;
   }
   
@@ -1770,7 +1785,7 @@ window.promptChangeName = function() {
     G.base.gems -= 100;
     G.base.playerName = cleanName;
     G.base.nameChanged = true;
-    notify('Nome da colônia alterado!', 'success');
+    notify(t('name_changed_success'), 'success');
     renderInfoPanel();
     updateHUD();
     saveData();
@@ -1784,7 +1799,7 @@ function trainTroop(type) {
   const td  = TROOPS[type]; if (!td) return;
   const cap = getTotalCampCapacity(G.base.buildings);
   const used = getTotalTroopSpace(G.base.troops);
-  if (used + td.space > cap) { notify('Acampamento cheio! Construa mais.', 'error'); return; }
+  if (used + td.space > cap) { notify(t('need_camp'), 'error'); return; }
   if (G.base.resources.mineral < td.cost.mineral || G.base.resources.oxygen < td.cost.oxygen) {
     notify('Recursos insuficientes!', 'error'); return;
   }
@@ -1798,7 +1813,7 @@ function trainTroop(type) {
 
   updateHUD();
   saveData();
-  notify(`Treinando ${td.name}... (${fmtTime(td.trainTime)})`, 'info');
+  notify(`${t('training')} ${t(type)}... (${fmtTime(td.trainTime)})`, 'info');
 }
 
 function finishTraining(type, finishTime) {
@@ -1806,7 +1821,7 @@ function finishTraining(type, finishTime) {
   const idx = G.base.queue.findIndex(q => q.type === type && q.finishTime === finishTime);
   if (idx >= 0) G.base.queue.splice(idx, 1);
   G.base.troops[type] = (G.base.troops[type] || 0) + 1;
-  notify(`${TROOPS[type]?.emoji} ${TROOPS[type]?.name} pronto!`, 'success');
+  notify(`${TROOPS[type]?.emoji} ${t(type)} ${t('ready')}!`, 'success');
   if (G.ui.panel === 'troops') renderTroopsPanel();
   updateHUD();
   saveData();
@@ -1848,7 +1863,7 @@ function cancelUpgrade(bId) {
   const b = G.base.buildings.find(x => x.id === bId);
   if (!b || !b.upgradeFinish || b.upgradeFinish <= Date.now()) return;
   
-  if (confirm('Deseja cancelar a melhoria? Você receberá 50% dos recursos de volta.')) {
+  if (confirm(t('confirm_cancel_upgrade'))) {
     const def = BUILDINGS[b.type];
     const nextLvl = b.level + 1;
     const cost = def.levels[nextLvl].cost;
@@ -1857,7 +1872,7 @@ function cancelUpgrade(bId) {
     G.base.resources.oxygen  += Math.floor((cost.oxygen || 0) * 0.5);
     
     b.upgradeFinish = 0;
-    notify('Melhoria cancelada!', 'info');
+    notify(t('upgrade_cancelled'), 'info');
     hideBldPopup();
     refreshBldEl(bId);
     updateHUD();
@@ -2056,8 +2071,8 @@ let bCtx, bCanvas, bInterval, bTimerInterval;
 function launchBattle(opponent) {
   const myTroops = G.base.troops || {};
   const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
-  if (totalT === 0) { notify('Treine tropas antes de atacar!', 'error'); return; }
-  if (!opponent.buildings || opponent.buildings.length === 0) { notify('Base inimiga vazia!', 'error'); return; }
+  if (totalT === 0) { notify(t('train_troops_first'), 'error'); return; }
+  if (!opponent.buildings || opponent.buildings.length === 0) { notify(t('enemy_base_empty'), 'error'); return; }
 
   switchScreen('attack');
   bCanvas = gel('battle-canvas');
@@ -2170,7 +2185,7 @@ function onBattleTouchEnd(e) {
 function deployTroop(px, py) {
   if (!G.battle || G.battle.phase === 'end') return;
   const type = G.battle.selectedTroop;
-  if (!type) { notify('Selecione uma tropa!', 'error'); return; }
+  if (!type) { notify(t('select_troop_deploy'), 'error'); return; }
   if ((G.battle.deployPool[type] || 0) <= 0) return;
   const { gx, gy } = getGridFromCanvas(px, py);
   const td = TROOPS[type];
@@ -2509,8 +2524,14 @@ async function endBattle() {
     }
   }
 
-  if (won && G.base.missions && MISSIONS[G.base.missions.currentId]?.type === 'attack_win') {
-    G.base.missions.progress = 1;
+  if (won) {
+    G.base.totalWins = (G.base.totalWins || 0) + 1;
+    if (G.base.missions && MISSIONS[G.base.missions.currentId]?.type === 'attack_win') {
+      G.base.missions.progress = 1;
+    }
+    if (G.base.missions && MISSIONS[G.base.missions.currentId]?.type === 'attack_win_total') {
+      G.base.missions.progress = G.base.totalWins;
+    }
   }
 
   await saveData();
