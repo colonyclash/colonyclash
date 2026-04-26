@@ -148,7 +148,8 @@ async function loadData() {
       processOfflineQueue();
       processOfflineBuildings();
       processOfflineObstacles();
-      if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0 };
+      if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0, allProgress: {} };
+      if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
     } else {
       createStarterBase();
       await saveData();
@@ -1514,24 +1515,32 @@ function renderMissionPanel() {
   const cont = gel('mission-content');
   if (!cont) return;
   
-  if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0 };
-  const curId = G.base.missions.currentId;
-  const curMis = MISSIONS[curId];
+  if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0, allProgress: {} };
+  if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
+  if (!G.base.missions.claimed) G.base.missions.claimed = [];
   
   let html = `<div class="mission-title" data-t="mission_title">${t('mission_title')}</div>`;
   
-  if (curMis) {
-    const isDone = G.base.missions.progress >= curMis.goal;
-    const pct = Math.min(100, Math.floor((G.base.missions.progress / curMis.goal) * 100));
-    const isClaimed = G.base.missions.claimed.includes(curId);
+  let hasPending = false;
+  
+  // Dividimos em Pendentes e Concluídas/Resgatadas?
+  // Vamos mostrar todas em uma lista única, mas destacando as que podem ser resgatadas.
+  
+  MISSIONS.forEach(m => {
+    const prog = G.base.missions.allProgress[m.id] || 0;
+    const isDone = prog >= m.goal;
+    const pct = Math.min(100, Math.floor((prog / m.goal) * 100));
+    const isClaimed = G.base.missions.claimed.includes(m.id);
     
+    if (!isClaimed) hasPending = true;
+
     html += `
-      <div class="section-label" data-t="current_mission_label">${t('current_mission_label')}</div>
-      <div class="mission-box-current">
-        <div class="mission-badge" data-t="current_mission_badge">${t('current_mission_badge')}</div>
+      <div class="${isClaimed ? 'mission-card-next' : 'mission-box-current'}" style="${isClaimed ? 'opacity: 0.7; border-color: #444;' : ''}">
+        ${isDone && !isClaimed ? `<div class="mission-badge" style="background:#00D215;">${t('ready') || 'PRONTO'}</div>` : ''}
         <div class="mission-flex">
           <div class="mission-info">
-            <div class="mission-text">${t('mission_' + curId)}</div>
+            <div class="mission-text">${t('mission_' + m.id)}</div>
+            <div class="mission-reward-label">${t('earn_reward')} ${m.reward} ${t('gems_unit')}</div>
             <div class="mission-prog-wrap">
               <div class="mission-prog-bar">
                 <div class="mission-prog-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
@@ -1539,40 +1548,18 @@ function renderMissionPanel() {
               <div class="mission-prog-pct">${pct}%</div>
             </div>
           </div>
-          <button class="btn-claim-mission ${(!isDone || isClaimed) ? 'disabled' : ''}" ${(!isDone || isClaimed) ? 'disabled' : ''} onclick="claimMissionReward(${curId})">
-            ${isClaimed ? t('claimed') : `${t('claim_reward')}<br>${curMis.reward} ${t('gems_unit')}`}
+          <button class="btn-claim-mission ${(!isDone || isClaimed) ? 'disabled' : ''}" 
+            ${(!isDone || isClaimed) ? 'disabled' : ''} 
+            onclick="claimMissionReward(${m.id})">
+            ${isClaimed ? t('claimed') : `${t('claim_reward')}<br>${m.reward} ${t('gems_unit')}`}
           </button>
         </div>
       </div>
     `;
-  } else {
-    html += `<p style="color:#888;text-align:center;padding:20px;" data-t="all_missions_done">${t('all_missions_done')}</p>`;
-  }
+  });
   
-  const nextMis = MISSIONS.slice(curId + 1, curId + 4); // Show next 3
-  if (nextMis.length > 0) {
-    html += `<div class="section-label" data-t="next_missions_label">${t('next_missions_label')}</div>`;
-    nextMis.forEach((m) => {
-      html += `
-        <div class="mission-card-next">
-          <div class="mission-flex">
-            <div class="mission-info">
-              <div class="mission-text">${t('mission_' + m.id)}</div>
-              <div class="mission-reward-label">${t('earn_reward')} ${m.reward} ${t('gems_unit')}</div>
-              <div class="mission-prog-wrap">
-                <div class="mission-prog-bar">
-                  <div class="mission-prog-fill" style="width:0%"></div>
-                </div>
-                <div class="mission-prog-pct">0%</div>
-              </div>
-            </div>
-            <button class="btn-claim-mission disabled" disabled>
-              ${t('reward_locked')}
-            </button>
-          </div>
-        </div>
-      `;
-    });
+  if (!hasPending) {
+    html += `<p style="color:#00D215;text-align:center;padding:20px;font-family:var(--font-hd);">${t('all_missions_done')}</p>`;
   }
   
   cont.innerHTML = html;
@@ -1580,39 +1567,39 @@ function renderMissionPanel() {
 
 function checkMissionProgress() {
   if (!G.base.missions) return;
-  const curId = G.base.missions.currentId;
-  const curMis = MISSIONS[curId];
-  if (!curMis) return;
-  
-  if (curMis.type === 'build') {
-    const count = getBuildingCountOfType(curMis.bldType);
-    G.base.missions.progress = count;
-  } else if (curMis.type === 'cc_level') {
-    G.base.missions.progress = getCurrentCCLevel();
-  } else if (curMis.type === 'attack_win_total') {
-    // Note: Assuming we track total wins somewhere, or we can use G.base.totalWins if it exists.
-    // If not, we might need to add it. Let's check G.base first.
-    G.base.missions.progress = G.base.totalWins || 0;
-  }
-  
-  if (G.base.missions.progress > curMis.goal) G.base.missions.progress = curMis.goal;
+  if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
+
+  MISSIONS.forEach(m => {
+    let prog = 0;
+    if (m.type === 'build') {
+      prog = getBuildingCountOfType(m.bldType);
+    } else if (m.type === 'cc_level') {
+      prog = getCurrentCCLevel();
+    } else if (m.type === 'attack_win_total') {
+      prog = G.base.totalWins || 0;
+    } else if (m.type === 'attack_win') {
+      // For 'attack_win', we might need to keep the existing logic or check a flag
+      // Actually, let's just use the existing progress if it was set during battle
+      prog = G.base.missions.allProgress[m.id] || 0;
+    }
+    
+    if (prog > m.goal) prog = m.goal;
+    G.base.missions.allProgress[m.id] = prog;
+  });
+
   if (G.ui.panel === 'mission') renderMissionPanel();
 }
 
 function claimMissionReward(id) {
   const m = MISSIONS[id];
-  if (!m || G.base.missions.claimed.includes(id)) return;
-  if (G.base.missions.progress < m.goal) return;
+  if (!m || !G.base.missions.claimed) return;
+  if (G.base.missions.claimed.includes(id)) return;
+  
+  const prog = G.base.missions.allProgress[id] || 0;
+  if (prog < m.goal) return;
   
   G.base.missions.claimed.push(id);
   G.base.gems = (G.base.gems || 0) + m.reward;
-  
-  // Próxima missão
-  G.base.missions.currentId++;
-  G.base.missions.progress = 0; // Reset progresso para a próxima
-  
-  // Re-checar imediatamente se a próxima missão já está completa (ex: já tem os prédios)
-  checkMissionProgress();
   
   updateHUD();
   notify(`${t('reward_claimed_success')}: +${m.reward} 💎`, 'success');
@@ -2526,11 +2513,16 @@ async function endBattle() {
 
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
-    if (G.base.missions && MISSIONS[G.base.missions.currentId]?.type === 'attack_win') {
-      G.base.missions.progress = 1;
-    }
-    if (G.base.missions && MISSIONS[G.base.missions.currentId]?.type === 'attack_win_total') {
-      G.base.missions.progress = G.base.totalWins;
+    if (G.base.missions) {
+      if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
+      MISSIONS.forEach(m => {
+        if (m.type === 'attack_win') {
+          G.base.missions.allProgress[m.id] = 1;
+        }
+        if (m.type === 'attack_win_total') {
+          G.base.missions.allProgress[m.id] = G.base.totalWins;
+        }
+      });
     }
   }
 
