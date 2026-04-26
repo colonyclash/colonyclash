@@ -7,14 +7,14 @@ const MISSIONS = [
   { id: 0, text: 'CONSTRUIR 2 EXTRATORES DE MINERIOS', goal: 2, type: 'build', bldType: 'mineral_extractor', reward: 10 },
   { id: 1, text: 'CONSTRUIR 2 EXTRATORES DE OXIGENIO', goal: 2, type: 'build', bldType: 'oxygen_extractor', reward: 10 },
   { id: 2, text: 'CONSTRUIR 3 PAINÉIS SOLARES', goal: 3, type: 'build', bldType: 'solar_panel', reward: 10 },
-  { id: 3, text: 'CONSTRUIR UM QUARTEL', goal: 1, type: 'build', bldType: 'barracks', reward: 15 },
-  { id: 4, text: 'CONSTRUIR 2 ACAMPAMENTOS', goal: 2, type: 'build', bldType: 'camp', reward: 15 },
-  { id: 5, text: 'GANHAR UM ATAQUE USANDO DRONE ROBO', goal: 1, type: 'attack_win', reward: 20 },
-  { id: 6, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 2', goal: 2, type: 'cc_level', reward: 50 },
-  { id: 7, text: 'CONSTRUIR 3 TORRETAS DE DEFESA', goal: 3, type: 'build', bldType: 'turret', reward: 25 },
-  { id: 8, text: 'CONSTRUIR UM LABORATÓRIO', goal: 1, type: 'build', bldType: 'laboratory', reward: 30 },
-  { id: 9, text: 'GANHAR 5 ATAQUES TOTAIS', goal: 5, type: 'attack_win_total', reward: 100 },
-  { id: 10, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 3', goal: 3, type: 'cc_level', reward: 200 }
+  { id: 3, text: 'CONSTRUIR UM QUARTEL', goal: 1, type: 'build', bldType: 'barracks', reward: 10 },
+  { id: 4, text: 'CONSTRUIR 2 ACAMPAMENTOS', goal: 2, type: 'build', bldType: 'camp', reward: 10 },
+  { id: 5, text: 'GANHAR UM ATAQUE USANDO DRONE ROBO', goal: 1, type: 'attack_win', reward: 10 },
+  { id: 6, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 2', goal: 2, type: 'cc_level', reward: 10 },
+  { id: 7, text: 'CONSTRUIR 3 TORRETAS DE DEFESA', goal: 3, type: 'build', bldType: 'turret', reward: 10 },
+  { id: 8, text: 'CONSTRUIR UM LABORATÓRIO', goal: 1, type: 'build', bldType: 'laboratory', reward: 10 },
+  { id: 9, text: 'GANHAR 5 ATAQUES TOTAIS', goal: 5, type: 'attack_win_total', reward: 10 },
+  { id: 10, text: 'MELHORAR CENTRO DE COMANDO PARA NÍVEL 3', goal: 3, type: 'cc_level', reward: 10 }
 ];
 
 // ---- Global State ----
