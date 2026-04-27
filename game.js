@@ -148,13 +148,24 @@ async function loadData() {
     const doc = await G.db.collection('users').doc(G.pid).get();
     if (doc.exists) {
       const d = doc.data();
-      G.base = { ...G.base, ...d };
+      // Deep merge of essential objects to avoid losing new fields
+      G.base = {
+        ...G.base,
+        ...d,
+        resources: { ...G.base.resources, ...(d.resources || {}) },
+        missions:  { ...G.base.missions,  ...(d.missions || {}) },
+        troops:    { ...G.base.troops,    ...(d.troops || {}) },
+        troopUpgrades: { ...G.base.troopUpgrades, ...(d.troopUpgrades || {}) }
+      };
+      
+      // Ensure all Progress exists
+      if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
+      if (!G.base.missions.claimed) G.base.missions.claimed = [];
+      
       processOfflineResources();
       processOfflineQueue();
       processOfflineBuildings();
       processOfflineObstacles();
-      if (!G.base.missions) G.base.missions = { currentId: 0, completed: [], claimed: [], progress: 0, allProgress: {} };
-      if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
     } else {
       createStarterBase();
       await saveData();
@@ -162,18 +173,36 @@ async function loadData() {
   } catch (e) { console.error('Load failed:', e); createStarterBase(); }
 }
 
+function sanitizeForFirestore(obj) {
+  const clean = {};
+  Object.keys(obj).forEach(key => {
+    const v = obj[key];
+    if (v === undefined) return;
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      clean[key] = sanitizeForFirestore(v);
+    } else if (Array.isArray(v)) {
+      clean[key] = v.map(item => (typeof item === 'object' && item !== null) ? sanitizeForFirestore(item) : item);
+    } else {
+      clean[key] = v;
+    }
+  });
+  return clean;
+}
+
 async function saveData() {
   if (!G.pid || !G.db) return;
   checkMissionProgress();
   try {
     G.base.lastSave = Date.now();
-    await G.db.collection('users').doc(G.pid).set({
+    const dataToSave = sanitizeForFirestore({
       ...G.base,
-      playerName: G.user?.displayName || G.base.playerName,
+      playerName: G.user?.displayName || G.base.playerName || 'Colono',
       uid: G.pid,
       photoURL: G.user?.photoURL || null,
       updatedAt: Date.now()
     });
+    
+    await G.db.collection('users').doc(G.pid).set(dataToSave);
   } catch (e) { console.error('Save failed:', e); }
 }
 
@@ -256,7 +285,8 @@ function processOfflineBuildings() {
       const bId = b.id;
       const defName = BUILDINGS[b.type]?.name || b.type;
       setTimeout(() => {
-        if (bld) { bld.buildFinish = 0; refreshBldEl(bId); notify(`${t(b.type)} ${t('ready')}!`, 'success'); saveData(); }
+        const bld = G.base.buildings.find(x => x.id === bId);
+        if (bld) { bld.buildFinish = 0; refreshBldEl(bId); notify(`${t(bld.type)} ${t('ready')}!`, 'success'); saveData(); }
       }, rem);
     }
     if (b.upgradeFinish && b.upgradeFinish > 0 && b.upgradeFinish <= now) {
