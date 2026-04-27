@@ -145,7 +145,7 @@ function logout() {
 
 async function loadData() {
   try {
-    const doc = await G.db.collection('colonies').doc(G.pid).get();
+    const doc = await G.db.collection('users').doc(G.pid).get();
     if (doc.exists) {
       const d = doc.data();
       G.base = { ...G.base, ...d };
@@ -167,7 +167,7 @@ async function saveData() {
   checkMissionProgress();
   try {
     G.base.lastSave = Date.now();
-    await G.db.collection('colonies').doc(G.pid).set({
+    await G.db.collection('users').doc(G.pid).set({
       ...G.base,
       playerName: G.user?.displayName || G.base.playerName,
       uid: G.pid,
@@ -365,7 +365,7 @@ window.adminGiveToPlayer = async function() {
   }
 
   try {
-    const docRef = G.db.collection('colonies').doc(uid);
+    const docRef = G.db.collection('users').doc(uid);
     const doc = await docRef.get();
     if (!doc.exists) { notify('Jogador não encontrado', 'error'); return; }
     const d = doc.data();
@@ -2062,7 +2062,7 @@ async function startMatchmaking() {
 
     const myCC = getCurrentCCLevel();
     // Query CC ±1 level
-    let snap = await G.db.collection('colonies')
+    let snap = await G.db.collection('users')
       .where('ccLevel', '>=', Math.max(1, myCC - 1))
       .where('ccLevel', '<=', myCC + 1)
       .limit(30).get();
@@ -2073,7 +2073,7 @@ async function startMatchmaking() {
     
     // Fallback: se não achar no range, pegar qualquer um (mas preferir CC próximo)
     if (pool.length === 0) {
-      const snap2 = await G.db.collection('colonies').limit(50).get();
+      const snap2 = await G.db.collection('users').limit(50).get();
       pool = snap2.docs.map(d => ({ id: d.id, ...d.data() }))
         .filter(p => p.uid !== G.pid && (p.buildings||[]).length > 0
           && !(p.shieldUntil && p.shieldUntil > Date.now()));
@@ -2553,7 +2553,7 @@ async function endBattle() {
   let oppTrophyLoss = 0;
   if (won && G.db && bs.opponent.uid) {
     try {
-      const oppRef = G.db.collection('colonies').doc(bs.opponent.uid);
+      const oppRef = G.db.collection('users').doc(bs.opponent.uid);
       const oppDoc = await oppRef.get();
       if (oppDoc.exists) {
         const od = oppDoc.data();
@@ -3039,8 +3039,8 @@ async function searchPlayers() {
   results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
   
   try {
-    // Search in colonies collection where data is actually stored
-    const snap = await G.db.collection('colonies').where('playerName', '==', query).limit(10).get();
+    // Search in users collection where data is actually stored
+    const snap = await G.db.collection('users').where('playerName', '==', query).limit(10).get();
     let html = '';
     snap.forEach(doc => {
       const p = doc.data();
@@ -3070,7 +3070,7 @@ async function visitPlayer(targetPid) {
   closeClanModal();
   
   try {
-    const doc = await G.db.collection('colonies').doc(targetPid).get();
+    const doc = await G.db.collection('users').doc(targetPid).get();
     if (doc.exists) {
       const data = doc.data();
       G.visiting = {
