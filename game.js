@@ -132,6 +132,8 @@ async function registerEmail() {
     const cred = await G.auth.createUserWithEmailAndPassword(email, pass);
     await cred.user.updateProfile({ displayName: name });
     G.user = cred.user;
+    G.pid  = cred.user.uid;
+    createStarterBase(); // Initialize with CC and default resources
     G.base.playerName = name;
     await saveData();
   } catch(e) {
