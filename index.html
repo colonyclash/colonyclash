@@ -251,8 +251,11 @@
           <button class="btn-auth" onclick="createClan()" data-t="create_clan">CRIAR CLÃ</button>
         </div>
         <div style="margin-top:20px;border-top:1px solid #333;padding-top:15px;">
-          <input type="text" id="search-clan-name" placeholder="Buscar Clã..." class="social-input">
-          <div id="clan-search-results" class="social-list"></div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+          <input type="text" id="search-clan-name" placeholder="Buscar Clã..." class="social-input" style="flex:1">
+          <button class="btn-auth" onclick="searchClans()" style="width:auto;padding:0 20px;">🔍</button>
+        </div>
+        <div id="clan-search-results" class="social-list"></div>
         </div>
       </div>
       <div id="clan-active" style="display:none; height:350px; display:flex; flex-direction:column;">
@@ -306,7 +309,8 @@
 </div>
 
 <!-- ===================== VISIT CONTROLS ===================== -->
-<div id="visit-controls" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:2000;">
+<div id="visit-controls" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:2000; flex-direction:column; align-items:center; gap:10px;">
+  <div id="visit-player-name" style="color:white; font-family:'Orbitron'; font-size:16px; text-shadow: 0 0 10px #00D4FF;">Visitando...</div>
   <button class="btn-auth" onclick="returnToHome()" style="padding:15px 30px; font-size:14px; background:var(--c-secondary);">🏠 VOLTAR PARA MINHA BASE</button>
 </div>
 
@@ -314,6 +318,7 @@
 <div id="attack-screen" class="screen hidden">
   <div class="attack-hud">
     <div class="atk-label" data-t="battle_label">⚔️ BATALHA LUNAR</div>
+    <div class="atk-loot" id="atk-loot" style="color:var(--c-mineral); font-family:'Orbitron'; font-size:12px;">⛏️0 💨0</div>
     <div class="atk-pct"   id="atk-pct">💥 0%</div>
     <div class="atk-timer" id="atk-timer">3:00</div>
   </div>

@@ -327,9 +327,12 @@ window.adminFillResources = function() {
 window.adminMaxCC = function() {
   if (G.user?.email !== 'admin@colonyclash.com') return;
   const cc = G.base.buildings.find(b => b.type === 'command_center');
-  if (cc && cc.level < 3) {
-    cc.level = 3;
-    G.base.ccLevel = 3;
+  const maxLvl = BUILDINGS.command_center.maxLevel;
+  if (cc && cc.level < maxLvl) {
+    cc.level = maxLvl;
+    G.base.ccLevel = maxLvl;
+    const lvlData = BUILDINGS.command_center.levels[maxLvl];
+    cc.maxHp = lvlData.hp; cc.hp = lvlData.hp;
     updateHUD();
     saveData();
     refreshBldEl(cc.id);
@@ -689,13 +692,13 @@ function preloadExtraAssets() {
   }
 }
 
-function renderBuildingsLayer() {
+function renderBuildingsLayer(externalBuildings) {
   bldLayer = gel('buildings-layer');
   if (!bldLayer) return;
   bldLayer.innerHTML = '';
   bldLayer.style.width  = (GRID_W * CELL_SIZE) + 'px';
   bldLayer.style.height = (GRID_H * CELL_SIZE) + 'px';
-  const blds = G.base.buildings || [];
+  const blds = externalBuildings || G.base.buildings || [];
   for (const b of blds) spawnBldEl(b);
 }
 
@@ -818,7 +821,7 @@ function showBldPopup(bId, cx, cy) {
   gel('popup-desc').textContent = desc;
 
   const lvlEl = gel('popup-level');
-  const themes = { 1: t('ferro'), 2: t('energy'), 3: t('ouro') };
+  const themes = { 1: t('ferro'), 2: t('energy'), 3: t('ouro'), 4: t('platina') };
   if (b.type === 'command_center') {
     lvlEl.textContent = `${t('level')} ${b.level} · ${t('theme')}: ${themes[b.level]} · ${lvl.hp} HP`;
   } else {
@@ -1403,7 +1406,7 @@ function renderBuildPanel() {
   const order   = [
     'mineral_extractor','oxygen_extractor','solar_panel',
     'barracks','camp','turret','laboratory','railgun',
-    'mineral_storage','oxygen_storage','energy_storage'
+    'mineral_storage','oxygen_storage','energy_storage','clan_tower'
   ];
 
   for (const type of order) {
@@ -1434,7 +1437,7 @@ function renderBuildPanel() {
     if (!locked && cur < max) {
       card.onclick = () => { closePanels(); enterBuildMode(type); };
     } else if (locked) {
-      card.onclick = () => notify(`Desbloqueie melhorando o Centro de Comando!`, 'info');
+      card.onclick = () => notify(`Desbloqueie melhorando o Centro de Comando para CC${Math.max(3, ccLvl + 1)}!`, 'info');
     } else {
       card.onclick = () => notify(`Limite atingido!`, 'info');
     }
@@ -2039,7 +2042,8 @@ async function startMatchmaking() {
   area.innerHTML = `<div class="mm-status"><div class="mm-spinner"></div>Procurando oponente...</div>`;
 
   if (!G.db) {
-    area.innerHTML = `<div class="mm-status">⚠️ Configure o Firebase para jogar online!</div>`;
+    area.innerHTML = `<div class="mm-status">⚠️ Configure o Firebase para jogar online!</div>
+      <button class="mm-btn" onclick="(function(){var s=document.getElementById('opponent-screen');s.classList.remove('visible');s.classList.add('hidden');})()" data-t="back">← Voltar</button>`;
     return;
   }
 
@@ -2347,9 +2351,9 @@ function battleTick() {
   gel('atk-pct').textContent = `💥 ${Math.round((bs.destroyed / bs.totalBld) * 100)}%`;
   
   // Atualiza HUD de saque em tempo real
-  const lootLabel = gel('atk-label');
+  const lootLabel = gel('atk-loot');
   if (lootLabel) {
-    lootLabel.innerHTML = `⚔️ <span style="color:var(--c-mineral)">⛏️${fmtNum(bs.lootedMineral)}</span> <span style="color:var(--c-oxygen)">💨${fmtNum(bs.lootedOxygen)}</span>`;
+    lootLabel.innerHTML = `⛏️${fmtNum(bs.lootedMineral)} 💨${fmtNum(bs.lootedOxygen)}`;
   }
 
   if (bs.buildings.every(b => !b.alive)) endBattle();
@@ -2881,6 +2885,62 @@ function closeClanModal() {
   if (clanUnsubscribe) { clanUnsubscribe(); clanUnsubscribe = null; }
 }
 
+async function joinClan(clanId, clanName) {
+  if (!G.db || !G.user) { notify('Firebase necessário.', 'error'); return; }
+  try {
+    await G.db.collection('clans').doc(clanId).update({
+      members: firebase.firestore.FieldValue.arrayUnion(G.pid)
+    });
+    G.base.clanId = clanId;
+    G.base.clanName = clanName;
+    await saveData();
+    notify(t('clan_joined'), 'success');
+    refreshSocialUI();
+  } catch (e) { notify('Erro ao entrar no clã.', 'error'); }
+}
+
+async function leaveClan() {
+  if (!G.db || !G.base.clanId) return;
+  if (!confirm('Deseja mesmo sair do clã?')) return;
+  try {
+    await G.db.collection('clans').doc(G.base.clanId).update({
+      members: firebase.firestore.FieldValue.arrayRemove(G.pid)
+    });
+    G.base.clanId = null;
+    G.base.clanName = null;
+    if (clanUnsubscribe) { clanUnsubscribe(); clanUnsubscribe = null; }
+    await saveData();
+    notify('Você saiu do clã.', 'info');
+    refreshSocialUI();
+  } catch (e) { notify('Erro ao sair do clã.', 'error'); }
+}
+
+async function searchClans() {
+  const query = gel('search-clan-name')?.value?.trim();
+  if (!query || !G.db) return;
+  const resultEl = gel('clan-search-results');
+  if (!resultEl) return;
+  resultEl.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Buscando...</div>';
+  try {
+    const snap = await G.db.collection('clans').where('name', '==', query).limit(10).get();
+    let html = '';
+    snap.forEach(doc => {
+      const c = doc.data();
+      const safeName = (c.name || 'Clã').replace(/'/g, "\\'");
+      html += `
+        <div class="social-item">
+          <div class="social-item-info">
+            <span class="social-item-name">🏰 ${c.name}</span>
+            <span class="social-item-sub">${(c.members || []).length} membros</span>
+          </div>
+          <button class="social-btn-small social-btn-visit" onclick="joinClan('${doc.id}', '${safeName}')">${t('join')}</button>
+        </div>
+      `;
+    });
+    resultEl.innerHTML = html || `<div style="text-align:center;padding:10px;color:#888;">${t('no_results')}</div>`;
+  } catch (e) { resultEl.innerHTML = '<div style="color:#FF4466;text-align:center;">Erro na busca.</div>'; }
+}
+
 function switchSocialTab(tab) {
   currentSocialTab = tab;
   document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
@@ -2979,28 +3039,29 @@ async function searchPlayers() {
   results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
   
   try {
-    // Basic search by exact name (Firestore limitation)
-    const snap = await G.db.collection('users').where('base.playerName', '==', query).limit(10).get();
+    // Search in colonies collection where data is actually stored
+    const snap = await G.db.collection('colonies').where('playerName', '==', query).limit(10).get();
     let html = '';
     snap.forEach(doc => {
-      const data = doc.data();
-      const p = data.base;
+      const p = doc.data();
       if (doc.id === G.pid) return;
+      const pName = p.playerName || 'Colono';
+      const safeName = pName.replace(/'/g, "\\'");
       html += `
         <div class="social-item">
           <div class="social-item-info">
-            <span class="social-item-name">${p.playerName}</span>
+            <span class="social-item-name">${pName}</span>
             <span class="social-item-sub">🏆 ${p.trophies || 0} · CC${p.ccLevel || 1}</span>
           </div>
           <div style="display:flex;gap:5px;">
-            <button class="social-btn-small social-btn-visit" onclick="visitPlayer('${doc.id}')">${t('visit')}</button>
-            <button class="social-btn-small social-btn-add" onclick="addFriend('${doc.id}', '${p.playerName}')">+</button>
+            <button class="social-btn-small social-btn-visit" onclick="visitPlayer('${doc.id}')">👁 ${t('visit')}</button>
+            <button class="social-btn-small social-btn-add" onclick="addFriend('${doc.id}', '${safeName}')">+</button>
           </div>
         </div>
       `;
     });
     results.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">${t('no_results')}</div>`;
-  } catch (e) { results.innerHTML = 'Erro na busca.'; }
+  } catch (e) { console.error(e); results.innerHTML = '<div style="text-align:center;padding:20px;color:#FF4466;">Erro na busca.</div>'; }
 }
 
 async function visitPlayer(targetPid) {
@@ -3009,14 +3070,17 @@ async function visitPlayer(targetPid) {
   closeClanModal();
   
   try {
-    const doc = await G.db.collection('users').doc(targetPid).get();
+    const doc = await G.db.collection('colonies').doc(targetPid).get();
     if (doc.exists) {
       const data = doc.data();
       G.visiting = {
         pid: targetPid,
-        base: data.base
+        playerName: data.playerName || 'Colono',
+        buildings: data.buildings || []
       };
       enterVisitMode();
+    } else {
+      notify('Jogador não encontrado.', 'error');
     }
   } catch (e) { notify('Erro ao visitar jogador.', 'error'); }
 }
@@ -3024,21 +3088,27 @@ async function visitPlayer(targetPid) {
 function enterVisitMode() {
   G.ui.screen = 'visit';
   // UI for visit mode (read only)
-  gel('hud-top').style.display = 'none';
-  gel('hud-bottom').style.display = 'none';
+  const hud = gel('hud');
+  if (hud) hud.style.display = 'none';
+  const fabGroup = gel('fab-group');
+  if (fabGroup) fabGroup.style.display = 'none';
+  const visitName = gel('visit-player-name');
+  if (visitName) visitName.textContent = G.visiting.playerName || 'Colono';
   gel('visit-controls').style.display = 'flex';
   
-  // Redesenhar o mapa com a base do oponente
+  // Redesenhar o mapa com a base do visitado
   buildTerrain();
-  renderBuildingsLayer(G.visiting.base.buildings);
+  renderBuildingsLayer(G.visiting.buildings);
   centerMap();
 }
 
 function returnToHome() {
   G.visiting = null;
   G.ui.screen = 'game';
-  gel('hud-top').style.display = 'flex';
-  gel('hud-bottom').style.display = 'flex';
+  const hud = gel('hud');
+  if (hud) hud.style.display = 'flex';
+  const fabGroup = gel('fab-group');
+  if (fabGroup) fabGroup.style.display = 'flex';
   gel('visit-controls').style.display = 'none';
   
   buildTerrain();

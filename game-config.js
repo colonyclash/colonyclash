@@ -12,7 +12,7 @@ const BUILDINGS = {
   command_center: {
     id: 'command_center', name: 'Centro de Comando',
     size: 2, isDefense: false, isResource: false,
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       {
         hp: 2500, buildTime: 10, cost: { mineral: 0, oxygen: 0 },
@@ -78,7 +78,7 @@ const BUILDINGS = {
   mineral_extractor: {
     id: 'mineral_extractor', name: 'Extrator de Minério',
     size: 1, isDefense: false, isResource: true, resourceType: 'mineral',
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 400, buildTime: 10,  cost: { mineral: 100,  oxygen: 0    }, production: 8,  desc: 'Extrai minério do subsolo lunar.' },
       { hp: 600, buildTime: 900,  cost: { mineral: 800,  oxygen: 300  }, production: 20, desc: 'Perfuração aprimorada com sensores sísmicos.' },
@@ -90,7 +90,7 @@ const BUILDINGS = {
   oxygen_extractor: {
     id: 'oxygen_extractor', name: 'Extrator de Oxigênio',
     size: 1, isDefense: false, isResource: true, resourceType: 'oxygen',
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 350, buildTime: 10,  cost: { mineral: 150,  oxygen: 0    }, production: 6,  desc: 'Extrai oxigênio do regolito lunar.' },
       { hp: 550, buildTime: 900,  cost: { mineral: 1200, oxygen: 500  }, production: 15, desc: 'Filtros de alta eficiência com dupla câmara.' },
@@ -102,7 +102,7 @@ const BUILDINGS = {
   solar_panel: {
     id: 'solar_panel', name: 'Painel Solar',
     size: 1, isDefense: false, isResource: true, resourceType: 'energy',
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 200, buildTime: 10,  cost: { mineral: 200,  oxygen: 100  }, production: 40,  desc: 'Energia solar máxima sem atmosfera.' },
       { hp: 350, buildTime: 900,  cost: { mineral: 1500, oxygen: 600  }, production: 90,  desc: 'Painel de alta voltagem com rastreamento solar.' },
@@ -114,7 +114,7 @@ const BUILDINGS = {
   barracks: {
     id: 'barracks', name: 'Quartel',
     size: 1, isDefense: false, isResource: false,
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 500,  buildTime: 10,  cost: { mineral: 500,   oxygen: 200  }, desc: 'Treina Drones de combate.',                    availableTroops: ['drone'] },
       { hp: 750,  buildTime: 900,  cost: { mineral: 3000,  oxygen: 1200 }, desc: 'Treina Drones e Robôs de batalha.',            availableTroops: ['drone', 'robot'] },
@@ -126,7 +126,7 @@ const BUILDINGS = {
   camp: {
     id: 'camp', name: 'Acampamento',
     size: 1, isDefense: false, isResource: false,
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 300, buildTime: 10,  cost: { mineral: 250,  oxygen: 100  }, capacity: 10, desc: 'Acomoda até 10 unidades de tropa.' },
       { hp: 450, buildTime: 900,  cost: { mineral: 1500, oxygen: 600  }, capacity: 15, desc: 'Acomoda até 15 unidades de tropa.' },
@@ -138,7 +138,7 @@ const BUILDINGS = {
   turret: {
     id: 'turret', name: 'Torreta',
     size: 1, isDefense: true, isResource: false,
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 600,  buildTime: 10,  cost: { mineral: 700,   oxygen: 300  }, damage: 25,  range: 3, rate: 1.0, desc: 'Defesa automática de curto alcance.' },
       { hp: 900,  buildTime: 900,  cost: { mineral: 4000,  oxygen: 1500 }, damage: 55,  range: 4, rate: 0.8, desc: 'Torreta aprimorada com mira assistida.' },
@@ -151,7 +151,7 @@ const BUILDINGS = {
     id: 'laboratory', name: 'Laboratório',
     size: 1, isDefense: false, isResource: false,
     isLaboratory: true,
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 800,  buildTime: 10,  cost: { mineral: 15000, oxygen: 7000  }, desc: 'Pesquisa melhorias básicas para suas tropas. (Requer CC3)' },
       { hp: 1000, buildTime: 900,  cost: { mineral: 30000, oxygen: 15000 }, desc: 'Laboratório avançado. Melhorias de nível 2. (Requer CC3)' },
@@ -163,7 +163,7 @@ const BUILDINGS = {
   railgun: {
     id: 'railgun', name: 'Railgun',
     size: 1, isDefense: true, isResource: false,
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 1200, buildTime: 10,  cost: { mineral: 25000, oxygen: 10000 }, damage: 300, range: 8, rate: 0.25, desc: 'Canhão eletromagnético de longo alcance.' },
       { hp: 1800, buildTime: 900,  cost: { mineral: 50000, oxygen: 20000 }, damage: 500, range: 9, rate: 0.30, desc: 'Railgun aprimorado de alta precisão.' },
@@ -176,7 +176,7 @@ const BUILDINGS = {
   mineral_storage: {
     id: 'mineral_storage', name: 'Armazém de Minério',
     size: 1, isDefense: false, isResource: false, isStorage: true, storageType: 'mineral',
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 500, buildTime: 10,  cost: { mineral: 300,  oxygen: 0   }, storageBonus: 3000,  desc: '+3.000 de capacidade de minério.' },
       { hp: 700, buildTime: 900,  cost: { mineral: 2000, oxygen: 500 }, storageBonus: 6000,  desc: '+6.000 de capacidade de minério.' },
@@ -188,7 +188,7 @@ const BUILDINGS = {
   oxygen_storage: {
     id: 'oxygen_storage', name: 'Armazém de Oxigênio',
     size: 1, isDefense: false, isResource: false, isStorage: true, storageType: 'oxygen',
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 500, buildTime: 10,  cost: { mineral: 300,  oxygen: 0   }, storageBonus: 3000,  desc: '+3.000 de capacidade de oxigênio.' },
       { hp: 700, buildTime: 900,  cost: { mineral: 2000, oxygen: 500 }, storageBonus: 6000,  desc: '+6.000 de capacidade de oxigênio.' },
@@ -200,7 +200,7 @@ const BUILDINGS = {
   energy_storage: {
     id: 'energy_storage', name: 'Armazém de Energia',
     size: 1, isDefense: false, isResource: false, isStorage: true, storageType: 'energy',
-    maxLevel: 3,
+    maxLevel: 4,
     levels: [null,
       { hp: 500, buildTime: 10,  cost: { mineral: 300,  oxygen: 0   }, storageBonus: 3000,  desc: '+3.000 de capacidade de energia.' },
       { hp: 700, buildTime: 900,  cost: { mineral: 2000, oxygen: 500 }, storageBonus: 6000,  desc: '+6.000 de capacidade de energia.' },
