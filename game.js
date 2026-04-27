@@ -413,7 +413,8 @@ window.adminGiveToPlayer = async function() {
       d.resources[type] = (d.resources[type] || 0) + amt;
     }
 
-    await docRef.update(d);
+    const cleanData = sanitizeForFirestore(d);
+    await docRef.update(cleanData);
     notify(`Admin: Enviado ${amt} ${type} para ${d.playerName || uid}!`, 'success');
   } catch (e) {
     console.error(e);
@@ -885,12 +886,20 @@ function showBldPopup(bId, cx, cy) {
   const speedBtn = gel('popup-speedup');
   const cancelBtn = gel('popup-cancel-up');
   const clanBtn = gel('popup-clan');
+  const labBtn = gel('popup-lab');
   
   if (b.type === 'clan_tower' && !bldInProgress(b)) {
     clanBtn.style.display = 'block';
     clanBtn.onclick = () => showClanModal();
   } else {
     clanBtn.style.display = 'none';
+  }
+
+  if (b.type === 'laboratory' && !bldInProgress(b)) {
+    labBtn.style.display = 'block';
+    labBtn.onclick = () => openLabModal();
+  } else {
+    labBtn.style.display = 'none';
   }
   const inProgress = bldInProgress(b);
   const isUpgrading = b.upgradeFinish > Date.now();
