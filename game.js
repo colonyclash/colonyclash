@@ -652,7 +652,7 @@ function preloadAssets() {
     essential.push(def.getAsset(1, 'dummy'));
   }
   // Troops
-  ['drone', 'robot', 'tank'].forEach(t => essential.push(`${t}_sprite.png`));
+  ['drone', 'robot', 'tank', 'star_warrior'].forEach(t => essential.push(`${t}_sprite.png`));
   // Terrain & UI
   essential.push('moon_crater_bg.png', 'cc_lvl1.png', 'cc_lvl2.png', 'cc_lvl3.png');
 
@@ -848,6 +848,14 @@ function showBldPopup(bId, cx, cy) {
 
   const speedBtn = gel('popup-speedup');
   const cancelBtn = gel('popup-cancel-up');
+  const clanBtn = gel('popup-clan');
+  
+  if (b.type === 'clan_tower' && !bldInProgress(b)) {
+    clanBtn.style.display = 'block';
+    clanBtn.onclick = () => showClanModal();
+  } else {
+    clanBtn.style.display = 'none';
+  }
   const inProgress = bldInProgress(b);
   const isUpgrading = b.upgradeFinish > Date.now();
 
@@ -2850,6 +2858,212 @@ async function init() {
       setTimeout(() => switchScreen('login'), 400);
     }
   });
+}
+
+// ============================================================
+// SOCIAL / CLAN SYSTEM
+// ============================================================
+let currentSocialTab = 'clan';
+let clanUnsubscribe = null;
+
+function showClanModal() {
+  const modal = gel('clan-modal');
+  if (!modal) return;
+  modal.classList.add('visible');
+  hideBldPopup();
+  refreshSocialUI();
+}
+
+function closeClanModal() {
+  gel('clan-modal')?.classList.remove('visible');
+  if (clanUnsubscribe) { clanUnsubscribe(); clanUnsubscribe = null; }
+}
+
+function switchSocialTab(tab) {
+  currentSocialTab = tab;
+  document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
+  gel('tab-' + tab)?.classList.add('active');
+  
+  hide('social-content-clan');
+  hide('social-content-search');
+  hide('social-content-friends');
+  show('social-content-' + tab);
+  
+  if (tab === 'friends') renderFriendsList();
+}
+
+async function refreshSocialUI() {
+  if (!G.user) return;
+  const clanId = G.base.clanId;
+  if (clanId) {
+    hide('clan-no-clan');
+    show('clan-active');
+    loadClanData(clanId);
+  } else {
+    show('clan-no-clan');
+    hide('clan-active');
+  }
+}
+
+async function createClan() {
+  const name = gel('new-clan-name').value.trim();
+  if (!name || name.length < 3) { notify('Nome muito curto!', 'error'); return; }
+  
+  if (!G.db) { notify('Modo demo: Firebase não configurado.', 'error'); return; }
+  
+  try {
+    const clanRef = await G.db.collection('clans').add({
+      name: name,
+      owner: G.pid,
+      members: [G.pid],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    G.base.clanId = clanRef.id;
+    G.base.clanName = name;
+    await saveData();
+    notify(t('clan_created'), 'success');
+    refreshSocialUI();
+  } catch (e) { notify('Erro ao criar clã.', 'error'); }
+}
+
+async function loadClanData(clanId) {
+  if (!G.db) return;
+  gel('active-clan-name').textContent = G.base.clanName || 'Carregando...';
+  
+  // Real-time chat listener
+  if (clanUnsubscribe) clanUnsubscribe();
+  clanUnsubscribe = G.db.collection('clans').doc(clanId).collection('messages')
+    .orderBy('time', 'desc').limit(30)
+    .onSnapshot(snap => {
+      const msgs = [];
+      snap.forEach(doc => msgs.push(doc.data()));
+      renderClanChat(msgs.reverse());
+    });
+}
+
+function renderClanChat(msgs) {
+  const box = gel('clan-chat-box');
+  if (!box) return;
+  box.innerHTML = msgs.map(m => `
+    <div class="chat-msg ${m.senderId === G.pid ? 'mine' : 'other'}">
+      <div class="chat-msg-sender">${m.senderName}</div>
+      <div class="chat-msg-text">${m.text}</div>
+    </div>
+  `).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendClanMessage() {
+  const input = gel('clan-chat-input');
+  const text = input.value.trim();
+  if (!text || !G.base.clanId || !G.db) return;
+  
+  try {
+    await G.db.collection('clans').doc(G.base.clanId).collection('messages').add({
+      senderId: G.pid,
+      senderName: G.base.playerName,
+      text: text,
+      time: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    input.value = '';
+  } catch (e) { console.error(e); }
+}
+
+async function searchPlayers() {
+  const query = gel('search-player-input').value.trim();
+  if (!query || !G.db) return;
+  
+  const results = gel('player-search-results');
+  results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
+  
+  try {
+    // Basic search by exact name (Firestore limitation)
+    const snap = await G.db.collection('users').where('base.playerName', '==', query).limit(10).get();
+    let html = '';
+    snap.forEach(doc => {
+      const data = doc.data();
+      const p = data.base;
+      if (doc.id === G.pid) return;
+      html += `
+        <div class="social-item">
+          <div class="social-item-info">
+            <span class="social-item-name">${p.playerName}</span>
+            <span class="social-item-sub">🏆 ${p.trophies || 0} · CC${p.ccLevel || 1}</span>
+          </div>
+          <div style="display:flex;gap:5px;">
+            <button class="social-btn-small social-btn-visit" onclick="visitPlayer('${doc.id}')">${t('visit')}</button>
+            <button class="social-btn-small social-btn-add" onclick="addFriend('${doc.id}', '${p.playerName}')">+</button>
+          </div>
+        </div>
+      `;
+    });
+    results.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">${t('no_results')}</div>`;
+  } catch (e) { results.innerHTML = 'Erro na busca.'; }
+}
+
+async function visitPlayer(targetPid) {
+  if (!G.db) return;
+  notify(t('visiting_player').replace('{name}', ''), 'info');
+  closeClanModal();
+  
+  try {
+    const doc = await G.db.collection('users').doc(targetPid).get();
+    if (doc.exists) {
+      const data = doc.data();
+      G.visiting = {
+        pid: targetPid,
+        base: data.base
+      };
+      enterVisitMode();
+    }
+  } catch (e) { notify('Erro ao visitar jogador.', 'error'); }
+}
+
+function enterVisitMode() {
+  G.ui.screen = 'visit';
+  // UI for visit mode (read only)
+  gel('hud-top').style.display = 'none';
+  gel('hud-bottom').style.display = 'none';
+  gel('visit-controls').style.display = 'flex';
+  
+  // Redesenhar o mapa com a base do oponente
+  buildTerrain();
+  renderBuildingsLayer(G.visiting.base.buildings);
+  centerMap();
+}
+
+function returnToHome() {
+  G.visiting = null;
+  G.ui.screen = 'game';
+  gel('hud-top').style.display = 'flex';
+  gel('hud-bottom').style.display = 'flex';
+  gel('visit-controls').style.display = 'none';
+  
+  buildTerrain();
+  renderBuildingsLayer();
+  centerMap();
+}
+
+async function addFriend(fid, fname) {
+  if (!G.base.friends) G.base.friends = [];
+  if (G.base.friends.some(f => f.id === fid)) { notify('Já é seu amigo!', 'info'); return; }
+  G.base.friends.push({ id: fid, name: fname });
+  await saveData();
+  notify(t('friend_added'), 'success');
+}
+
+function renderFriendsList() {
+  const list = gel('friends-list');
+  if (!list) return;
+  const friends = G.base.friends || [];
+  list.innerHTML = friends.map(f => `
+    <div class="social-item">
+      <div class="social-item-info">
+        <span class="social-item-name">${f.name}</span>
+      </div>
+      <button class="social-btn-small social-btn-visit" onclick="visitPlayer('${f.id}')">${t('visit')}</button>
+    </div>
+  `).join('') || '<div style="text-align:center;padding:20px;color:#888;">Sua lista de amigos está vazia.</div>';
 }
 
 function centerMap() {

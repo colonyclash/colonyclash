@@ -814,3 +814,42 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+/* ========== SOCIAL / CLAN MODAL ========== */
+.social-modal { width: 95%; max-width: 450px; padding: 20px; position: relative; }
+.social-tabs { display: flex; gap: 4px; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 12px; }
+.social-tab { flex: 1; padding: 10px; border: none; background: transparent; color: rgba(255,255,255,0.4); font-family: var(--font-hd); font-size: 10px; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+.social-tab.active { background: rgba(0,212,255,0.15); color: #fff; box-shadow: 0 0 10px rgba(0,212,255,0.2); }
+
+.social-panel-content { min-height: 350px; display: flex; flex-direction: column; }
+.social-input { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: var(--font-body); font-size: 14px; }
+.social-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 300px; }
+
+.social-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; }
+.social-item-info { display: flex; flex-direction: column; }
+.social-item-name { font-family: var(--font-hd); font-size: 12px; color: var(--c-primary); }
+.social-item-sub { font-size: 10px; color: #888; }
+.social-btn-small { padding: 6px 12px; border: none; border-radius: 6px; font-family: var(--font-hd); font-size: 9px; cursor: pointer; }
+.social-btn-visit { background: var(--c-secondary); color: #fff; }
+.social-btn-join { background: var(--c-success); color: #fff; }
+.social-btn-add { background: var(--c-primary); color: #fff; }
+
+/* CHAT SYSTEM */
+.chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.chat-msg { display: flex; flex-direction: column; max-width: 85%; padding: 8px 12px; border-radius: 12px; position: relative; }
+.chat-msg.mine { align-self: flex-end; background: rgba(0,212,255,0.15); border-bottom-right-radius: 2px; }
+.chat-msg.other { align-self: flex-start; background: rgba(255,255,255,0.08); border-bottom-left-radius: 2px; }
+.chat-msg-sender { font-family: var(--font-hd); font-size: 9px; color: var(--c-primary); margin-bottom: 2px; }
+.chat-msg-text { font-size: 13px; color: #eee; word-break: break-word; }
+
+.chat-input-wrap { display: flex; gap: 6px; }
+.chat-input-wrap input { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; color: #fff; font-family: var(--font-body); font-size: 14px; }
+.chat-input-wrap button { width: 45px; background: var(--c-primary); border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+.chat-input-wrap button:active { transform: scale(0.9); }
+
+.modal-close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #666; font-size: 24px; cursor: pointer; transition: 0.2s; }
+.modal-close-btn:hover { color: #fff; }
+
+@media (max-width: 600px) {
+  .social-modal { width: 98%; padding: 15px; }
+  .chat-box { max-height: 250px; }
+}

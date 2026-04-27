@@ -42,6 +42,7 @@ const BUILDINGS = {
           max_building_level: 2
         }
       },
+      },
       {
         hp: 6000, buildTime: 1800, cost: { mineral: 15000, oxygen: 8000 },
         theme: 'gold', desc: 'Supremo centro de comando banhado a ouro. Tema: Ouro.',
@@ -49,11 +50,27 @@ const BUILDINGS = {
           buildings: {
             mineral_extractor: 4, oxygen_extractor: 4, solar_panel: 3,
             barracks: 1, camp: 3, turret: 4, laboratory: 1, railgun: 1,
-            mineral_storage: 2, oxygen_storage: 2, energy_storage: 2
+            mineral_storage: 2, oxygen_storage: 2, energy_storage: 2,
+            clan_tower: 0
           },
           barracks_max_level: 3,
           troop_unlock: ['drone', 'robot', 'tank'],
           max_building_level: 3
+        }
+      },
+      {
+        hp: 9000, buildTime: 3600, cost: { mineral: 50000, oxygen: 25000 },
+        theme: 'platinum', desc: 'Base de platina com tecnologia de clãs. Tema: Platina.',
+        unlocks: {
+          buildings: {
+            mineral_extractor: 6, oxygen_extractor: 6, solar_panel: 5,
+            barracks: 1, camp: 4, turret: 6, laboratory: 1, railgun: 2,
+            mineral_storage: 3, oxygen_storage: 3, energy_storage: 3,
+            clan_tower: 1
+          },
+          barracks_max_level: 4,
+          troop_unlock: ['drone', 'robot', 'tank', 'star_warrior'],
+          max_building_level: 4
         }
       }
     ],
@@ -66,7 +83,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 400, buildTime: 10,  cost: { mineral: 100,  oxygen: 0    }, production: 8,  desc: 'Extrai minério do subsolo lunar.' },
       { hp: 600, buildTime: 900,  cost: { mineral: 800,  oxygen: 300  }, production: 20, desc: 'Perfuração aprimorada com sensores sísmicos.' },
-      { hp: 900, buildTime: 1800, cost: { mineral: 4000, oxygen: 1500 }, production: 45, desc: 'Extração de alta intensidade com IA integrada.' }
+      { hp: 900, buildTime: 1800, cost: { mineral: 4000, oxygen: 1500 }, production: 45, desc: 'Extração de alta intensidade com IA integrada.' },
+      { hp: 1300, buildTime: 3600, cost: { mineral: 12000, oxygen: 5000 }, production: 100, desc: 'Megabroca de diamante com núcleo de fusão.' }
     ],
     getAsset: (lvl) => `mineral_extractor_lvl${lvl}.png`,
   },
@@ -77,7 +95,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 350, buildTime: 10,  cost: { mineral: 150,  oxygen: 0    }, production: 6,  desc: 'Extrai oxigênio do regolito lunar.' },
       { hp: 550, buildTime: 900,  cost: { mineral: 1200, oxygen: 500  }, production: 15, desc: 'Filtros de alta eficiência com dupla câmara.' },
-      { hp: 800, buildTime: 1800, cost: { mineral: 6000, oxygen: 2500 }, production: 35, desc: 'Eletrólise lunar avançada com rendimento máximo.' }
+      { hp: 800, buildTime: 1800, cost: { mineral: 6000, oxygen: 2500 }, production: 35, desc: 'Eletrólise lunar avançada com rendimento máximo.' },
+      { hp: 1200, buildTime: 3600, cost: { mineral: 18000, oxygen: 8000 }, production: 80, desc: 'Sifão atmosférico de alta pressão.' }
     ],
     getAsset: (lvl) => `oxygen_extractor_lvl${lvl}.png`,
   },
@@ -88,7 +107,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 200, buildTime: 10,  cost: { mineral: 200,  oxygen: 100  }, production: 40,  desc: 'Energia solar máxima sem atmosfera.' },
       { hp: 350, buildTime: 900,  cost: { mineral: 1500, oxygen: 600  }, production: 90,  desc: 'Painel de alta voltagem com rastreamento solar.' },
-      { hp: 500, buildTime: 1800, cost: { mineral: 5000, oxygen: 2000 }, production: 200, desc: 'Megapainel fotovoltaico de fusão quântica.' }
+      { hp: 500, buildTime: 1800, cost: { mineral: 5000, oxygen: 2000 }, production: 200, desc: 'Megapainel fotovoltaico de fusão quântica.' },
+      { hp: 800, buildTime: 3600, cost: { mineral: 15000, oxygen: 6000 }, production: 500, desc: 'Matriz de energia de antimatéria solar.' }
     ],
     getAsset: (lvl) => `solar_panel_lvl${lvl}.png`,
   },
@@ -99,7 +119,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 500,  buildTime: 10,  cost: { mineral: 500,   oxygen: 200  }, desc: 'Treina Drones de combate.',                    availableTroops: ['drone'] },
       { hp: 750,  buildTime: 900,  cost: { mineral: 3000,  oxygen: 1200 }, desc: 'Treina Drones e Robôs de batalha.',            availableTroops: ['drone', 'robot'] },
-      { hp: 1000, buildTime: 1800, cost: { mineral: 10000, oxygen: 4000 }, desc: 'Treina todas as tropas, incluindo Tanques.', availableTroops: ['drone', 'robot', 'tank'] }
+      { hp: 1000, buildTime: 1800, cost: { mineral: 10000, oxygen: 4000 }, desc: 'Treina todas as tropas, incluindo Tanques.', availableTroops: ['drone', 'robot', 'tank'] },
+      { hp: 1500, buildTime: 3600, cost: { mineral: 30000, oxygen: 12000 }, desc: 'Elite militar. Treina Guerreiros Estelares.', availableTroops: ['drone', 'robot', 'tank', 'star_warrior'] }
     ],
     getAsset: (lvl) => `barracks_lvl${lvl}.png`,
   },
@@ -110,7 +131,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 300, buildTime: 10,  cost: { mineral: 250,  oxygen: 100  }, capacity: 10, desc: 'Acomoda até 10 unidades de tropa.' },
       { hp: 450, buildTime: 900,  cost: { mineral: 1500, oxygen: 600  }, capacity: 15, desc: 'Acomoda até 15 unidades de tropa.' },
-      { hp: 650, buildTime: 1800, cost: { mineral: 5000, oxygen: 2000 }, capacity: 20, desc: 'Acomoda até 20 unidades de tropa.' }
+      { hp: 650, buildTime: 1800, cost: { mineral: 5000, oxygen: 2000 }, capacity: 20, desc: 'Acomoda até 20 unidades de tropa.' },
+      { hp: 900, buildTime: 3600, cost: { mineral: 15000, oxygen: 6000 }, capacity: 30, desc: 'Mega-alojamento para 30 unidades.' }
     ],
     getAsset: (lvl) => `camp_lvl${lvl}.png`,
   },
@@ -121,7 +143,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 600,  buildTime: 10,  cost: { mineral: 700,   oxygen: 300  }, damage: 25,  range: 3, rate: 1.0, desc: 'Defesa automática de curto alcance.' },
       { hp: 900,  buildTime: 900,  cost: { mineral: 4000,  oxygen: 1500 }, damage: 55,  range: 4, rate: 0.8, desc: 'Torreta aprimorada com mira assistida.' },
-      { hp: 1200, buildTime: 1800, cost: { mineral: 12000, oxygen: 5000 }, damage: 100, range: 5, rate: 0.6, desc: 'Torreta de plasma de alta cadência.' }
+      { hp: 1200, buildTime: 1800, cost: { mineral: 12000, oxygen: 5000 }, damage: 100, range: 5, rate: 0.6, desc: 'Torreta de plasma de alta cadência.' },
+      { hp: 1800, buildTime: 3600, cost: { mineral: 30000, oxygen: 12000 }, damage: 180, range: 6, rate: 0.5, desc: 'Torreta pesada de feixe contínuo.' }
     ],
     getAsset: (lvl) => `defense_turret_lvl${lvl}.png`,
   },
@@ -133,7 +156,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 800,  buildTime: 10,  cost: { mineral: 15000, oxygen: 7000  }, desc: 'Pesquisa melhorias básicas para suas tropas. (Requer CC3)' },
       { hp: 1000, buildTime: 900,  cost: { mineral: 30000, oxygen: 15000 }, desc: 'Laboratório avançado. Melhorias de nível 2. (Requer CC3)' },
-      { hp: 1400, buildTime: 1800, cost: { mineral: 60000, oxygen: 30000 }, desc: 'Laboratório supremo. Melhorias de nível 3. (Requer CC3)' }
+      { hp: 1400, buildTime: 1800, cost: { mineral: 60000, oxygen: 30000 }, desc: 'Laboratório supremo. Melhorias de nível 3. (Requer CC3)' },
+      { hp: 2000, buildTime: 3600, cost: { mineral: 120000, oxygen: 60000 }, desc: 'Pesquisa avançada de nível 4. (Requer CC4)' }
     ],
     getAsset: (lvl) => `laboratory_lvl${lvl}.png`,
   },
@@ -144,7 +168,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 1200, buildTime: 10,  cost: { mineral: 25000, oxygen: 10000 }, damage: 300, range: 8, rate: 0.25, desc: 'Canhão eletromagnético de longo alcance.' },
       { hp: 1800, buildTime: 900,  cost: { mineral: 50000, oxygen: 20000 }, damage: 500, range: 9, rate: 0.30, desc: 'Railgun aprimorado de alta precisão.' },
-      { hp: 2400, buildTime: 1800, cost: { mineral: 90000, oxygen: 40000 }, damage: 800, range: 10, rate: 0.40, desc: 'Railgun supremo com mira quântica.' }
+      { hp: 2400, buildTime: 1800, cost: { mineral: 90000, oxygen: 40000 }, damage: 800, range: 10, rate: 0.40, desc: 'Railgun supremo com mira quântica.' },
+      { hp: 3500, buildTime: 3600, cost: { mineral: 200000, oxygen: 100000 }, damage: 1500, range: 12, rate: 0.50, desc: 'Destruidor orbital de railgun.' }
     ],
     getAsset: (lvl) => `turret_railgun_lvl${lvl}.png`,
   },
@@ -156,7 +181,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 500, buildTime: 10,  cost: { mineral: 300,  oxygen: 0   }, storageBonus: 3000,  desc: '+3.000 de capacidade de minério.' },
       { hp: 700, buildTime: 900,  cost: { mineral: 2000, oxygen: 500 }, storageBonus: 6000,  desc: '+6.000 de capacidade de minério.' },
-      { hp: 950, buildTime: 1800, cost: { mineral: 8000, oxygen: 2000 }, storageBonus: 12000, desc: '+12.000 de capacidade de minério.' }
+      { hp: 950, buildTime: 1800, cost: { mineral: 8000, oxygen: 2000 }, storageBonus: 12000, desc: '+12.000 de capacidade de minério.' },
+      { hp: 1500, buildTime: 3600, cost: { mineral: 25000, oxygen: 10000 }, storageBonus: 30000, desc: '+30.000 de capacidade de minério.' }
     ],
     getAsset: (lvl) => `mineral_storage_lvl${lvl}.png`,
   },
@@ -167,7 +193,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 500, buildTime: 10,  cost: { mineral: 300,  oxygen: 0   }, storageBonus: 3000,  desc: '+3.000 de capacidade de oxigênio.' },
       { hp: 700, buildTime: 900,  cost: { mineral: 2000, oxygen: 500 }, storageBonus: 6000,  desc: '+6.000 de capacidade de oxigênio.' },
-      { hp: 950, buildTime: 1800, cost: { mineral: 8000, oxygen: 2000 }, storageBonus: 12000, desc: '+12.000 de capacidade de oxigênio.' }
+      { hp: 950, buildTime: 1800, cost: { mineral: 8000, oxygen: 2000 }, storageBonus: 12000, desc: '+12.000 de capacidade de oxigênio.' },
+      { hp: 1500, buildTime: 3600, cost: { mineral: 25000, oxygen: 10000 }, storageBonus: 30000, desc: '+30.000 de capacidade de oxigênio.' }
     ],
     getAsset: (lvl) => `oxygen_storage_lvl${lvl}.png`,
   },
@@ -178,7 +205,8 @@ const BUILDINGS = {
     levels: [null,
       { hp: 500, buildTime: 10,  cost: { mineral: 300,  oxygen: 0   }, storageBonus: 3000,  desc: '+3.000 de capacidade de energia.' },
       { hp: 700, buildTime: 900,  cost: { mineral: 2000, oxygen: 500 }, storageBonus: 6000,  desc: '+6.000 de capacidade de energia.' },
-      { hp: 950, buildTime: 1800, cost: { mineral: 8000, oxygen: 2000 }, storageBonus: 12000, desc: '+12.000 de capacidade de energia.' }
+      { hp: 950, buildTime: 1800, cost: { mineral: 8000, oxygen: 2000 }, storageBonus: 12000, desc: '+12.000 de capacidade de energia.' },
+      { hp: 1500, buildTime: 3600, cost: { mineral: 25000, oxygen: 10000 }, storageBonus: 30000, desc: '+30.000 de capacidade de energia.' }
     ],
     getAsset: (lvl) => `energy_storage_lvl${lvl}.png`,
   },
@@ -193,6 +221,15 @@ const BUILDINGS = {
       const n = (id ? (parseInt(id.toString().slice(-4), 36) % 3) : 0) + 1;
       return `lunar_rock${n}.png`;
     }
+  },
+  clan_tower: {
+    id: 'clan_tower', name: 'Torre do Clã',
+    size: 1, isDefense: false, isResource: false,
+    maxLevel: 1,
+    levels: [null,
+      { hp: 1500, buildTime: 10, cost: { mineral: 50000, oxygen: 20000 }, desc: 'Centro de comunicação para clãs e amigos.' }
+    ],
+    getAsset: (lvl) => `clan_tower_lvl1.png`,
   }
 };
 
@@ -252,6 +289,14 @@ const TROOPS = {
     color: '#E67E22', emoji: '🚀',
     desc: 'Blindado e devastador. Prioridade: recursos.',
     priority: 'resource'
+  },
+  star_warrior: {
+    id: 'star_warrior', name: 'Guerreiro Estelar', space: 10,
+    hp: 2500, damage: 450, speed: 0.8, range: 1.5, trainTime: 600,
+    cost: { mineral: 5000, oxygen: 2500 },
+    color: '#00D4FF', emoji: '⚔️',
+    desc: 'Guerreiro de elite das estrelas. Alta resistência e dano.',
+    priority: 'any'
   }
 };
 
@@ -486,6 +531,10 @@ const TRANSLATIONS = {
     robot_desc: "Resistente. Ataca qualquer estrutura.",
     tank: "Tanque",
     tank_desc: "Blindado e devastador. Prioridade: recursos.",
+    star_warrior: "Guerreiro Estelar",
+    star_warrior_desc: "Guerreiro de elite das estrelas. Alta resistência e dano.",
+    clan_tower: "Torre do Clã",
+    clan_tower_desc: "Comunicação com clãs e amigos.",
     train: "TREINAR",
     locked: "Bloqueado",
     opponent_found: "⚔️ Oponente Encontrado!",
@@ -548,6 +597,23 @@ const TRANSLATIONS = {
     upgrade_cancelled: "Melhoria cancelada!",
     confirm_cancel_upgrade: "Deseja cancelar a melhoria? Você receberá 50% dos recursos de volta.",
     confirm_name_change: "Deseja alterar o nome para {name} por 100 gemas?",
+    clan_title: "CLÃS & AMIGOS",
+    create_clan: "CRIAR CLÃ",
+    search_players: "BUSCAR JOGADORES",
+    visit: "VISITAR",
+    chat: "CHAT",
+    members: "MEMBROS",
+    clan_name_placeholder: "Nome do Clã...",
+    player_name_placeholder: "Nome do Jogador...",
+    join: "ENTRAR",
+    leave: "SAIR",
+    clan_created: "Clã criado com sucesso!",
+    clan_joined: "Você entrou no clã!",
+    visiting_player: "Visitando base de {name}...",
+    friends: "AMIGOS",
+    add_friend: "Adicionar Amigo",
+    friend_added: "Amigo adicionado!",
+    no_results: "Nenhum resultado encontrado.",
     under_attack_shield_tip: "Atacar remove sua proteção!",
     protected_for: "Você está protegido por",
     insufficient_energy_search: "Energia insuficiente para buscar",
@@ -656,6 +722,10 @@ const TRANSLATIONS = {
     robot_desc: "Resistant. Attacks any structure.",
     tank: "Tank",
     tank_desc: "Armored and devastating. Priority: resources.",
+    star_warrior: "Star Warrior",
+    star_warrior_desc: "Elite star warrior. High resistance and damage.",
+    clan_tower: "Clan Tower",
+    clan_tower_desc: "Communication with clans and friends.",
     train: "TRAIN",
     locked: "Locked",
     opponent_found: "⚔️ Opponent Found!",
@@ -718,6 +788,23 @@ const TRANSLATIONS = {
     upgrade_cancelled: "Upgrade cancelled!",
     confirm_cancel_upgrade: "Do you want to cancel the upgrade? You will get 50% of the resources back.",
     confirm_name_change: "Do you want to change the name to {name} for 100 gems?",
+    clan_title: "CLANS & FRIENDS",
+    create_clan: "CREATE CLAN",
+    search_players: "SEARCH PLAYERS",
+    visit: "VISIT",
+    chat: "CHAT",
+    members: "MEMBERS",
+    clan_name_placeholder: "Clan Name...",
+    player_name_placeholder: "Player Name...",
+    join: "JOIN",
+    leave: "LEAVE",
+    clan_created: "Clan created successfully!",
+    clan_joined: "You joined the clan!",
+    visiting_player: "Visiting {name}'s base...",
+    friends: "FRIENDS",
+    add_friend: "Add Friend",
+    friend_added: "Friend added!",
+    no_results: "No results found.",
     under_attack_shield_tip: "Attacking removes your protection!",
     protected_for: "You are protected for",
     insufficient_energy_search: "Insufficient energy to search",
@@ -826,6 +913,10 @@ const TRANSLATIONS = {
     robot_desc: "Resistente. Ataca cualquier estructura.",
     tank: "Tanque",
     tank_desc: "Blindado y devastador. Prioridad: recursos.",
+    star_warrior: "Guerrero Estelar",
+    star_warrior_desc: "Guerrero de élite de las estrellas. Alta resistencia y daño.",
+    clan_tower: "Torre del Clan",
+    clan_tower_desc: "Comunicación con clanes y amigos.",
     train: "ENTRENAR",
     locked: "Bloqueado",
     opponent_found: "⚔️ ¡Oponente Encontrado!",
@@ -888,6 +979,23 @@ const TRANSLATIONS = {
     upgrade_cancelled: "¡Mejora cancelada!",
     confirm_cancel_upgrade: "¿Deseas cancelar la mejora? Recibirás el 50% de los recursos de vuelta.",
     confirm_name_change: "¿Deseas cambiar el nombre a {name} por 100 gemas?",
+    clan_title: "CLANES Y AMIGOS",
+    create_clan: "CREAR CLAN",
+    search_players: "BUSCAR JUGADORES",
+    visit: "VISITAR",
+    chat: "CHAT",
+    members: "MIEMBROS",
+    clan_name_placeholder: "Nombre del Clan...",
+    player_name_placeholder: "Nombre del Jugador...",
+    join: "UNIRSE",
+    leave: "SALIR",
+    clan_created: "¡Clan creado con éxito!",
+    clan_joined: "¡Te has unido al clan!",
+    visiting_player: "Visitando la base de {name}...",
+    friends: "AMIGOS",
+    add_friend: "Añadir Amigo",
+    friend_added: "¡Amigo añadido!",
+    no_results: "No se encontraron resultados.",
     under_attack_shield_tip: "¡Atacar elimina tu protección!",
     protected_for: "Estás protegido por",
     insufficient_energy_search: "Energía insuficiente para buscar",
