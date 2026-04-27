@@ -42,7 +42,6 @@ const BUILDINGS = {
           max_building_level: 2
         }
       },
-      },
       {
         hp: 6000, buildTime: 1800, cost: { mineral: 15000, oxygen: 8000 },
         theme: 'gold', desc: 'Supremo centro de comando banhado a ouro. Tema: Ouro.',

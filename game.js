@@ -652,7 +652,8 @@ function preloadAssets() {
     essential.push(def.getAsset(1, 'dummy'));
   }
   // Troops
-  ['drone', 'robot', 'tank', 'star_warrior'].forEach(t => essential.push(`${t}_sprite.png`));
+  ['drone', 'robot', 'tank'].forEach(t => essential.push(`${t}_sprite.png`));
+  essential.push('star_warrior.png');
   // Terrain & UI
   essential.push('moon_crater_bg.png', 'cc_lvl1.png', 'cc_lvl2.png', 'cc_lvl3.png');
 
@@ -2451,7 +2452,8 @@ function drawBattleFrame() {
     const td = TROOPS[t.type];
     const s  = toScr(t.x, t.y);
     const tr = (td.size || 0.4) * CELL_SIZE * scale;
-    const img = troopImgCache[`${t.type}_sprite.png`];
+    const imgKey = t.type === 'star_warrior' ? 'star_warrior.png' : `${t.type}_sprite.png`;
+    const img = troopImgCache[imgKey];
 
     bCtx.save();
     bCtx.translate(s.x, s.y);
