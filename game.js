@@ -706,7 +706,8 @@ function preloadAssets() {
         resolve();
       };
       img.src = src;
-      if (src.includes('sprite')) troopImgCache[src] = img;
+      // Corrigido: Guerreiro Estelar e sprites de tropas vão para o cache de tropas
+      if (src.includes('sprite') || src.includes('star_warrior')) troopImgCache[src] = img;
       else bldImgCache[src] = img;
     });
   }));
@@ -897,7 +898,7 @@ function showBldPopup(bId, cx, cy) {
 
   if (b.type === 'laboratory' && !bldInProgress(b)) {
     labBtn.style.display = 'block';
-    labBtn.onclick = () => openLabModal();
+    labBtn.onclick = () => showLabModal();
   } else {
     labBtn.style.display = 'none';
   }
