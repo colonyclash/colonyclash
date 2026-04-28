@@ -178,15 +178,6 @@
     </div>
   </div>
 
-  <!-- Info Panel -->
-  <div class="panel" id="info-panel">
-    <div class="panel-handle"></div>
-    <div class="panel-head" data-t="information">📊 Informações</div>
-    <div id="info-content" style="padding:4px 0 8px"></div>
-  </div>
-
-
-
   <!-- Settings Panel -->
   <div class="panel" id="settings-panel">
     <div class="panel-handle"></div>
@@ -205,87 +196,108 @@
   </div>
 </div>
 
-<!-- ===================== BUILDING POPUP ===================== -->
-<div id="building-popup">
-  <button class="popup-x" onclick="hideBldPopup()">×</button>
-  <div class="popup-header">
-    <img id="popup-img" src="" alt="" class="popup-img">
-    <div>
-      <div class="popup-name"  id="popup-name"></div>
-      <div class="popup-level" id="popup-level"></div>
+<!-- ===================== UNIFIED MODERN MODAL ===================== -->
+<div class="modern-modal-overlay" id="unified-modal">
+  <div class="modern-modal">
+    <div class="modern-modal-tabs">
+      <div class="m-tab active" id="tab-m-profile" onclick="switchModernTab('profile')">Meu Perfil</div>
+      <div class="m-tab" id="tab-m-clan" onclick="switchModernTab('clan')">Clãs</div>
+      <div class="m-tab" id="tab-m-social" onclick="switchModernTab('social')">Social</div>
     </div>
-  </div>
-  <div class="popup-hp-bar">
-    <div class="popup-hp-fill" id="popup-hp-fill" style="width:100%"></div>
-  </div>
-  <div class="popup-desc" id="popup-desc"></div>
-  <div class="popup-actions">
-    <button class="popup-btn upgrade" id="popup-upgrade" data-t="upgrade">⬆ Melhorar</button>
-    <button class="popup-btn lab"     id="popup-lab" style="display:none" data-t="laboratory">🔬 Laboratório</button>
-    <button class="popup-btn speedup" id="popup-speedup" style="display:none" data-t="speedup">⚡ ACELERAR</button>
-    <button class="popup-btn cancel-up" id="popup-cancel-up" style="display:none">✕ Cancelar Upgrade</button>
-    <button class="popup-btn clan"    id="popup-clan" style="display:none" data-t="chat">💬 Clã / Social</button>
-    <button class="popup-btn move"    id="popup-move" data-t="move">↔ Mover</button>
-    <button class="popup-btn destroy" id="popup-destroy" data-t="destroy">🗑 Remover</button>
-    <button class="popup-btn close"   onclick="hideBldPopup()" data-t="close">✕</button>
+    <div class="modern-modal-content">
+      <button class="modal-close-x" onclick="closeUnifiedModal()">×</button>
+      
+      <!-- Profile Tab Content -->
+      <div id="m-content-profile" class="modern-tab-content">
+        <div class="profile-grid" id="m-profile-grid"></div>
+        <div class="profile-storage" id="m-profile-storage"></div>
+      </div>
+
+      <!-- Clan Tab Content -->
+      <div id="m-content-clan" class="modern-tab-content" style="display:none">
+        <div class="social-subtabs">
+          <div class="s-subtab active" id="cs-tab-my" onclick="switchClanSubtab('my')">Meu Clã</div>
+          <div class="s-subtab" id="cs-tab-search" onclick="switchClanSubtab('search')">Buscar Clãs</div>
+          <div class="s-subtab" id="cs-tab-create" onclick="switchClanSubtab('create')">Criar Clã</div>
+        </div>
+
+        <!-- My Clan View -->
+        <div id="cs-content-my" class="social-sub-content">
+          <div id="my-clan-active" style="display:none">
+            <button class="btn-social-search" style="width:100%; margin-bottom:20px;" onclick="toggleClanChat()">ABRIR CHAT</button>
+            <div id="my-clan-members-list" class="social-list-container"></div>
+          </div>
+          <div id="my-clan-none" style="text-align:center; padding:40px 20px; color:#888;">
+            <div style="font-size:40px; margin-bottom:15px;">🏰</div>
+            <p>Você não pertence a um clã.</p>
+            <button class="btn-sp-visit" style="margin-top:15px; padding:10px 20px;" onclick="switchClanSubtab('search')">Procurar um Clã</button>
+          </div>
+        </div>
+
+        <!-- Search Clans View -->
+        <div id="cs-content-search" class="social-sub-content" style="display:none">
+          <div class="social-search-row">
+            <span class="ss-label">Buscar Clãs</span>
+            <div class="ss-input-wrap">
+              <input type="text" id="modern-clan-search-input" class="ss-input" placeholder="Nome do Clã">
+            </div>
+            <button class="btn-social-search" onclick="modernSearchClans()">BUSCAR</button>
+          </div>
+          <div id="modern-clan-search-results" class="social-list-container"></div>
+        </div>
+
+        <!-- Create Clan View -->
+        <div id="cs-content-create" class="social-sub-content" style="display:none">
+          <div class="social-search-row" style="max-width:400px; margin:40px auto;">
+            <div class="ss-input-wrap">
+              <input type="text" id="modern-create-clan-input" class="ss-input" placeholder="Nome do Clã" maxlength="15">
+            </div>
+            <button class="btn-social-search" onclick="modernCreateClan()">CRIAR</button>
+          </div>
+        </div>
+
+        <!-- Clan Chat Overlay (Inside the modal) -->
+        <div id="clan-chat-overlay" style="display:none; position:absolute; inset:25px; background:var(--bg-panel); z-index:20; border-radius:20px; flex-direction:column; padding:20px; border:1px solid var(--c-primary);">
+           <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+              <span id="active-clan-name-modern" style="font-family:var(--font-hd); color:var(--c-primary);">NOME DO CLÃ</span>
+              <button onclick="toggleClanChat()" style="background:none; border:none; color:#888; cursor:pointer;">FECHAR</button>
+           </div>
+           <div id="clan-chat-box-modern" class="chat-box" style="flex:1; overflow-y:auto; margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:10px;"></div>
+           <div style="display:flex; gap:10px;">
+              <input type="text" id="clan-chat-input-modern" class="ss-input" placeholder="Mensagem..." maxlength="100" style="flex:1">
+              <button class="btn-social-search" onclick="sendModernClanMessage()">🚀</button>
+           </div>
+           <button onclick="leaveClan()" style="margin-top:15px; background:none; border:none; color:var(--c-danger); font-size:11px; cursor:pointer; font-family:var(--font-hd);">SAIR DO CLÃ</button>
+        </div>
+      </div>
+
+      <!-- Social Tab Content -->
+      <div id="m-content-social" class="modern-tab-content" style="display:none">
+        <div class="social-subtabs">
+          <div class="s-subtab active" id="ss-tab-search" onclick="switchSocialSubtab('search')">Buscar Jogadores</div>
+          <div class="s-subtab" id="ss-tab-friends" onclick="switchSocialSubtab('friends')">Amigos</div>
+        </div>
+        
+        <div id="ss-content-search" class="social-sub-content">
+          <div class="social-search-row">
+            <span class="ss-label">Buscar Jogador</span>
+            <div class="ss-input-wrap">
+              <input type="text" id="modern-search-input" class="ss-input" placeholder="Nome da Colonia">
+            </div>
+            <button class="btn-social-search" onclick="modernSearchPlayers()">BUSCAR</button>
+          </div>
+          <div id="modern-search-results" class="social-list-container"></div>
+        </div>
+
+        <div id="ss-content-friends" class="social-sub-content" style="display:none">
+          <div id="modern-friends-list" class="social-list-container"></div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
-<!-- ===================== SOCIAL / CLAN MODAL ===================== -->
-<div class="modal-overlay" id="clan-modal">
-  <div class="modal-box social-modal">
-    <button class="modal-close-btn" onclick="closeClanModal()">×</button>
-    <div class="modal-title" data-t="clan_title">CLÃS & AMIGOS</div>
-    
-    <div class="social-tabs">
-      <button class="social-tab active" id="tab-clan" onclick="switchSocialTab('clan')" data-t="chat">CLÃ</button>
-      <button class="social-tab" id="tab-search" onclick="switchSocialTab('search')" data-t="search_players">BUSCAR</button>
-      <button class="social-tab" id="tab-friends" onclick="switchSocialTab('friends')" data-t="friends">AMIGOS</button>
-    </div>
-
-    <div id="social-content-clan" class="social-panel-content">
-      <!-- Clan Chat & Info -->
-      <div id="clan-no-clan">
-        <p style="font-size:12px;color:#888;margin-bottom:15px;">Você não pertence a um clã.</p>
-        <div style="display:flex;gap:10px;flex-direction:column;">
-          <input type="text" id="new-clan-name" placeholder="Nome do Clã..." class="social-input" maxlength="15">
-          <button class="btn-auth" onclick="createClan()" data-t="create_clan">CRIAR CLÃ</button>
-        </div>
-        <div style="margin-top:20px;border-top:1px solid #333;padding-top:15px;">
-        <div style="display:flex;gap:10px;margin-bottom:10px;">
-          <input type="text" id="search-clan-name" placeholder="Buscar Clã..." class="social-input" style="flex:1">
-          <button class="btn-auth" onclick="searchClans()" style="width:auto;padding:0 20px;">🔍</button>
-        </div>
-        <div id="clan-search-results" class="social-list"></div>
-        </div>
-      </div>
-      <div id="clan-active" style="display:none; height:350px; display:flex; flex-direction:column;">
-        <div id="clan-info-bar" style="padding:10px; background:rgba(0,0,0,0.3); border-radius:8px; margin-bottom:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span id="active-clan-name" style="color:#00D4FF; font-family:'Orbitron'; font-size:14px;">NOME DO CLÃ</span>
-            <button onclick="leaveClan()" style="background:none; border:none; color:#FF4466; font-size:10px; cursor:pointer;" data-t="leave">SAIR</button>
-          </div>
-        </div>
-        <div id="clan-chat-box" class="chat-box"></div>
-        <div class="chat-input-wrap">
-          <input type="text" id="clan-chat-input" placeholder="Mensagem..." maxlength="100">
-          <button onclick="sendClanMessage()">🚀</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="social-content-search" class="social-panel-content" style="display:none">
-      <div style="display:flex;gap:10px;margin-bottom:15px;">
-        <input type="text" id="search-player-input" placeholder="Nome do Jogador..." class="social-input" style="flex:1">
-        <button class="btn-auth" onclick="searchPlayers()" style="width:auto;padding:0 20px;">🔍</button>
-      </div>
-      <div id="player-search-results" class="social-list"></div>
-    </div>
-
-    <div id="social-content-friends" class="social-panel-content" style="display:none">
-      <div id="friends-list" class="social-list"></div>
-    </div>
-  </div>
 </div>
 
 <!-- ===================== UPGRADE MODAL ===================== -->

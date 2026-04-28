@@ -1413,6 +1413,11 @@ function updateUILanguage() {
 }
 
 function showPanel(name) {
+  if (name === 'info' || name === 'social') {
+    closePanels();
+    openUnifiedModal(name === 'info' ? 'profile' : 'social');
+    return;
+  }
   if (G.ui.panel === name) { closePanels(); return; }
   closePanels();
   G.ui.panel = name;
@@ -1423,7 +1428,6 @@ function showPanel(name) {
 
   if (name === 'build')   renderBuildPanel();
   if (name === 'troops')  renderTroopsPanel();
-  if (name === 'info')    renderInfoPanel();
   if (name === 'mission') renderMissionPanel();
 }
 
@@ -2999,12 +3003,21 @@ async function leaveClan() {
   } catch (e) { notify('Erro ao sair do clã.', 'error'); }
 }
 
-async function searchClans() {
-  const query = gel('search-clan-name')?.value?.trim();
+window.switchClanSubtab = function(sub) {
+  document.querySelectorAll('#m-content-clan .s-subtab').forEach(t => t.classList.remove('active'));
+  gel('cs-tab-' + sub)?.classList.add('active');
+
+  document.querySelectorAll('#m-content-clan .social-sub-content').forEach(c => c.style.display = 'none');
+  gel('cs-content-' + sub).style.display = 'block';
+
+  if (sub === 'my') refreshSocialUI();
+};
+
+window.modernSearchClans = async function() {
+  const query = gel('modern-clan-search-input').value.trim();
   if (!query || !G.db) return;
-  const resultEl = gel('clan-search-results');
-  if (!resultEl) return;
-  resultEl.innerHTML = '<div style="text-align:center;padding:10px;color:#888;">Buscando...</div>';
+  const resultEl = gel('modern-clan-search-results');
+  resultEl.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando Clãs...</div>';
   try {
     const snap = await G.db.collection('clans').where('name', '==', query).limit(10).get();
     let html = '';
@@ -3012,51 +3025,115 @@ async function searchClans() {
       const c = doc.data();
       const safeName = (c.name || 'Clã').replace(/'/g, "\\'");
       html += `
-        <div class="social-item">
-          <div class="social-item-info">
-            <span class="social-item-name">🏰 ${c.name}</span>
-            <span class="social-item-sub">${(c.members || []).length} membros</span>
+        <div class="social-player-card">
+          <div class="sp-avatar" style="background:var(--c-gold); color:#000;">${(c.name || 'C')[0].toUpperCase()}</div>
+          <div class="sp-info">
+            <span class="sp-name">${c.name}</span>
+            <span class="sp-meta">Membros: ${(c.members || []).length}</span>
           </div>
-          <button class="social-btn-small social-btn-visit" onclick="joinClan('${doc.id}', '${safeName}')">${t('join')}</button>
+          <button class="btn-sp-visit" onclick="joinClan('${doc.id}', '${safeName}')">VER CLÃ</button>
         </div>
       `;
     });
-    resultEl.innerHTML = html || `<div style="text-align:center;padding:10px;color:#888;">${t('no_results')}</div>`;
-  } catch (e) { resultEl.innerHTML = '<div style="color:#FF4466;text-align:center;">Erro na busca.</div>'; }
-}
+    resultEl.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">Nenhum clã encontrado.</div>`;
+  } catch (e) { resultEl.innerHTML = '<div style="color:var(--c-danger);text-align:center;">Erro na busca.</div>'; }
+};
 
-function switchSocialTab(tab) {
-  currentSocialTab = tab;
-  document.querySelectorAll('.social-tab').forEach(t => t.classList.remove('active'));
-  gel('tab-' + tab)?.classList.add('active');
+window.modernCreateClan = function() {
+  const name = gel('modern-create-clan-input').value.trim();
+  if (!name || name.length < 3) { notify('Nome muito curto!', 'error'); return; }
   
-  hide('social-content-clan');
-  hide('social-content-search');
-  hide('social-content-friends');
-  show('social-content-' + tab);
-  
-  if (tab === 'friends') renderFriendsList();
-}
+  // Reuse existing logic but with UI updates
+  gel('new-clan-name').value = name; 
+  createClan();
+};
+
+window.toggleClanChat = function() {
+  const overlay = gel('clan-chat-overlay');
+  if (overlay.style.display === 'none' || !overlay.style.display) {
+    overlay.style.display = 'flex';
+    refreshSocialUI(); // Ensure chat is loaded
+  } else {
+    overlay.style.display = 'none';
+  }
+};
+
+window.sendModernClanMessage = function() {
+  const input = gel('clan-chat-input-modern');
+  const oldInput = gel('clan-chat-input');
+  oldInput.value = input.value;
+  sendClanMessage();
+  input.value = '';
+};
+
+// Override existing renderers to use modern IDs
+const oldRenderClanChat = window.renderClanChat;
+window.renderClanChat = function(msgs) {
+  const box = gel('clan-chat-box-modern');
+  if (!box) return;
+  box.innerHTML = msgs.map(m => `
+    <div class="chat-msg ${m.senderId === G.pid ? 'mine' : 'other'}">
+      <div class="chat-msg-sender">${m.senderName}</div>
+      <div class="chat-msg-text">${m.text}</div>
+    </div>
+  `).join('');
+  box.scrollTop = box.scrollHeight;
+};
 
 async function refreshSocialUI() {
   if (!G.user) return;
   const clanId = G.base.clanId;
+  const myClanActive = gel('my-clan-active');
+  const myClanNone = gel('my-clan-none');
+  
   if (clanId) {
-    hide('clan-no-clan');
-    show('clan-active');
+    if (myClanActive) myClanActive.style.display = 'block';
+    if (myClanNone) myClanNone.style.display = 'none';
     loadClanData(clanId);
+    renderMyClanMembers(clanId);
+    if (gel('active-clan-name-modern')) gel('active-clan-name-modern').textContent = G.base.clanName;
   } else {
-    show('clan-no-clan');
-    hide('clan-active');
+    if (myClanActive) myClanActive.style.display = 'none';
+    if (myClanNone) myClanNone.style.display = 'block';
   }
 }
+
+window.renderMyClanMembers = async function(clanId) {
+  const list = gel('my-clan-members-list');
+  if (!list || !G.db) return;
+  
+  try {
+    const clanDoc = await G.db.collection('clans').doc(clanId).get();
+    if (!clanDoc.exists) return;
+    const members = clanDoc.data().members || [];
+    
+    // In a real app we'd fetch all member details. For now, placeholders or stored data.
+    list.innerHTML = `<div style="text-align:center;padding:10px;color:#888;">Carregando membros...</div>`;
+    
+    let html = '';
+    for (const mid of members) {
+      const userDoc = await G.db.collection('users').doc(mid).get();
+      const p = userDoc.data() || { playerName: 'Membro', trophies: 0, ccLevel: 1 };
+      const league = getLeague(p.trophies || 0);
+      html += `
+        <div class="social-player-card">
+          <div class="sp-avatar" style="background:${league.color}">${(p.playerName || 'M')[0].toUpperCase()}</div>
+          <div class="sp-info">
+            <span class="sp-name">${p.playerName}${mid === G.pid ? ' (Você)' : ''}</span>
+            <span class="sp-meta">CC Nível ${p.ccLevel || 1} <span>${league.name}</span></span>
+          </div>
+          <div class="sp-trophy">🏆 ${p.trophies || 0}</div>
+        </div>
+      `;
+    }
+    list.innerHTML = html;
+  } catch (e) { list.innerHTML = 'Erro ao cargegar membros.'; }
+};
 
 async function createClan() {
   const name = gel('new-clan-name').value.trim();
   if (!name || name.length < 3) { notify('Nome muito curto!', 'error'); return; }
-  
   if (!G.db) { notify('Modo demo: Firebase não configurado.', 'error'); return; }
-  
   try {
     const clanRef = await G.db.collection('clans').add({
       name: name,
@@ -3075,10 +3152,8 @@ async function createClan() {
 async function loadClanData(clanId) {
   if (!G.db) return;
   gel('active-clan-name').textContent = G.base.clanName || 'Carregando...';
-  
-  // Real-time chat listener
-  if (clanUnsubscribe) clanUnsubscribe();
-  clanUnsubscribe = G.db.collection('clans').doc(clanId).collection('messages')
+  if (window.clanUnsubscribe) window.clanUnsubscribe();
+  window.clanUnsubscribe = G.db.collection('clans').doc(clanId).collection('messages')
     .orderBy('time', 'desc').limit(30)
     .onSnapshot(snap => {
       const msgs = [];
@@ -3103,7 +3178,6 @@ async function sendClanMessage() {
   const input = gel('clan-chat-input');
   const text = input.value.trim();
   if (!text || !G.base.clanId || !G.db) return;
-  
   try {
     await G.db.collection('clans').doc(G.base.clanId).collection('messages').add({
       senderId: G.pid,
@@ -3115,86 +3189,22 @@ async function sendClanMessage() {
   } catch (e) { console.error(e); }
 }
 
-async function searchPlayers() {
-  const query = gel('search-player-input').value.trim();
-  if (!query || !G.db) return;
-  
-  const results = gel('player-search-results');
-  results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
-  
-  try {
-    // Search in users collection where data is actually stored
-    const snap = await G.db.collection('users').where('playerName', '==', query).limit(10).get();
-    let html = '';
-    snap.forEach(doc => {
-      const p = doc.data();
-      if (doc.id === G.pid) return;
-      const pName = p.playerName || 'Colono';
-      const safeName = pName.replace(/'/g, "\\'");
-      html += `
-        <div class="social-item">
-          <div class="social-item-info">
-            <span class="social-item-name">${pName}</span>
-            <span class="social-item-sub">🏆 ${p.trophies || 0} · CC${p.ccLevel || 1}</span>
-          </div>
-          <div style="display:flex;gap:5px;">
-            <button class="social-btn-small social-btn-visit" onclick="visitPlayer('${doc.id}')">👁 ${t('visit')}</button>
-            <button class="social-btn-small social-btn-add" onclick="addFriend('${doc.id}', '${safeName}')">+</button>
-          </div>
-        </div>
-      `;
-    });
-    results.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">${t('no_results')}</div>`;
-  } catch (e) { console.error(e); results.innerHTML = '<div style="text-align:center;padding:20px;color:#FF4466;">Erro na busca.</div>'; }
-}
-
-async function visitPlayer(targetPid) {
-  if (!G.db) return;
-  notify(t('visiting_player').replace('{name}', ''), 'info');
-  closeClanModal();
-  
-  try {
-    const doc = await G.db.collection('users').doc(targetPid).get();
-    if (doc.exists) {
-      const data = doc.data();
-      G.visiting = {
-        pid: targetPid,
-        playerName: data.playerName || 'Colono',
-        buildings: data.buildings || []
-      };
-      enterVisitMode();
-    } else {
-      notify('Jogador não encontrado.', 'error');
-    }
-  } catch (e) { notify('Erro ao visitar jogador.', 'error'); }
-}
-
 function enterVisitMode() {
   G.ui.screen = 'visit';
-  // UI for visit mode (read only)
-  const hud = gel('hud');
-  if (hud) hud.style.display = 'none';
-  const fabGroup = gel('fab-group');
-  if (fabGroup) fabGroup.style.display = 'none';
-  const visitName = gel('visit-player-name');
-  if (visitName) visitName.textContent = G.visiting.playerName || 'Colono';
-  gel('visit-controls').style.display = 'flex';
-  
-  // Redesenhar o mapa com a base do visitado
+  const hud = gel('hud'); if (hud) hud.style.display = 'none';
+  const fabGroup = gel('fab-group'); if (fabGroup) fabGroup.style.display = 'none';
+  const visitName = gel('visit-player-name'); if (visitName) visitName.textContent = G.visiting.playerName || 'Colono';
+  const visitCtrl = gel('visit-controls'); if (visitCtrl) visitCtrl.style.display = 'flex';
   buildTerrain();
   renderBuildingsLayer(G.visiting.buildings);
   centerMap();
 }
 
 function returnToHome() {
-  G.visiting = null;
-  G.ui.screen = 'game';
-  const hud = gel('hud');
-  if (hud) hud.style.display = 'flex';
-  const fabGroup = gel('fab-group');
-  if (fabGroup) fabGroup.style.display = 'flex';
-  gel('visit-controls').style.display = 'none';
-  
+  G.visiting = null; G.ui.screen = 'game';
+  const hud = gel('hud'); if (hud) hud.style.display = 'flex';
+  const fabGroup = gel('fab-group'); if (fabGroup) fabGroup.style.display = 'flex';
+  const visitCtrl = gel('visit-controls'); if (visitCtrl) visitCtrl.style.display = 'none';
   buildTerrain();
   renderBuildingsLayer();
   centerMap();
@@ -3208,30 +3218,194 @@ async function addFriend(fid, fname) {
   notify(t('friend_added'), 'success');
 }
 
-function renderFriendsList() {
-  const list = gel('friends-list');
-  if (!list) return;
-  const friends = G.base.friends || [];
-  list.innerHTML = friends.map(f => `
-    <div class="social-item">
-      <div class="social-item-info">
-        <span class="social-item-name">${f.name}</span>
-      </div>
-      <button class="social-btn-small social-btn-visit" onclick="visitPlayer('${f.id}')">${t('visit')}</button>
-    </div>
-  `).join('') || '<div style="text-align:center;padding:20px;color:#888;">Sua lista de amigos está vazia.</div>';
-}
-
 function centerMap() {
-  const mc = gel('map-container');
-  if (!mc) return;
+  const mc = gel('map-container'); if (!mc) return;
   mc.scrollLeft = (GRID_W * CELL_SIZE - mc.clientWidth)  / 2;
   mc.scrollTop  = (GRID_H * CELL_SIZE - mc.clientHeight) / 2;
 }
 
-// Boot
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
   init();
 }
+
+
+
+/* ========== UNIFIED MODERN MODAL LOGIC ========== */
+window.openUnifiedModal = function(initialTab = 'profile') {
+  gel('unified-modal').classList.add('visible');
+  switchModernTab(initialTab);
+};
+
+window.closeUnifiedModal = function() {
+  gel('unified-modal').classList.remove('visible');
+};
+
+window.switchModernTab = function(tab) {
+  document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
+  gel('tab-m-' + tab)?.classList.add('active');
+
+  document.querySelectorAll('.modern-tab-content').forEach(c => c.style.display = 'none');
+  gel('m-content-' + tab).style.display = 'block';
+
+  if (tab === 'profile') updateModernProfileUI();
+  if (tab === 'social') switchSocialSubtab('search');
+  if (tab === 'clan') refreshSocialUI();
+};
+
+window.updateModernProfileUI = function() {
+  const grid = gel('m-profile-grid');
+  const storage = gel('m-profile-storage');
+  if (!grid || !storage) return;
+
+  const ccLvl = getCurrentCCLevel();
+  const isAdmin = G.user?.email === 'admin@colonyclash.com';
+  const league = getLeague(G.base.trophies);
+
+  // Left & Center
+  grid.innerHTML = `
+    <div class="profile-left">
+      <div class="profile-cc-lvl">CC Nível ${ccLvl}</div>
+      <img src="cc_lvl${ccLvl}.png" class="profile-cc-img">
+      <div class="profile-uid-row">
+        <span class="p-uid-text">UID: ${G.pid}</span>
+        <button class="btn-copy-uid" onclick="copyUID()">COPIAR UID</button>
+      </div>
+    </div>
+    <div class="profile-center">
+      <div class="profile-user-row">
+        <span class="profile-name">${G.base.playerName || 'Colono'}</span>
+        <div class="profile-gems-badge">💎 ${G.base.gems || 0}</div>
+      </div>
+      <div class="profile-clan-box">
+        <div class="p-clan-avatar">${(G.base.clanName || 'C')[0].toUpperCase()}</div>
+        <div class="p-clan-info">
+          <span class="p-clan-name">${G.base.clanName || 'Nenhum Clã'}</span>
+          <span class="p-clan-mems">${G.base.clanId ? 'Membro Ativo' : 'Sem membros'}</span>
+        </div>
+      </div>
+      ${isAdmin ? `<button class="btn-admin-panel" onclick="document.getElementById('admin-panel').classList.remove('hidden'); closeUnifiedModal();">ABRIR PAINEL ADMIN</button>` : ''}
+    </div>
+    <div class="profile-right">
+      <span class="p-league-label">LIGA ATUAL</span>
+      <span class="p-league-name" style="color:${league.color}">${league.name}</span>
+      <div class="p-trophy-badge">🏆 ${G.base.trophies || 0}</div>
+    </div>
+  `;
+
+  // Storage
+  const blds = G.base.buildings || [];
+  const res = G.base.resources || { mineral: 0, oxygen: 0, energy: 0 };
+  const caps = {
+    mineral: getStorageCapacity(blds, 'mineral'),
+    oxygen: getStorageCapacity(blds, 'oxygen'),
+    energy: getStorageCapacity(blds, 'energy')
+  };
+
+  storage.innerHTML = `
+    <div class="p-storage-title">ARMAZENAMENTO</div>
+    ${['mineral', 'oxygen', 'energy'].map(type => {
+      const pct = Math.min(100, (res[type] / caps[type]) * 100);
+      const color = type === 'mineral' ? 'var(--c-mineral)' : type === 'oxygen' ? 'var(--c-oxygen)' : 'var(--c-energy)';
+      return `
+        <div class="p-storage-row">
+          <span class="ps-label">${t(type)}</span>
+          <div class="ps-bar-wrap">
+            <div class="ps-bar-fill" style="width:${pct}%; background:${color}"></div>
+          </div>
+          <span class="ps-val" style="color:${color}">${fmtNum(res[type])} / ${fmtNum(caps[type])}</span>
+        </div>
+      `;
+    }).join('')}
+  `;
+};
+
+window.switchSocialSubtab = function(sub) {
+  document.querySelectorAll('.s-subtab').forEach(t => t.classList.remove('active'));
+  gel('ss-tab-' + sub)?.classList.add('active');
+
+  document.querySelectorAll('.social-sub-content').forEach(c => c.style.display = 'none');
+  gel('ss-content-' + sub).style.display = 'block';
+
+  if (sub === 'friends') renderModernFriendsList();
+};
+
+window.modernSearchPlayers = async function() {
+  const query = gel('modern-search-input').value.trim();
+  if (!query || !G.db) return;
+  
+  const results = gel('modern-search-results');
+  results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
+  
+  try {
+    const snap = await G.db.collection('users').where('playerName', '==', query).limit(10).get();
+    let html = '';
+    snap.forEach(doc => {
+      const p = doc.data();
+      if (doc.id === G.pid) return;
+      const pName = p.playerName || 'Colono';
+      const league = getLeague(p.trophies || 0);
+      html += `
+        <div class="social-player-card">
+          <div class="sp-avatar" style="background:${league.color}">${pName[0].toUpperCase()}</div>
+          <div class="sp-info">
+            <span class="sp-name">${pName}</span>
+            <span class="sp-meta">CC Nível ${p.ccLevel || 1} <span>${league.name}</span></span>
+          </div>
+          <div class="sp-actions">
+            <button class="btn-sp-visit" onclick="visitPlayer('${doc.id}')">VISITAR</button>
+            <button class="btn-sp-add" onclick="addFriend('${doc.id}', '${pName.replace(/'/g, "\\'")}')">ADD AMIGO</button>
+          </div>
+        </div>
+      `;
+    });
+    results.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">${t('no_results')}</div>`;
+  } catch (e) { results.innerHTML = '<div style="text-align:center;padding:20px;color:#FF4466;">Erro na busca.</div>'; }
+};
+
+window.renderModernFriendsList = function() {
+  const list = gel('modern-friends-list');
+  if (!list) return;
+  const friends = G.base.friends || [];
+  
+  if (friends.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Sua lista de amigos está vazia.</div>';
+    return;
+  }
+
+  // Note: For a real app, you'd fetch latest trophies/CC for each friend. 
+  // Here we use stored data or placeholders for simplicity in this turn.
+  list.innerHTML = friends.map(f => `
+    <div class="social-player-card">
+      <div class="sp-avatar">${(f.name || 'C')[0].toUpperCase()}</div>
+      <div class="sp-info">
+        <span class="sp-name">${f.name}</span>
+        <span class="sp-meta">CC Nível ? <span>Amigo</span></span>
+      </div>
+      <div class="sp-trophy">🏆 ${f.trophies || '?'}</div>
+      <button class="btn-sp-visit" onclick="visitPlayer('${f.id}')">VISITAR</button>
+    </div>
+  `).join('');
+};
+
+window.copyUID = function() {
+  navigator.clipboard.writeText(G.pid).then(() => {
+    notify('UID copiado para a área de transferência!', 'success');
+  });
+};
+
+// Override old functions to close the new modal
+const oldVisitPlayer = window.visitPlayer;
+window.visitPlayer = async function(pid) {
+  closeUnifiedModal();
+  if (typeof visitPlayer === 'function') {
+     // Use the existing global visitPlayer logic
+     const results = await G.db.collection('users').doc(pid).get();
+     if (results.exists) {
+        const data = results.data();
+        G.visiting = { pid, playerName: data.playerName, buildings: data.buildings || [] };
+        enterVisitMode();
+     }
+  }
+};
