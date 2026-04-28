@@ -2975,6 +2975,7 @@ function closeClanModal() {
 
 async function joinClan(clanId, clanName) {
   if (!G.db || !G.user) { notify('Firebase necessário.', 'error'); return; }
+  if (G.base.clanId) { notify('Você já está em um clã!', 'error'); return; }
   try {
     await G.db.collection('clans').doc(clanId).update({
       members: firebase.firestore.FieldValue.arrayUnion(G.pid)
@@ -2983,6 +2984,9 @@ async function joinClan(clanId, clanName) {
     G.base.clanName = clanName;
     await saveData();
     notify(t('clan_joined'), 'success');
+    
+    // Auto switch to My Clan tab in the new UI
+    if (window.switchClanSubtab) window.switchClanSubtab('my');
     refreshSocialUI();
   } catch (e) { notify('Erro ao entrar no clã.', 'error'); }
 }
@@ -3131,9 +3135,16 @@ window.renderMyClanMembers = async function(clanId) {
 };
 
 async function createClan() {
-  const name = gel('new-clan-name').value.trim();
+  const name = gel('new-clan-name')?.value?.trim() || gel('modern-create-clan-input')?.value?.trim();
   if (!name || name.length < 3) { notify('Nome muito curto!', 'error'); return; }
   if (!G.db) { notify('Modo demo: Firebase não configurado.', 'error'); return; }
+  
+  // USER REQUEST: Cost 1000 minerals
+  if ((G.base.resources.mineral || 0) < 1000) {
+    notify('Minério insuficiente! (Necessário 1.000 ⛏️)', 'error');
+    return;
+  }
+
   try {
     const clanRef = await G.db.collection('clans').add({
       name: name,
@@ -3141,11 +3152,19 @@ async function createClan() {
       members: [G.pid],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    
+    // Deduct cost
+    G.base.resources.mineral -= 1000;
+    
     G.base.clanId = clanRef.id;
     G.base.clanName = name;
     await saveData();
     notify(t('clan_created'), 'success');
+    
+    // Auto switch to My Clan tab
+    if (window.switchClanSubtab) window.switchClanSubtab('my');
     refreshSocialUI();
+    updateHUD();
   } catch (e) { notify('Erro ao criar clã.', 'error'); }
 }
 

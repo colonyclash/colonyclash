@@ -855,6 +855,7 @@ html, body {
   .chat-box { max-height: 250px; }
 }
 
+
 /* ========== UNIFIED MODAL SYSTEM (NEW DESIGN) ========== */
 .modern-modal-overlay {
   position: fixed; inset: 0; z-index: 1000;
@@ -1024,4 +1025,50 @@ html, body {
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
   color: #fff; padding: 8px 15px; border-radius: 15px;
   font-family: var(--font-hd); font-size: 10px; cursor: pointer;
+}
+
+/* ========== MOBILE RESPONSIVENESS (OVERRIDE) ========== */
+@media (max-width: 600px) {
+  .modern-modal { width: 98%; max-height: 95vh; }
+  .modern-modal-content { padding: 15px; border-radius: 20px; min-height: auto; max-height: 80vh; overflow-y: auto; }
+  
+  .modern-modal-tabs { gap: 5px; padding: 0 10px; }
+  .m-tab { padding: 10px 10px; font-size: 10px; min-width: 70px; flex: 1; }
+  .m-tab.active { margin-top: -3px; padding-bottom: 12px; }
+
+  .profile-grid { flex-direction: column; align-items: center; text-align: center; gap: 20px; }
+  .profile-left { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .profile-cc-img { width: 100px; height: 100px; }
+  .profile-center { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .profile-user-row { justify-content: center; width: 100%; }
+  .profile-name { font-size: 18px; }
+  .profile-clan-box { width: 100%; max-width: 280px; }
+  .profile-right { width: 100%; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; display: flex; flex-direction: column; align-items: center; }
+
+  .profile-storage { gap: 10px; }
+  .p-storage-row { flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+  .ps-label { width: 100%; }
+  .ps-bar-wrap { width: 100%; max-width: 220px; }
+  .ps-val { width: 100%; }
+
+  .social-player-card { flex-direction: column; text-align: center; padding: 15px; gap: 12px; }
+  .sp-info { align-items: center; }
+  .sp-actions { width: 100%; justify-content: center; flex-wrap: wrap; }
+  .sp-trophy { width: fit-content; margin: 0 auto; }
+  
+  .social-search-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .ss-label { text-align: center; }
+  .btn-social-search { width: 100%; padding: 12px; }
+
+  .social-subtabs { flex-wrap: wrap; }
+  .s-subtab { font-size: 11px; padding: 10px 5px; flex: 1; min-width: 100px; }
+  
+  #clan-chat-overlay { inset: 5px; padding: 15px; }
+}
+
+@media (max-width: 400px) {
+  .m-tab { font-size: 9px; min-width: 60px; }
+  .profile-name { font-size: 16px; }
+  .p-league-name { font-size: 14px; }
+  .ps-bar-wrap { max-width: 180px; }
 }
