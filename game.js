@@ -444,7 +444,7 @@ window.showBuildersModal = function() {
     return;
   }
   
-  const costs = { 1: 100, 2: 500, 3: 1000 };
+  const costs = { 1: 50, 2: 500, 3: 1000 };
   const cost = costs[current];
   
   const modal = gel('upgrade-modal');
@@ -1493,7 +1493,8 @@ window.filterBuildTab = function(tab) {
       (tab === 'all' && i === 0) || 
       (tab === 'shop' && i === 1) || 
       (tab === 'res' && i === 2) || 
-      (tab === 'shield' && i === 3)
+      (tab === 'shield' && i === 3) ||
+      (tab === 'builders' && i === 4)
     );
   });
   
@@ -1504,7 +1505,48 @@ window.filterBuildTab = function(tab) {
   else if (tab === 'shop') renderShopTab();
   else if (tab === 'res') renderResourcesTab();
   else if (tab === 'shield') renderShieldTab();
+  else if (tab === 'builders') renderBuildersTab();
 };
+
+function renderBuildersTab() {
+  const grid = gel('build-panel-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  
+  const current = getTotalBuilders();
+  if (current >= 4) {
+    grid.innerHTML = `<div style="grid-column: 1/-1; color:#fff; text-align:center; padding:20px; font-family:var(--font-hd); font-size:12px;">${t('max_builders_reached')}</div>`;
+    return;
+  }
+  
+  const costs = { 1: 50, 2: 500, 3: 1000 };
+  const cost = costs[current];
+  const affordable = (G.base.gems || 0) >= cost;
+
+  const card = document.createElement('div');
+  card.className = 'build-card-new';
+  card.innerHTML = `
+    <div class="bn-title">Astronauta Construtor</div>
+    <div style="font-size:50px;margin:15px 0">👨‍🚀</div>
+    <div class="bn-desc" style="font-size:10px; color:#888; text-align:center; margin-bottom:10px;">
+      Contrate mais um astronauta para construir e melhorar edifícios simultaneamente.
+    </div>
+    <div class="bn-cost-bar" style="background:${affordable ? '#2ecc71' : '#e74c3c'}">
+      <span class="bn-cost-icon">💎</span>
+      <span class="bn-cost-val">${cost}</span>
+    </div>
+  `;
+  
+  card.onclick = () => {
+    if (!affordable) {
+      notify(t('not_enough_gems'), 'error');
+      return;
+    }
+    showBuildersModal();
+  };
+  grid.appendChild(card);
+}
+
 
 function renderShopTab() {
   const grid = gel('build-panel-grid');
