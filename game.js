@@ -889,9 +889,17 @@ function showBldPopup(bId, cx, cy) {
   const clanBtn = gel('popup-clan');
   const labBtn = gel('popup-lab');
   
+  const profileBtn = gel('popup-profile');
+  if (b.type === 'command_center' && !bldInProgress(b)) {
+    profileBtn.style.display = 'block';
+    profileBtn.onclick = () => { hideBldPopup(); openUnifiedModal('profile'); };
+  } else {
+    profileBtn.style.display = 'none';
+  }
+
   if (b.type === 'clan_tower' && !bldInProgress(b)) {
     clanBtn.style.display = 'block';
-    clanBtn.onclick = () => showClanModal();
+    clanBtn.onclick = () => { hideBldPopup(); openUnifiedModal('clan'); };
   } else {
     clanBtn.style.display = 'none';
   }
@@ -1217,7 +1225,7 @@ function initMapEvents() {
     sx = e.clientX; sy = e.clientY;
     scx = mc.scrollLeft; scy = mc.scrollTop;
   });
-  window.addEventListener('mousemove', e => {
+  mc.addEventListener('mousemove', e => {
     if (dragging) {
       const dx = e.clientX - sx, dy = e.clientY - sy;
       if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
@@ -1230,12 +1238,14 @@ function initMapEvents() {
       moveGhost(gx, gy);
     }
   });
-  window.addEventListener('mouseup', e => {
-    if (dragging && !moved) {
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+  });
+  mc.addEventListener('mouseup', e => {
+    if (!moved) {
       if (G.ui.buildMode || G.ui.moveMode) confirmPlace();
       else hideBldPopup();
     }
-    dragging = false;
   });
 
   window.addEventListener('keydown', e => {
@@ -3135,16 +3145,16 @@ window.renderMyClanMembers = async function(clanId) {
 
 async function createClan() {
   const nameInput = gel('modern-create-clan-input') || gel('new-clan-name');
-  const name = nameInput?.value?.trim();
+  if (!nameInput) return;
+  const name = nameInput.value.trim();
   
-  if (!name || name.length < 3) { notify('Nome do clã deve ter pelo menos 3 caracteres.', 'error'); return; }
+  if (!name || name.length < 3) { notify('Nome muito curto! (Mínimo 3 letras)', 'error'); return; }
   if (!G.db) { notify('Firebase não configurado.', 'error'); return; }
   if (G.base.clanId) { notify('Você já está em um clã!', 'error'); return; }
 
-  // USER REQUEST: Cost 1000 minerals
-  const mineral = G.base.resources?.mineral || 0;
-  if (mineral < 1000) {
-    notify('Minério insuficiente! (Necessário 1.000 ⛏️)', 'error');
+  const minerals = G.base.resources?.mineral || 0;
+  if (minerals < 1000) {
+    notify('Minério insuficiente! (Custo: 1.000 ⛏️)', 'error');
     return;
   }
 
@@ -3157,7 +3167,6 @@ async function createClan() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    // Deduct cost and save
     G.base.resources.mineral -= 1000;
     G.base.clanId = clanRef.id;
     G.base.clanName = name;
@@ -3165,15 +3174,14 @@ async function createClan() {
     await saveData();
     notify('Clã criado com sucesso!', 'success');
     
-    if (nameInput) nameInput.value = '';
+    nameInput.value = '';
     
-    // Auto switch to My Clan tab
     if (window.switchClanSubtab) window.switchClanSubtab('my');
     refreshSocialUI();
     updateHUD();
   } catch (e) { 
-    console.error('Erro ao criar clã:', e);
-    notify('Erro ao criar clã no servidor.', 'error'); 
+    console.error('CreateClan Error:', e);
+    notify('Erro na criação do clã.', 'error'); 
   }
 }
 
