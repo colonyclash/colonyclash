@@ -1217,7 +1217,7 @@ function initMapEvents() {
     sx = e.clientX; sy = e.clientY;
     scx = mc.scrollLeft; scy = mc.scrollTop;
   });
-  mc.addEventListener('mousemove', e => {
+  window.addEventListener('mousemove', e => {
     if (dragging) {
       const dx = e.clientX - sx, dy = e.clientY - sy;
       if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
@@ -1230,14 +1230,13 @@ function initMapEvents() {
       moveGhost(gx, gy);
     }
   });
-  mc.addEventListener('mouseup', e => {
-    if (!moved) {
+  window.addEventListener('mouseup', e => {
+    if (dragging && !moved) {
       if (G.ui.buildMode || G.ui.moveMode) confirmPlace();
       else hideBldPopup();
     }
     dragging = false;
   });
-  mc.addEventListener('mouseleave', () => { dragging = false; });
 
   window.addEventListener('keydown', e => {
     if (!(G.ui.buildMode || G.ui.moveMode)) return;
@@ -3135,17 +3134,22 @@ window.renderMyClanMembers = async function(clanId) {
 };
 
 async function createClan() {
-  const name = gel('new-clan-name')?.value?.trim() || gel('modern-create-clan-input')?.value?.trim();
-  if (!name || name.length < 3) { notify('Nome muito curto!', 'error'); return; }
-  if (!G.db) { notify('Modo demo: Firebase não configurado.', 'error'); return; }
+  const nameInput = gel('modern-create-clan-input') || gel('new-clan-name');
+  const name = nameInput?.value?.trim();
   
+  if (!name || name.length < 3) { notify('Nome do clã deve ter pelo menos 3 caracteres.', 'error'); return; }
+  if (!G.db) { notify('Firebase não configurado.', 'error'); return; }
+  if (G.base.clanId) { notify('Você já está em um clã!', 'error'); return; }
+
   // USER REQUEST: Cost 1000 minerals
-  if ((G.base.resources.mineral || 0) < 1000) {
+  const mineral = G.base.resources?.mineral || 0;
+  if (mineral < 1000) {
     notify('Minério insuficiente! (Necessário 1.000 ⛏️)', 'error');
     return;
   }
 
   try {
+    notify('Criando clã...', 'info');
     const clanRef = await G.db.collection('clans').add({
       name: name,
       owner: G.pid,
@@ -3153,19 +3157,24 @@ async function createClan() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    // Deduct cost
+    // Deduct cost and save
     G.base.resources.mineral -= 1000;
-    
     G.base.clanId = clanRef.id;
     G.base.clanName = name;
+    
     await saveData();
-    notify(t('clan_created'), 'success');
+    notify('Clã criado com sucesso!', 'success');
+    
+    if (nameInput) nameInput.value = '';
     
     // Auto switch to My Clan tab
     if (window.switchClanSubtab) window.switchClanSubtab('my');
     refreshSocialUI();
     updateHUD();
-  } catch (e) { notify('Erro ao criar clã.', 'error'); }
+  } catch (e) { 
+    console.error('Erro ao criar clã:', e);
+    notify('Erro ao criar clã no servidor.', 'error'); 
+  }
 }
 
 async function loadClanData(clanId) {
