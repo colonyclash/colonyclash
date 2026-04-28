@@ -3023,7 +3023,11 @@ window.switchClanSubtab = function(sub) {
   document.querySelectorAll('#m-content-clan .social-sub-content').forEach(c => c.style.display = 'none');
   gel('cs-content-' + sub).style.display = 'block';
 
-  if (sub === 'my') refreshSocialUI();
+  if (sub === 'my') renderMyClanTab();
+};
+
+window.renderMyClanTab = function() {
+  refreshSocialUI();
 };
 
 window.modernSearchClans = async function() {
@@ -3287,7 +3291,7 @@ window.switchModernTab = function(tab) {
 
   if (tab === 'profile') updateModernProfileUI();
   if (tab === 'social') switchSocialSubtab('search');
-  if (tab === 'clan') refreshSocialUI();
+  if (tab === 'clan') switchClanSubtab('my');
 };
 
 window.updateModernProfileUI = function() {
@@ -3298,6 +3302,8 @@ window.updateModernProfileUI = function() {
   const ccLvl = getCurrentCCLevel();
   const isAdmin = G.user?.email === 'admin@colonyclash.com';
   const league = getLeague(G.base.trophies);
+
+
 
   // Left & Center
   grid.innerHTML = `
@@ -3424,6 +3430,8 @@ window.renderModernFriendsList = function() {
     </div>
   `).join('');
 };
+
+
 
 window.copyUID = function() {
   navigator.clipboard.writeText(G.pid).then(() => {

@@ -125,14 +125,17 @@
     </div>
   </div>
 
-</div>
-
   <!-- Building Context Popup -->
   <div id="building-popup">
+    <button class="popup-x" onclick="gel('building-popup').classList.remove('visible')">×</button>
     <div class="popup-header">
-      <span id="popup-name">Edifício</span>
-      <span id="popup-level">Nível 1</span>
+      <img src="" id="popup-img" class="popup-img">
+      <div class="popup-info">
+        <div id="popup-name">Edifício</div>
+        <div id="popup-level">Nível 1</div>
+      </div>
     </div>
+    <div class="popup-hp-bar"><div id="popup-hp-fill" class="popup-hp-fill"></div></div>
     <p id="popup-desc"></p>
     <div class="popup-buttons">
       <button class="pbtn btn-upgrade" id="popup-upgrade">⬆ Melhorar</button>
@@ -152,8 +155,6 @@
     <span id="build-mode-label">Posicionando...</span>
     <button class="btn-cancel-build" onclick="cancelCurrentMode()">✕ Cancelar</button>
   </div>
-
-</div>
 
 <!-- ===================== PANEL OVERLAY ===================== -->
 <div id="panel-overlay">
@@ -319,8 +320,6 @@
   </div>
 </div>
 
-</div>
-
 <!-- ===================== UPGRADE MODAL ===================== -->
 <div class="modal-overlay" id="upgrade-modal">
   <div class="modal-box">
@@ -441,6 +440,31 @@
     <div id="lab-modal-body" style="margin:12px 0; max-height:55vh; overflow-y:auto;"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeLabModal()" data-t="close">FECHAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CLAN MODAL (LEGACY SUPPORT) ===================== -->
+<div class="modal-overlay" id="clan-modal">
+  <div class="modal-box social-modal">
+    <button class="modal-close-btn" onclick="closeClanModal()">×</button>
+    <div class="modal-title">SISTEMA DE CLÃS</div>
+    <div class="social-tabs">
+      <button class="social-tab active" id="stab-clan" onclick="currentSocialTab='clan';refreshSocialUI()">Meu Clã</button>
+      <button class="social-tab" id="stab-search" onclick="currentSocialTab='search';refreshSocialUI()">Buscar</button>
+      <button class="social-tab" id="stab-create" onclick="currentSocialTab='create';refreshSocialUI()">Criar</button>
+    </div>
+    <div id="clan-panel-content" class="social-panel-content">
+       <!-- My Clan -->
+       <div id="my-clan-none" style="display:none; text-align:center; padding:20px;">
+         <p>Você não está em nenhum clã.</p>
+       </div>
+       <div id="my-clan-active" style="display:none;">
+         <h3 id="active-clan-name">...</h3>
+         <button onclick="toggleClanChat()" class="btn-social-search" style="width:100%; margin-bottom:10px;">CHAT DO CLÃ</button>
+         <div id="my-clan-members" class="social-list"></div>
+         <button onclick="leaveClan()" class="btn-logout" style="width:100%; margin-top:20px;">SAIR DO CLÃ</button>
+       </div>
     </div>
   </div>
 </div>
