@@ -823,13 +823,16 @@ function showBldPopup(bId, cx, cy) {
   const popup = gel('building-popup');
   popup.classList.add('visible');
 
-  const pw = 248;
+  const pw = 260; // Largura do popup modernizado
+  const ph = 300; // Altura estimada
   let left = cx + 12;
   if (left + pw > window.innerWidth - 8) left = cx - pw - 12;
   if (left < 8) left = 8;
+
   let top = cy + 10;
-  if (top + 240 > window.innerHeight) top = cy - 240;
-  if (top < 60) top = 60;
+  if (top + ph > window.innerHeight - 8) top = cy - ph - 10;
+  if (top < 70) top = 70; // Espaço para o HUD superior
+
   popup.style.left = left + 'px';
   popup.style.top  = top + 'px';
 
@@ -906,7 +909,7 @@ function showBldPopup(bId, cx, cy) {
 
   if (b.type === 'laboratory' && !bldInProgress(b)) {
     labBtn.style.display = 'block';
-    labBtn.onclick = () => showLabModal();
+    labBtn.onclick = () => { hideBldPopup(); showLabModal(); };
   } else {
     labBtn.style.display = 'none';
   }
@@ -2823,8 +2826,12 @@ function closeTutorial() {
 function showLabModal() {
   const ccLvl = getCurrentCCLevel();
   if (ccLvl < 3) { notify('O Laboratório requer CC nível 3!', 'error'); return; }
-  const labLvl = getLaboratoryLevel(G.base.buildings);
-  if (labLvl === 0) { notify('Construa e conclua o Laboratório primeiro!', 'error'); return; }
+  
+  const lab = G.base.buildings.find(b => b.type === 'laboratory');
+  if (!lab) { notify('Construa o Laboratório primeiro!', 'error'); return; }
+  if (bldInProgress(lab)) { notify('O Laboratório está sendo construído ou melhorado!', 'error'); return; }
+
+  const labLvl = lab.level;
 
   const el = gel('lab-modal');
   if (!el) return;
