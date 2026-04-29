@@ -2315,32 +2315,34 @@ function launchBattle(opponent) {
   // Scale: fit the grid into the canvas
   const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
   const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
-  const scale  = Math.min(scaleX, scaleY) * 0.95;
+  const scale  = Math.min(scaleX, scaleY) * 0.95 || 0.5;
   const offX   = (bCanvas.width  - GRID_W * CELL_SIZE * scale) / 2;
   const offY   = (bCanvas.height - GRID_H * CELL_SIZE * scale) / 2;
 
+  const myTroops = G.base.troops || {};
+  const battleBuildings = (opponent.buildings || []).map(b => {
+    const def  = BUILDINGS[b.type];
+    if (!def) return null;
+    const lvl  = def.levels[b.level] || def.levels[1];
+    return { ...b, curHp: lvl?.hp || 400, maxHp: lvl?.hp || 400, alive: true, atkTimer: 0 };
+  }).filter(b => b !== null);
+
   G.battle = {
     opponent,
-    buildings: opponent.buildings.map(b => {
-      const def  = BUILDINGS[b.type];
-      if (!def) return null;
-      const lvl  = def.levels[b.level] || def.levels[1];
-      return { ...b, curHp: lvl?.hp || 400, maxHp: lvl?.hp || 400, alive: true, atkTimer: 0 };
-    }).filter(b => b !== null),
+    buildings: battleBuildings,
     troops: [],
     deployPool: { ...myTroops },
     selectedTroop: null,
     startTime: Date.now(),
     duration: 180,
     destroyed: 0,
-    totalBld: opponent.buildings.length,
+    totalBld: battleBuildings.length,
     phase: 'deploy',
     projectiles: [],
     explosions: [],
     scale, offX, offY,
     lootedMineral: 0,
     lootedOxygen: 0,
-    // Máximo de roubo: 30% dos recursos do oponente
     totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
     totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3)
   };
