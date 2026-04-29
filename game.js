@@ -3068,8 +3068,6 @@ window.modernCreateClan = function() {
   const name = gel('modern-create-clan-input').value.trim();
   if (!name || name.length < 3) { notify('Nome muito curto!', 'error'); return; }
   
-  // Reuse existing logic but with UI updates
-  gel('new-clan-name').value = name; 
   createClan();
 };
 
