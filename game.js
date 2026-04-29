@@ -2270,6 +2270,14 @@ async function startMatchmaking() {
 
 function confirmMatchmaking() {
   if (!G._pendingOpponent) return;
+  
+  const myTroops = G.base.troops || {};
+  const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
+  if (totalT === 0) { 
+    notify(t('train_troops_first'), 'error'); 
+    return; 
+  }
+
   G.base.shieldUntil = 0;
   const screen = gel('opponent-screen');
   screen.classList.remove('visible');
@@ -2290,18 +2298,20 @@ function confirmAttackWithShield() {
 let bCtx, bCanvas, bInterval, bTimerInterval;
 
 function launchBattle(opponent) {
-  const myTroops = G.base.troops || {};
-  const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
-  if (totalT === 0) { notify(t('train_troops_first'), 'error'); return; }
-  if (!opponent.buildings || opponent.buildings.length === 0) { notify(t('enemy_base_empty'), 'error'); return; }
-
   switchScreen('attack');
+  
   bCanvas = gel('battle-canvas');
+  if (!bCanvas) return;
   bCtx    = bCanvas.getContext('2d');
   const atkScreen = gel('attack-screen');
-  bCanvas.width   = atkScreen.clientWidth;
-  bCanvas.height  = atkScreen.clientHeight - 50 - 68;
-
+  
+  // Safety check for dimensions
+  const w = atkScreen.clientWidth || window.innerWidth;
+  const h = atkScreen.clientHeight || window.innerHeight;
+  
+  bCanvas.width   = w;
+  bCanvas.height  = Math.max(100, h - 132); // Adjusted for HUD and troop bar
+  
   // Scale: fit the grid into the canvas
   const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
   const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
