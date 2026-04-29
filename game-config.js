@@ -275,36 +275,24 @@ const TROOP_UPGRADES = {
 // ---- Troop Definitions ----
 const TROOPS = {
   drone: {
-    id: 'drone', name: 'Drone', space: 1,
-    hp: 100, damage: 20, speed: 2.0, range: 1.4, trainTime: 30,
-    cost: { mineral: 60, oxygen: 30 },
-    color: '#00BFFF', emoji: '🛸',
-    desc: 'Rápido e ágil. Prioridade: defesas.',
-    priority: 'defense'
+    id: 'drone', name: 'Drone', emoji: '🛸',
+    hp: 150, damage: 20, speed: 1.5, range: 1.2,
+    cost: { energy: 50 }, time: 5, color: '#00D4FF', priority: 'any'
   },
   robot: {
-    id: 'robot', name: 'Robô', space: 2,
-    hp: 300, damage: 60, speed: 1.2, range: 1.2, trainTime: 120,
-    cost: { mineral: 200, oxygen: 120 },
-    color: '#9B59B6', emoji: '🤖',
-    desc: 'Resistente. Ataca qualquer estrutura.',
-    priority: 'any'
+    id: 'robot', name: 'Robô de Batalha', emoji: '🤖',
+    hp: 400, damage: 45, speed: 1.0, range: 1.0,
+    cost: { energy: 100 }, time: 15, color: '#44FF88', priority: 'defense'
   },
   tank: {
-    id: 'tank', name: 'Tanque', space: 5,
-    hp: 1000, damage: 200, speed: 0.6, range: 2.0, trainTime: 300,
-    cost: { mineral: 800, oxygen: 500 },
-    color: '#E67E22', emoji: '🚀',
-    desc: 'Blindado e devastador. Prioridade: recursos.',
-    priority: 'resource'
+    id: 'tank', name: 'Tanque Lunar', emoji: '🚜',
+    hp: 1200, damage: 80, speed: 0.6, range: 4.0,
+    cost: { energy: 200 }, time: 45, color: '#FFD700', priority: 'defense'
   },
   star_warrior: {
-    id: 'star_warrior', name: 'Guerreiro Estelar', space: 10,
-    hp: 2500, damage: 450, speed: 0.8, range: 1.5, trainTime: 600,
-    cost: { mineral: 5000, oxygen: 2500 },
-    color: '#00D4FF', emoji: '⚔️',
-    desc: 'Guerreiro de elite das estrelas. Alta resistência e dano.',
-    priority: 'any'
+    id: 'star_warrior', name: 'Guerreiro Estelar', emoji: '👨‍🚀',
+    hp: 800, damage: 120, speed: 1.2, range: 3.5,
+    cost: { energy: 250 }, time: 60, color: '#FF4466', priority: 'any'
   }
 };
 

@@ -1880,8 +1880,9 @@ function renderTroopsPanel() {
     if (canTrain) {
       const btn = document.createElement('button');
       btn.className  = 'btn-train';
-      btn.disabled   = full || G.base.resources.mineral < td.cost.mineral || G.base.resources.oxygen < td.cost.oxygen;
-      btn.innerHTML  = `${t('train') || 'TREINAR'}<br><small>⛏️${fmtNum(td.cost.mineral)} 💨${fmtNum(td.cost.oxygen)}</small>`;
+      const energyCost = td.cost.energy || 0;
+      btn.disabled   = full || (G.base.resources.energy || 0) < energyCost;
+      btn.innerHTML  = `${t('train') || 'TREINAR'}<br><small>⚡ ${fmtNum(energyCost)}</small>`;
       btn.onclick    = () => { trainTroop(troopId); renderTroopsPanel(); };
       row.appendChild(btn);
     } else {
@@ -2014,11 +2015,11 @@ function trainTroop(type) {
   const cap = getTotalCampCapacity(G.base.buildings);
   const used = getTotalTroopSpace(G.base.troops);
   if (used + td.space > cap) { notify(t('need_camp'), 'error'); return; }
-  if (G.base.resources.mineral < td.cost.mineral || G.base.resources.oxygen < td.cost.oxygen) {
-    notify('Recursos insuficientes!', 'error'); return;
+  const energyCost = td.cost.energy || 0;
+  if ((G.base.resources.energy || 0) < energyCost) {
+    notify('Energia insuficiente!', 'error'); return;
   }
-  G.base.resources.mineral -= td.cost.mineral;
-  G.base.resources.oxygen  -= td.cost.oxygen;
+  G.base.resources.energy -= energyCost;
 
   if (!G.base.queue) G.base.queue = [];
   const finishTime = Date.now() + td.trainTime * 1000;
@@ -3580,5 +3581,13 @@ window.visitPlayer = async function(pid) {
      }
   }
 };
-w i n d o w . a d d E v e n t L i s t e n e r ( ' r e s i z e ' ,   ( )   = >   {   i f   ( G . b a t t l e   & &   G . u i . s c r e e n   = = =   ' a t t a c k '   & &   b C a n v a s )   {   c o n s t   c o n t a i n e r   =   g e l ( ' b a t t l e - c o n t a i n e r ' ) ;   i f   ( c o n t a i n e r )   {   b C a n v a s . w i d t h   =   c o n t a i n e r . c l i e n t W i d t h ;   b C a n v a s . h e i g h t   =   c o n t a i n e r . c l i e n t H e i g h t ;   }   }   } ) ;  
- 
+
+window.addEventListener('resize', () => {
+  if (G.battle && G.ui.screen === 'attack' && bCanvas) {
+    const container = gel('battle-container');
+    if (container) {
+      bCanvas.width = container.clientWidth;
+      bCanvas.height = container.clientHeight;
+    }
+  }
+});
