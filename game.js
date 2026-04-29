@@ -955,6 +955,7 @@ function hideBldPopup() {
 // UPGRADE SYSTEM
 // ============================================================
 function showUpgradeModal(bId) {
+  hideBldPopup();
   const b = G.base.buildings.find(x => x.id === bId);
   if (!b) return;
   const def     = BUILDINGS[b.type];
