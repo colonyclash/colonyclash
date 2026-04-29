@@ -168,11 +168,38 @@ async function loadData() {
       processOfflineQueue();
       processOfflineBuildings();
       processOfflineObstacles();
+      
+      // Inicia o listener em tempo real após o carregamento inicial
+      listenToUserData();
     } else {
       createStarterBase();
       await saveData();
+      listenToUserData();
     }
   } catch (e) { console.error('Load failed:', e); createStarterBase(); }
+}
+
+function listenToUserData() {
+  if (!G.db || !G.pid) return;
+  if (window.userUnsubscribe) window.userUnsubscribe();
+  
+  window.userUnsubscribe = G.db.collection('users').doc(G.pid).onSnapshot(doc => {
+    if (!doc.exists) return;
+    const d = doc.data();
+    
+    // Atualiza apenas campos que podem ser alterados externamente (Admin)
+    // para não interferir com a lógica local de construção/movimentação
+    if (d.resources) {
+      G.base.resources.mineral = d.resources.mineral !== undefined ? d.resources.mineral : G.base.resources.mineral;
+      G.base.resources.oxygen = d.resources.oxygen !== undefined ? d.resources.oxygen : G.base.resources.oxygen;
+      G.base.resources.energy = d.resources.energy !== undefined ? d.resources.energy : G.base.resources.energy;
+    }
+    if (d.gems !== undefined) G.base.gems = d.gems;
+    if (d.trophies !== undefined) G.base.trophies = d.trophies;
+    if (d.troops) G.base.troops = { ...G.base.troops, ...d.troops };
+    
+    updateHUD();
+  }, err => console.warn('User listener error:', err));
 }
 
 function sanitizeForFirestore(obj) {
@@ -402,19 +429,21 @@ window.adminGiveToPlayer = async function() {
     if (!doc.exists) { notify('Jogador não encontrado', 'error'); return; }
     const d = doc.data();
     
-    if (type === 'trophies') d.trophies = (d.trophies || 0) + amt;
-    else if (type === 'gems') d.gems = (d.gems || 0) + amt;
-    else if (type === 'tank') {
-      if (!d.troops) d.troops = {};
-      d.troops.tank = (d.troops.tank || 0) + amt;
-    }
-    else {
-      if (!d.resources) d.resources = {};
-      d.resources[type] = (d.resources[type] || 0) + amt;
+    const updateData = {};
+    if (type === 'trophies') {
+      updateData.trophies = (d.trophies || 0) + amt;
+    } else if (type === 'gems') {
+      updateData.gems = (d.gems || 0) + amt;
+    } else if (type === 'tank') {
+      const currentTanks = (d.troops?.tank || 0) + amt;
+      updateData['troops.tank'] = currentTanks;
+    } else {
+      // Recursos básicos (mineral, oxygen, energy)
+      const currentRes = (d.resources?.[type] || 0) + amt;
+      updateData[`resources.${type}`] = currentRes;
     }
 
-    const cleanData = sanitizeForFirestore(d);
-    await docRef.update(cleanData);
+    await docRef.update(updateData);
     notify(`Admin: Enviado ${amt} ${type} para ${d.playerName || uid}!`, 'success');
   } catch (e) {
     console.error(e);
@@ -475,10 +504,10 @@ window.showBuildersModal = function() {
 // OBSTACLES SYSTEM
 // ============================================================
 function trySpawnObstacle() {
-  const ccLvl = getCurrentCCLevel();
-  const intervals = { 1: 3600000, 2: 7200000, 3: 10800000 };
-  const interval  = intervals[ccLvl] || 3600000;
-  
+  const currentRocks = (G.base.buildings || []).filter(b => b.type === 'lunar_rock').length;
+  if (currentRocks >= 10) return;
+
+  const interval = 8 * 3600 * 1000; // 8 horas em ms
   const last = G.base.lastObstacleSpawn || 0;
   if (Date.now() - last >= interval) {
     G.base.lastObstacleSpawn = Date.now();
@@ -531,20 +560,37 @@ function removeObstacle(bId) {
   
   setTimeout(() => {
     const rewards = [
-      { type: 'mineral', amt: 100, weight: 35 },
-      { type: 'mineral', amt: 200, weight: 15 },
-      { type: 'oxygen',  amt: 100, weight: 30 },
+      { type: 'mineral', amt: 100, weight: 25 },
+      { type: 'mineral', amt: 200, weight: 10 },
+      { type: 'oxygen',  amt: 100, weight: 20 },
       { type: 'oxygen',  amt: 200, weight: 10 },
-      { type: 'gems',    amt: 1,   weight: 6 },
-      { type: 'gems',    amt: 3,   weight: 3 },
-      { type: 'gems',    amt: 5,   weight: 1 },
+      { type: 'gems',    amt: 1,   weight: 20 },
+      { type: 'gems',    amt: 3,   weight: 10 },
+      { type: 'gems',    amt: 5,   weight: 5 },
     ];
-    const totalW = rewards.reduce((a, c) => a + c.weight, 0);
-    let r = Math.random() * totalW;
-    let reward = rewards[0];
-    for (const rw of rewards) {
-      r -= rw.weight;
-      if (r <= 0) { reward = rw; break; }
+    
+    // Sistema de Piedade: Garante gemas a cada 3 rochas removidas
+    const rocksRemoved = G.base.totalObstaclesRemoved || 0;
+    const forceGems = (rocksRemoved + 1) % 3 === 0;
+
+    let reward;
+    if (forceGems) {
+      const gemRewards = rewards.filter(r => r.type === 'gems');
+      const totalW = gemRewards.reduce((a, c) => a + c.weight, 0);
+      let r = Math.random() * totalW;
+      reward = gemRewards[0];
+      for (const rw of gemRewards) {
+        r -= rw.weight;
+        if (r <= 0) { reward = rw; break; }
+      }
+    } else {
+      const totalW = rewards.reduce((a, c) => a + c.weight, 0);
+      let r = Math.random() * totalW;
+      reward = rewards[0];
+      for (const rw of rewards) {
+        r -= rw.weight;
+        if (r <= 0) { reward = rw; break; }
+      }
     }
     
     if (reward.type === 'gems') G.base.gems += reward.amt;
@@ -2046,15 +2092,15 @@ function processOfflineObstacles() {
   const last = G.base.lastObstacleSpawn || now;
   const diff = now - last;
   
-  const ccLvl = getCurrentCCLevel();
-  const intervals = { 1: 3600000, 2: 7200000, 3: 10800000 };
-  const interval  = intervals[ccLvl] || 3600000;
-  
+  const interval = 8 * 3600 * 1000; // 8 horas
   const count = Math.floor(diff / interval);
+  
   if (count > 0) {
-    const maxSpawn = 20;
+    const currentRocks = (G.base.buildings || []).filter(b => b.type === 'lunar_rock').length;
+    const maxToSpawn = Math.max(0, 10 - currentRocks);
     let spawned = 0;
-    for (let i = 0; i < count && spawned < maxSpawn; i++) {
+
+    for (let i = 0; i < count && spawned < maxToSpawn; i++) {
       let gx, gy, attempts = 0;
       do {
         gx = Math.floor(Math.random() * GRID_W);
@@ -3032,6 +3078,7 @@ window.switchClanSubtab = function(sub) {
   gel('cs-content-' + sub).style.display = 'block';
 
   if (sub === 'my') renderMyClanTab();
+  if (sub === 'search') modernSearchClans();
 };
 
 window.renderMyClanTab = function() {
@@ -3039,16 +3086,28 @@ window.renderMyClanTab = function() {
 };
 
 window.modernSearchClans = async function() {
-  const query = gel('modern-clan-search-input').value.trim();
-  if (!query || !G.db) return;
+  if (!G.db) return;
+  const input = gel('modern-clan-search-input');
+  const query = input ? input.value.trim() : '';
+  
   const resultEl = gel('modern-clan-search-results');
+  if (!resultEl) return;
+  
   resultEl.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando Clãs...</div>';
+  
   try {
-    const snap = await G.db.collection('clans').where('name', '==', query).limit(10).get();
+    let q = G.db.collection('clans').limit(10);
+    if (query) {
+      q = G.db.collection('clans').where('name', '==', query).limit(10);
+    }
+    
+    const snap = await q.get();
     let html = '';
     snap.forEach(doc => {
       const c = doc.data();
       const safeName = (c.name || 'Clã').replace(/'/g, "\\'");
+      const isMember = (c.members || []).includes(G.pid);
+      
       html += `
         <div class="social-player-card">
           <div class="sp-avatar" style="background:var(--c-gold); color:#000;">${(c.name || 'C')[0].toUpperCase()}</div>
@@ -3056,12 +3115,20 @@ window.modernSearchClans = async function() {
             <span class="sp-name">${c.name}</span>
             <span class="sp-meta">Membros: ${(c.members || []).length}</span>
           </div>
-          <button class="btn-sp-visit" onclick="joinClan('${doc.id}', '${safeName}')">VER CLÃ</button>
+          <div class="sp-actions">
+            ${isMember ? 
+              `<button class="btn-sp-visit" disabled style="opacity:0.6;">JÁ É MEMBRO</button>` : 
+              `<button class="btn-sp-visit" onclick="joinClan('${doc.id}', '${safeName}')">ENTRAR NO CLÃ</button>`
+            }
+          </div>
         </div>
       `;
     });
     resultEl.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">Nenhum clã encontrado.</div>`;
-  } catch (e) { resultEl.innerHTML = '<div style="color:var(--c-danger);text-align:center;">Erro na busca.</div>'; }
+  } catch (e) { 
+    console.error(e);
+    resultEl.innerHTML = '<div style="color:var(--c-danger);text-align:center;">Erro na busca.</div>'; 
+  }
 };
 
 window.modernCreateClan = function() {
@@ -3083,9 +3150,10 @@ window.toggleClanChat = function() {
 
 window.sendModernClanMessage = function() {
   const input = gel('clan-chat-input-modern');
-  const oldInput = gel('clan-chat-input');
-  oldInput.value = input.value;
-  sendClanMessage();
+  if (!input) return;
+  
+  // Envia a mensagem diretamente usando a lógica central
+  sendClanMessage(input.value);
   input.value = '';
 };
 
@@ -3220,9 +3288,10 @@ function renderClanChat(msgs) {
   box.scrollTop = box.scrollHeight;
 }
 
-async function sendClanMessage() {
-  const input = gel('clan-chat-input');
-  const text = input.value.trim();
+async function sendClanMessage(forcedText) {
+  const input = gel('clan-chat-input-modern') || gel('clan-chat-input');
+  const text = (forcedText !== undefined) ? forcedText.trim() : (input ? input.value.trim() : '');
+  
   if (!text || !G.base.clanId || !G.db) return;
   try {
     await G.db.collection('clans').doc(G.base.clanId).collection('messages').add({
@@ -3231,7 +3300,7 @@ async function sendClanMessage() {
       text: text,
       time: firebase.firestore.FieldValue.serverTimestamp()
     });
-    input.value = '';
+    if (input) input.value = '';
   } catch (e) { console.error(e); }
 }
 
