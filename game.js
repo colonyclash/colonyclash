@@ -2298,78 +2298,98 @@ function confirmAttackWithShield() {
 let bCtx, bCanvas, bInterval, bTimerInterval;
 
 function launchBattle(opponent) {
-  switchScreen('attack');
-  
-  bCanvas = gel('battle-canvas');
-  if (!bCanvas) return;
-  bCtx    = bCanvas.getContext('2d');
-  const atkScreen = gel('attack-screen');
-  
-  // Safety check for dimensions
-  const w = atkScreen.clientWidth || window.innerWidth;
-  const h = atkScreen.clientHeight || window.innerHeight;
-  
-  bCanvas.width   = w;
-  bCanvas.height  = Math.max(100, h - 132); // Adjusted for HUD and troop bar
-  
-  // Scale: fit the grid into the canvas
-  const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
-  const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
-  const scale  = Math.min(scaleX, scaleY) * 0.95 || 0.5;
-  const offX   = (bCanvas.width  - GRID_W * CELL_SIZE * scale) / 2;
-  const offY   = (bCanvas.height - GRID_H * CELL_SIZE * scale) / 2;
+  try {
+    if (!opponent) {
+      console.error("LaunchBattle failed: No opponent provided");
+      notify("Erro: Oponente não encontrado", "error");
+      return;
+    }
 
-  const myTroops = G.base.troops || {};
-  const battleBuildings = (opponent.buildings || []).map(b => {
-    const def  = BUILDINGS[b.type];
-    if (!def) return null;
-    const lvl  = def.levels[b.level] || def.levels[1];
-    return { ...b, curHp: lvl?.hp || 400, maxHp: lvl?.hp || 400, alive: true, atkTimer: 0 };
-  }).filter(b => b !== null);
+    switchScreen('attack');
+    
+    bCanvas = gel('battle-canvas');
+    if (!bCanvas) {
+      console.error("LaunchBattle failed: #battle-canvas not found");
+      return;
+    }
+    
+    bCtx = bCanvas.getContext('2d');
+    const atkScreen = gel('attack-screen');
+    if (!atkScreen) {
+      console.error("LaunchBattle failed: #attack-screen not found");
+      return;
+    }
+    
+    // Safety check for dimensions
+    const w = atkScreen.clientWidth || window.innerWidth || 800;
+    const h = atkScreen.clientHeight || window.innerHeight || 600;
+    
+    bCanvas.width   = w;
+    bCanvas.height  = Math.max(100, h - 132); 
+    
+    const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
+    const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
+    const scale  = Math.min(scaleX, scaleY) * 0.95 || 0.5;
+    const offX   = (bCanvas.width  - GRID_W * CELL_SIZE * scale) / 2;
+    const offY   = (bCanvas.height - GRID_H * CELL_SIZE * scale) / 2;
 
-  G.battle = {
-    opponent,
-    buildings: battleBuildings,
-    troops: [],
-    deployPool: { ...myTroops },
-    selectedTroop: null,
-    startTime: Date.now(),
-    duration: 180,
-    destroyed: 0,
-    totalBld: battleBuildings.length,
-    phase: 'deploy',
-    projectiles: [],
-    explosions: [],
-    scale, offX, offY,
-    lootedMineral: 0,
-    lootedOxygen: 0,
-    totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
-    totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3)
-  };
+    const myTroops = G.base.troops || {};
+    const battleBuildings = (opponent.buildings || []).map(b => {
+      const def  = BUILDINGS[b.type];
+      if (!def) return null;
+      const lvl  = def.levels[b.level] || def.levels[1];
+      return { ...b, curHp: lvl?.hp || 400, maxHp: lvl?.hp || 400, alive: true, atkTimer: 0 };
+    }).filter(b => b !== null);
 
-  // Distribuir saque entre armazéns, extratores e CC
-  const storages = G.battle.buildings.filter(b => {
-    const def = BUILDINGS[b.type];
-    return def?.isStorage || def?.isResource || b.type === 'command_center';
-  });
-  const count = storages.length || 1;
-  storages.forEach(b => {
-    b.lootMin = Math.floor(G.battle.totalStealMin / count);
-    b.lootOxy = Math.floor(G.battle.totalStealOxy / count);
-  });
+    G.battle = {
+      opponent,
+      buildings: battleBuildings,
+      troops: [],
+      deployPool: { ...myTroops },
+      selectedTroop: null,
+      startTime: Date.now(),
+      duration: 180,
+      destroyed: 0,
+      totalBld: battleBuildings.length,
+      phase: 'deploy',
+      projectiles: [],
+      explosions: [],
+      scale, offX, offY,
+      lootedMineral: 0,
+      lootedOxygen: 0,
+      totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
+      totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3)
+    };
 
-  buildDeployBar();
-  gel('atk-pct').textContent   = '💥 0%';
-  gel('atk-timer').textContent = '3:00';
+    // Distribuir saque entre armazéns, extratores e CC
+    const storages = G.battle.buildings.filter(b => {
+      const def = BUILDINGS[b.type];
+      return def?.isStorage || def?.isResource || b.type === 'command_center';
+    });
+    const count = storages.length || 1;
+    storages.forEach(b => {
+      b.lootMin = Math.floor(G.battle.totalStealMin / count);
+      b.lootOxy = Math.floor(G.battle.totalStealOxy / count);
+    });
 
-  bCanvas.addEventListener('click', onBattleClick);
-  bCanvas.addEventListener('touchend', onBattleTouchEnd);
+    buildDeployBar();
+    gel('atk-pct').textContent   = '💥 0%';
+    gel('atk-timer').textContent = '3:00';
+    
+    bCanvas.addEventListener('click', onBattleClick);
+    bCanvas.addEventListener('touchend', onBattleTouchEnd);
 
-  drawBattleFrame();
-  clearInterval(bInterval);
-  clearInterval(bTimerInterval);
-  bInterval      = setInterval(battleTick, 100);
-  bTimerInterval = setInterval(tickBattleTimer, 500);
+    drawBattleFrame();
+    clearInterval(bInterval);
+    clearInterval(bTimerInterval);
+    bInterval      = setInterval(battleTick, 100);
+    bTimerInterval = setInterval(tickBattleTimer, 500);
+
+  } catch (err) {
+    console.error("CRITICAL ERROR in launchBattle:", err);
+    notify("Erro ao iniciar batalha: " + err.message, "error");
+    switchScreen('game');
+  }
 }
 
 function buildDeployBar() {
