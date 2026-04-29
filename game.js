@@ -2147,6 +2147,31 @@ function switchScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   gel(name + '-screen')?.classList.remove('hidden');
   G.ui.screen = name;
+  
+  if (name === 'game') {
+    // Restaurar interface do jogo
+    forceCloseAllUI();
+  }
+}
+
+function forceCloseAllUI() {
+  // Fecha modais unificados
+  const modal = gel('unified-modal');
+  if (modal) modal.classList.remove('visible');
+  
+  // Fecha sobreposições de busca
+  document.querySelectorAll('.opp-screen-overlay').forEach(el => el.classList.remove('visible'));
+  
+  // Fecha chat clã se aberto
+  const chat = gel('clan-chat-overlay');
+  if (chat) chat.classList.remove('visible');
+  
+  // Esconde controles de visita
+  const visit = gel('visit-controls');
+  if (visit) visit.style.display = 'none';
+
+  // Fecha popup de construção
+  hideBldPopup();
 }
 
 function setLoadProgress(pct) {
@@ -2312,6 +2337,7 @@ function launchBattle(opponent) {
     const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
     if (totalT === 0) { notify(t('train_troops_first'), 'error'); return; }
 
+    forceCloseAllUI();
     switchScreen('attack');
     
     bCanvas = gel('battle-canvas');
@@ -3554,3 +3580,5 @@ window.visitPlayer = async function(pid) {
      }
   }
 };
+w i n d o w . a d d E v e n t L i s t e n e r ( ' r e s i z e ' ,   ( )   = >   {   i f   ( G . b a t t l e   & &   G . u i . s c r e e n   = = =   ' a t t a c k '   & &   b C a n v a s )   {   c o n s t   c o n t a i n e r   =   g e l ( ' b a t t l e - c o n t a i n e r ' ) ;   i f   ( c o n t a i n e r )   {   b C a n v a s . w i d t h   =   c o n t a i n e r . c l i e n t W i d t h ;   b C a n v a s . h e i g h t   =   c o n t a i n e r . c l i e n t H e i g h t ;   }   }   } ) ;  
+ 
