@@ -2293,540 +2293,481 @@ function confirmAttackWithShield() {
 }
 
 // ============================================================
-// BATTLE SYSTEM
+// MODERN BATTLE SYSTEM (V2)
 // ============================================================
-let bCtx, bCanvas, bInterval, bTimerInterval;
+let battleRequest = null;
+let bCanvas, bCtx;
 
 function launchBattle(opponent) {
   try {
-    if (!opponent) {
-      console.error("LaunchBattle failed: No opponent provided");
-      notify("Erro: Oponente não encontrado", "error");
-      return;
-    }
+    if (!opponent) return;
+    
+    const myTroops = G.base.troops || {};
+    const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
+    if (totalT === 0) { notify(t('train_troops_first'), 'error'); return; }
 
     switchScreen('attack');
     
     bCanvas = gel('battle-canvas');
-    if (!bCanvas) {
-      console.error("LaunchBattle failed: #battle-canvas not found");
-      return;
-    }
+    bCtx    = bCanvas.getContext('2d');
+    const container = gel('battle-container');
     
-    bCtx = bCanvas.getContext('2d');
-    const atkScreen = gel('attack-screen');
-    if (!atkScreen) {
-      console.error("LaunchBattle failed: #attack-screen not found");
-      return;
-    }
-    
-    // Safety check for dimensions
-    const w = atkScreen.clientWidth || window.innerWidth || 800;
-    const h = atkScreen.clientHeight || window.innerHeight || 600;
-    
-    bCanvas.width   = w;
-    bCanvas.height  = Math.max(100, h - 132); 
+    // Canvas sizing
+    bCanvas.width  = container.clientWidth;
+    bCanvas.height = container.clientHeight;
     
     const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
     const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
-    const scale  = Math.min(scaleX, scaleY) * 0.95 || 0.5;
+    const scale  = Math.min(scaleX, scaleY) * 0.9 || 0.5;
     const offX   = (bCanvas.width  - GRID_W * CELL_SIZE * scale) / 2;
     const offY   = (bCanvas.height - GRID_H * CELL_SIZE * scale) / 2;
 
-    const myTroops = G.base.troops || {};
-    const battleBuildings = (opponent.buildings || []).map(b => {
-      const def  = BUILDINGS[b.type];
+    const bldArray = (opponent.buildings || []).map(b => {
+      const def = BUILDINGS[b.type];
       if (!def) return null;
-      const lvl  = def.levels[b.level] || def.levels[1];
-      return { ...b, curHp: lvl?.hp || 400, maxHp: lvl?.hp || 400, alive: true, atkTimer: 0 };
+      const lvl = def.levels[b.level] || def.levels[1];
+      return { ...b, curHp: lvl.hp, maxHp: lvl.hp, alive: true, atkTimer: 0 };
     }).filter(b => b !== null);
 
     G.battle = {
       opponent,
-      buildings: battleBuildings,
+      buildings: bldArray,
       troops: [],
       deployPool: { ...myTroops },
       selectedTroop: null,
       startTime: Date.now(),
       duration: 180,
       destroyed: 0,
-      totalBld: battleBuildings.length,
+      totalBld: bldArray.length,
       phase: 'deploy',
       projectiles: [],
       explosions: [],
       scale, offX, offY,
-      lootedMineral: 0,
-      lootedOxygen: 0,
+      lootedMin: 0,
+      lootedOxy: 0,
       totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
-      totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3)
+      totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3),
+      timer: 180,
+      lastTick: Date.now()
     };
 
-    // Distribuir saque entre armazéns, extratores e CC
+    // Redistribute loot
     const storages = G.battle.buildings.filter(b => {
       const def = BUILDINGS[b.type];
       return def?.isStorage || def?.isResource || b.type === 'command_center';
     });
     const count = storages.length || 1;
     storages.forEach(b => {
-      b.lootMin = Math.floor(G.battle.totalStealMin / count);
-      b.lootOxy = Math.floor(G.battle.totalStealOxy / count);
+      b.lMin = Math.floor(G.battle.totalStealMin / count);
+      b.lOxy = Math.floor(G.battle.totalStealOxy / count);
     });
 
-    buildDeployBar();
-    gel('atk-pct').textContent   = '💥 0%';
-    gel('atk-timer').textContent = '3:00';
+    renderDeployBar();
+    updateBattleUI();
     
-    bCanvas.addEventListener('click', onBattleClick);
-    bCanvas.addEventListener('touchend', onBattleTouchEnd);
+    bCanvas.addEventListener('mousedown', handleBattleInput);
+    bCanvas.addEventListener('touchstart', handleBattleInput, { passive: false });
 
-    drawBattleFrame();
-    clearInterval(bInterval);
-    clearInterval(bTimerInterval);
-    bInterval      = setInterval(battleTick, 100);
-    bTimerInterval = setInterval(tickBattleTimer, 500);
-
+    if (battleRequest) cancelAnimationFrame(battleRequest);
+    battleRequest = requestAnimationFrame(battleLoop);
+    
+    notify(t('deploy_tip'), 'info');
   } catch (err) {
-    console.error("CRITICAL ERROR in launchBattle:", err);
-    notify("Erro ao iniciar batalha: " + err.message, "error");
+    console.error("Modern Battle Launch Error:", err);
+    notify("Erro ao iniciar sistema de batalha moderno.", "error");
     switchScreen('game');
   }
 }
 
-function buildDeployBar() {
-  const bar = gel('troops-deploy-bar');
-  if (!bar || !G.battle) return;
-  bar.innerHTML = '';
-  for (const [type, count] of Object.entries(G.battle.deployPool)) {
-    if (!TROOPS[type] || count <= 0) continue;
-    const td  = TROOPS[type];
-    const btn = document.createElement('button');
-    btn.className = 'deploy-btn' + (G.battle.selectedTroop === type ? ' selected' : '');
-    btn.id        = 'deploy-' + type;
-    btn.innerHTML = `<span class="db-emoji">${td.emoji}</span>
-      <span class="db-name">${td.name}</span>
-      <span class="db-count" id="pool-${type}">${count}</span>`;
-    btn.onclick   = () => selectTroop(type);
-    bar.appendChild(btn);
-  }
-  const endBtn = document.createElement('button');
-  endBtn.className = 'btn-end-battle';
-  endBtn.textContent = 'ENCERRAR';
-  endBtn.onclick  = endBattle;
-  bar.appendChild(endBtn);
-}
-
-function selectTroop(type) {
-  if (!G.battle) return;
-  G.battle.selectedTroop = type;
-  document.querySelectorAll('.deploy-btn').forEach(b => b.classList.remove('selected'));
-  gel('deploy-' + type)?.classList.add('selected');
-}
-
-function getGridFromCanvas(cx, cy) {
-  const { offX, offY, scale, userZoom = 1 } = G.battle;
-  const bCanvas = gel('battle-canvas');
-  const W = bCanvas.width, H = bCanvas.height;
-  const x = (cx - W/2) / userZoom + W/2;
-  const y = (cy - H/2) / userZoom + H/2;
-  return { gx: (x - offX) / (CELL_SIZE * scale), gy: (y - offY) / (CELL_SIZE * scale) };
-}
-
-function onBattleClick(e) {
-  const r = bCanvas.getBoundingClientRect();
-  deployTroop(e.clientX - r.left, e.clientY - r.top);
-}
-function onBattleTouchEnd(e) {
-  const t = e.changedTouches[0];
-  const r = bCanvas.getBoundingClientRect();
-  deployTroop(t.clientX - r.left, t.clientY - r.top);
+function handleBattleInput(e) {
+  if (e.type === 'touchstart') e.preventDefault();
+  const rect = bCanvas.getBoundingClientRect();
+  const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+  const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+  deployTroop(clientX - rect.left, clientY - rect.top);
 }
 
 function deployTroop(px, py) {
-  if (!G.battle || G.battle.phase === 'end') return;
-  const type = G.battle.selectedTroop;
-  if (!type) { notify(t('select_troop_deploy'), 'error'); return; }
-  if ((G.battle.deployPool[type] || 0) <= 0) return;
-  const { gx, gy } = getGridFromCanvas(px, py);
+  const bs = G.battle;
+  if (!bs || bs.phase === 'end') return;
+  const type = bs.selectedTroop;
+  if (!type) return;
+  if (bs.deployPool[type] <= 0) return;
+
+  const { offX, offY, scale } = bs;
+  const gx = (px - offX) / (CELL_SIZE * scale);
+  const gy = (py - offY) / (CELL_SIZE * scale);
+
   const td = TROOPS[type];
-  G.battle.troops.push({
+  bs.troops.push({
     id: genId(), type, x: gx, y: gy,
-    hp: td.hp, maxHp: td.hp, target: null, atkTimer: 0, alive: true
+    hp: td.hp, maxHp: td.hp, targetId: null, atkTimer: 0, alive: true,
+    angle: 0
   });
-  G.battle.deployPool[type]--;
-  G.battle.phase = 'fight';
-  const poolEl = gel('pool-' + type);
-  if (poolEl) poolEl.textContent = G.battle.deployPool[type];
-  if (G.battle.deployPool[type] <= 0) {
-    gel('deploy-' + type)?.setAttribute('disabled', '');
-  }
+
+  bs.deployPool[type]--;
+  bs.phase = 'fight';
+  renderDeployBar();
+  gel('battle-msg').style.display = 'none';
 }
 
-function battleTick() {
-  const bs = G.battle; if (!bs || bs.phase === 'end') return;
+function renderDeployBar() {
+  const bar = gel('troops-deploy-bar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  
+  Object.entries(G.battle.deployPool).forEach(([type, count]) => {
+    if (count <= 0) return;
+    const td = TROOPS[type];
+    const card = document.createElement('div');
+    card.className = `deploy-card ${G.battle.selectedTroop === type ? 'selected' : ''}`;
+    card.onclick = () => {
+      G.battle.selectedTroop = type;
+      renderDeployBar();
+    };
+    card.innerHTML = `
+      <div class="dc-emoji">${td.emoji}</div>
+      <div class="dc-count">${count}</div>
+    `;
+    bar.appendChild(card);
+  });
+}
 
-  // Move troops & attack
-  for (const t of bs.troops) {
-    if (!t.alive) continue;
-    const td = TROOPS[t.type];
+function updateBattleUI() {
+  const bs = G.battle;
+  if (!bs) return;
+  
+  const pct = Math.floor((bs.destroyed / bs.totalBld) * 100);
+  gel('atk-pct').textContent = `${pct}%`;
+  gel('atk-pct-fill').style.width = `${pct}%`;
+  
+  gel('loot-min').textContent = fmtNum(bs.lootedMin);
+  gel('loot-oxy').textContent = fmtNum(bs.lootedOxy);
+  
+  const m = Math.floor(bs.timer / 60);
+  const s = Math.floor(bs.timer % 60);
+  gel('atk-timer').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
 
-    // Find/validate target
-    if (!t.target || !bs.buildings.find(b => b.id === t.target && b.alive)) {
-      t.target = findTarget(t, bs.buildings, td.priority);
-    }
-    if (!t.target) continue;
+function battleLoop() {
+  const bs = G.battle;
+  if (!bs) return;
+  
+  const now = Date.now();
+  const dt = (now - bs.lastTick) / 1000;
+  bs.lastTick = now;
 
-    const tb = bs.buildings.find(b => b.id === t.target);
-    if (!tb || !tb.alive) { t.target = null; continue; }
-
-    const bsz = BUILDINGS[tb.type]?.size || 1;
-    const tx  = tb.x + bsz / 2, ty = tb.y + bsz / 2;
-    const dx  = tx - t.x, dy   = ty - t.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    
-    // Atualiza o ângulo da tropa (especialmente importante para o Tank)
-    if (dist > 0.01) {
-      t.angle = Math.atan2(dy, dx);
-    }
-    const range = td.range || 1.5;
-
-    if (dist > range) {
-      const spd = (td.speed || 1) * 0.1;
-      t.x += (dx / dist) * spd;
-      t.y += (dy / dist) * spd;
-    } else {
-      t.atkTimer--;
-      if (t.atkTimer <= 0) {
-        tb.curHp = Math.max(0, tb.curHp - td.damage);
-        bs.projectiles.push({ x1:t.x, y1:t.y, x2:tx, y2:ty, life:5, color: td.color });
-        if (tb.curHp <= 0) {
-          tb.alive = false; bs.destroyed++;
-          if (tb.lootMin) bs.lootedMineral += tb.lootMin;
-          if (tb.lootOxy) bs.lootedOxygen += tb.lootOxy;
-          for (let i = 0; i < 15; i++)
-            bs.explosions.push({ x: tx + (Math.random()-.5)*2, y: ty + (Math.random()-.5)*2,
-              r: 8+Math.random()*16, life:18+Math.random()*8, maxLife:26,
-              color: Math.random()>.5 ? '#FF8C00' : '#FFD700' });
-        } else {
-          bs.explosions.push({ x:tx, y:ty, r:5, life:5, maxLife:5, color:'#ff4444' });
-        }
-        t.atkTimer = 10;
-      }
-    }
+  if (bs.phase !== 'end') {
+    processBattleLogic(dt);
+    updateBattleUI();
   }
-
-  // Defenses attack
-  for (const b of bs.buildings) {
-    if (!b.alive) continue;
-    const def = BUILDINGS[b.type];
-    if (!def?.isDefense) continue;
-    const lvl = def.levels[b.level];
-    if (!lvl?.damage) continue;
-    b.atkTimer--;
-    if (b.atkTimer <= 0) {
-      const bsz = def.size || 1;
-      const cx  = b.x + bsz/2, cy = b.y + bsz/2;
-      let nearest = null, nearestD = Infinity;
-      for (const t of bs.troops) {
-        if (!t.alive) continue;
-        const d = Math.hypot(t.x - cx, t.y - cy);
-        if (d <= (lvl.range||3) && d < nearestD) { nearest = t; nearestD = d; }
-      }
-      if (nearest) {
-        nearest.hp = Math.max(0, nearest.hp - lvl.damage);
-        bs.projectiles.push({ x1:cx, y1:cy, x2:nearest.x, y2:nearest.y, life:5, color:'#ff4466' });
-        if (nearest.hp <= 0) {
-          nearest.alive = false;
-          bs.explosions.push({ x:nearest.x, y:nearest.y, r:10, life:10, maxLife:10, color:'#00D4FF' });
-        }
-      }
-      b.atkTimer = Math.max(3, Math.round(10 / (lvl.rate || 1)));
-    }
-  }
-
-  // Decay effects
-  bs.explosions  = bs.explosions.filter(e => (e.life--, e.life > 0));
-  bs.projectiles = bs.projectiles.filter(p => (p.life--, p.life > 0));
 
   drawBattleFrame();
-  gel('atk-pct').textContent = `💥 ${Math.round((bs.destroyed / bs.totalBld) * 100)}%`;
   
-  // Atualiza HUD de saque em tempo real
-  const lootLabel = gel('atk-loot');
-  if (lootLabel) {
-    lootLabel.innerHTML = `⛏️${fmtNum(bs.lootedMineral)} 💨${fmtNum(bs.lootedOxygen)}`;
+  if (bs.phase !== 'end' || bs.explosions.length > 0) {
+    battleRequest = requestAnimationFrame(battleLoop);
   }
-
-  if (bs.buildings.every(b => !b.alive)) endBattle();
 }
 
-function findTarget(troop, buildings, priority) {
+function processBattleLogic(dt) {
+  const bs = G.battle;
+  
+  // Timer
+  bs.timer -= dt;
+  if (bs.timer <= 0) { endBattle(); return; }
+
+  // Troops logic
+  bs.troops.forEach(t => {
+    if (!t.alive) return;
+    const td = TROOPS[t.type];
+    
+    // Find target
+    let target = bs.buildings.find(b => b.id === t.targetId && b.alive);
+    if (!target) {
+      target = findBestTarget(t, bs.buildings, td.priority);
+      t.targetId = target ? target.id : null;
+    }
+
+    if (target) {
+      const bsz = BUILDINGS[target.type]?.size || 1;
+      const tx = target.x + bsz/2, ty = target.y + bsz/2;
+      const dx = tx - t.x, dy = ty - t.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > td.range) {
+        // Move
+        t.x += (dx / dist) * td.speed * dt;
+        t.y += (dy / dist) * td.speed * dt;
+        t.angle = Math.atan2(dy, dx);
+      } else {
+        // Attack
+        t.atkTimer += dt;
+        if (t.atkTimer >= 1.0) {
+          t.atkTimer = 0;
+          target.curHp -= td.damage;
+          bs.projectiles.push({ x1:t.x, y1:t.y, x2:tx, y2:ty, life:0.3, color:td.color });
+          if (target.curHp <= 0) {
+            target.alive = false;
+            bs.destroyed++;
+            if (target.lMin) bs.lootedMin += target.lMin;
+            if (target.lOxy) bs.lootedOxy += target.lOxy;
+            createExplosion(tx, ty);
+            if (bs.destroyed >= bs.totalBld) endBattle();
+          }
+        }
+      }
+    }
+  });
+
+  // Defenses logic
+  bs.buildings.forEach(b => {
+    if (!b.alive) return;
+    const def = BUILDINGS[b.type];
+    if (!def || !def.isDefense) return;
+    const lvl = def.levels[b.level];
+    if (!lvl) return;
+
+    b.atkTimer += dt;
+    if (b.atkTimer >= 1.5) {
+      const bsz = def.size || 1;
+      const cx = b.x + bsz/2, cy = b.y + bsz/2;
+      const nearest = bs.troops.find(t => t.alive && Math.hypot(t.x-cx, t.y-cy) <= (lvl.range || 5));
+      if (nearest) {
+        b.atkTimer = 0;
+        nearest.hp -= (lvl.damage || 50);
+        bs.projectiles.push({ x1:cx, y1:cy, x2:nearest.x, y2:nearest.y, life:0.3, color:'#ff4466' });
+        if (nearest.hp <= 0) {
+          nearest.alive = false;
+          createExplosion(nearest.x, nearest.y);
+        }
+      }
+    }
+  });
+
+  // Projectiles & Particles
+  bs.projectiles = bs.projectiles.filter(p => {
+    p.life -= dt;
+    return p.life > 0;
+  });
+  bs.explosions = bs.explosions.filter(e => {
+    e.life -= dt;
+    return e.life > 0;
+  });
+}
+
+function findBestTarget(troop, buildings, priority) {
   const alive = buildings.filter(b => b.alive);
-  if (!alive.length) return null;
-  let pool;
+  if (alive.length === 0) return null;
+  
+  let pool = alive;
   if (priority === 'defense') {
-    pool = alive.filter(b => BUILDINGS[b.type]?.isDefense);
-    if (!pool.length) pool = alive;
+    const defs = alive.filter(b => BUILDINGS[b.type]?.isDefense);
+    if (defs.length > 0) pool = defs;
   } else if (priority === 'resource') {
-    pool = alive.filter(b => BUILDINGS[b.type]?.isResource);
-    if (!pool.length) pool = alive;
-  } else {
-    pool = alive;
+    const res = alive.filter(b => BUILDINGS[b.type]?.isResource || BUILDINGS[b.type]?.isStorage);
+    if (res.length > 0) pool = res;
   }
-  let best = null, bestD = Infinity;
-  for (const b of pool) {
-    const sz = BUILDINGS[b.type]?.size || 1;
-    const d  = Math.hypot(b.x + sz/2 - troop.x, b.y + sz/2 - troop.y);
-    if (d < bestD) { best = b; bestD = d; }
+
+  let best = null, minDist = Infinity;
+  pool.forEach(b => {
+    const bsz = BUILDINGS[b.type]?.size || 1;
+    const d = Math.hypot(b.x + bsz/2 - troop.x, b.y + bsz/2 - troop.y);
+    if (d < minDist) { minDist = d; best = b; }
+  });
+  return best;
+}
+
+function createExplosion(x, y) {
+  for (let i = 0; i < 8; i++) {
+    G.battle.explosions.push({
+      x: x + (Math.random() - 0.5),
+      y: y + (Math.random() - 0.5),
+      vx: (Math.random() - 0.5) * 5,
+      vy: (Math.random() - 0.5) * 5,
+      life: 0.5, maxLife: 0.5,
+      size: 5 + Math.random() * 10
+    });
   }
-  return best?.id || null;
 }
 
 function drawBattleFrame() {
-  if (!bCtx || !G.battle) return;
   const bs = G.battle;
-  const { scale, offX, offY, userZoom = 1 } = bs;
+  if (!bs) return;
   const W = bCanvas.width, H = bCanvas.height;
+  const { scale, offX, offY } = bs;
 
-  // Background
-  bCtx.fillStyle = '#070912'; bCtx.fillRect(0, 0, W, H);
+  bCtx.fillStyle = '#07091a';
+  bCtx.fillRect(0,0,W,H);
 
-  bCtx.save();
-  bCtx.translate(W/2, H/2);
-  bCtx.scale(userZoom, userZoom);
-  bCtx.translate(-W/2, -H/2);
-
-  // Draw some stars in bg
-  bCtx.fillStyle = 'rgba(255,255,255,0.6)';
-  const starRng = mulberry32(99);
-  for (let i = 0; i < 60; i++) {
-    const sx = starRng() * W, sy = starRng() * H, sr = starRng() * 1.2 + 0.2;
-    bCtx.beginPath(); bCtx.arc(sx, sy, sr, 0, Math.PI*2); bCtx.fill();
+  // Draw Grid/Floor
+  bCtx.strokeStyle = 'rgba(0, 212, 255, 0.05)';
+  bCtx.lineWidth = 1;
+  for (let i = 0; i <= GRID_W; i++) {
+    const x = offX + i * CELL_SIZE * scale;
+    bCtx.beginPath(); bCtx.moveTo(x, offY); bCtx.lineTo(x, offY + GRID_H * CELL_SIZE * scale); bCtx.stroke();
+  }
+  for (let j = 0; j <= GRID_H; j++) {
+    const y = offY + j * CELL_SIZE * scale;
+    bCtx.beginPath(); bCtx.moveTo(offX, y); bCtx.lineTo(offX + GRID_W * CELL_SIZE * scale, y); bCtx.stroke();
   }
 
-  // Moon surface
-  const surf = bCtx.createLinearGradient(offX, offY, offX + GRID_W*CELL_SIZE*scale, offY + GRID_H*CELL_SIZE*scale);
-  surf.addColorStop(0, '#585868'); surf.addColorStop(1, '#3e3e50');
-  bCtx.fillStyle = surf;
-  bCtx.fillRect(offX, offY, GRID_W*CELL_SIZE*scale, GRID_H*CELL_SIZE*scale);
-
-  // Grid lines
-  bCtx.strokeStyle = 'rgba(100,100,140,0.18)'; bCtx.lineWidth = 0.5;
-  for (let x = 0; x <= GRID_W; x++) { bCtx.beginPath(); bCtx.moveTo(offX+x*CELL_SIZE*scale,offY); bCtx.lineTo(offX+x*CELL_SIZE*scale,offY+GRID_H*CELL_SIZE*scale); bCtx.stroke(); }
-  for (let y = 0; y <= GRID_H; y++) { bCtx.beginPath(); bCtx.moveTo(offX,offY+y*CELL_SIZE*scale); bCtx.lineTo(offX+GRID_W*CELL_SIZE*scale,offY+y*CELL_SIZE*scale); bCtx.stroke(); }
-
-  function toScr(gx, gy) { return { x: offX + gx*CELL_SIZE*scale, y: offY + gy*CELL_SIZE*scale }; }
-
-  // Buildings
-  for (const b of bs.buildings) {
-    const def = BUILDINGS[b.type]; if (!def) continue;
-    const sz  = def.size || 1;
-    const s   = toScr(b.x, b.y);
-    const bw  = sz * CELL_SIZE * scale, bh = sz * CELL_SIZE * scale;
-
-    if (!b.alive) {
-      bCtx.fillStyle = 'rgba(80,40,20,0.65)';
-      bCtx.fillRect(s.x+2, s.y+2, bw-4, bh-4);
-      bCtx.fillStyle = 'rgba(120,60,30,0.45)';
-      for (let i=0;i<4;i++) bCtx.fillRect(s.x+Math.random()*bw*.7, s.y+Math.random()*bh*.7, 7, 4);
-      continue;
-    }
+  // Draw Buildings
+  bs.buildings.forEach(b => {
+    if (!b.alive) return;
+    const def = BUILDINGS[b.type];
+    const bsz = def.size || 1;
+    const sx = offX + b.x * CELL_SIZE * scale;
+    const sy = offY + b.y * CELL_SIZE * scale;
+    const sSize = bsz * CELL_SIZE * scale;
 
     const img = bldImgCache[def.getAsset(b.level)];
-    if (img?.complete && img.naturalWidth > 0) {
-      bCtx.drawImage(img, s.x, s.y, bw, bh);
+    if (img?.complete) {
+      bCtx.drawImage(img, sx, sy, sSize, sSize);
     } else {
-      bCtx.fillStyle = def.isDefense ? '#8B2222' : def.isResource ? '#224488' : '#446688';
-      bCtx.fillRect(s.x+2, s.y+2, bw-4, bh-4);
-      bCtx.font = `${Math.round(14*scale)}px serif`;
-      bCtx.textAlign = 'center'; bCtx.textBaseline = 'middle';
-      bCtx.fillText(def.isDefense ? '🛡' : '🏗', s.x + bw/2, s.y + bh/2);
+      bCtx.fillStyle = 'rgba(255,255,255,0.1)';
+      bCtx.fillRect(sx, sy, sSize, sSize);
     }
 
-    if (b.curHp < b.maxHp && b.alive) {
-      const pct = Math.max(0, b.curHp / b.maxHp);
-      bCtx.fillStyle = 'rgba(0,0,0,0.5)'; bCtx.fillRect(s.x, s.y-6, bw, 4);
-      bCtx.fillStyle = pct > 0.5 ? '#44ff88' : pct > 0.2 ? '#ffd700' : '#ff4466';
-      bCtx.fillRect(s.x, s.y-6, bw*pct, 4);
+    // Health Bar
+    if (b.curHp < b.maxHp) {
+      const barW = sSize * 0.8;
+      const barX = sx + sSize * 0.1;
+      const barY = sy - 5;
+      bCtx.fillStyle = '#444';
+      bCtx.fillRect(barX, barY, barW, 4);
+      bCtx.fillStyle = '#44FF88';
+      bCtx.fillRect(barX, barY, barW * (b.curHp / b.maxHp), 4);
     }
-  }
+  });
 
-  // Troops
-  for (const t of bs.troops) {
-    if (!t.alive) continue;
-    const td = TROOPS[t.type];
-    const s  = toScr(t.x, t.y);
-    const tr = (td.size || 0.4) * CELL_SIZE * scale;
-    const imgKey = t.type === 'star_warrior' ? 'star_warrior.png' : `${t.type}_sprite.png`;
-    const img = troopImgCache[imgKey];
+  // Draw Troops
+  bs.troops.forEach(t => {
+    if (!t.alive) return;
+    const sx = offX + t.x * CELL_SIZE * scale;
+    const sy = offY + t.y * CELL_SIZE * scale;
+    const tr = 15 * scale;
 
     bCtx.save();
-    bCtx.translate(s.x, s.y);
+    bCtx.translate(sx, sy);
+    bCtx.rotate(t.angle);
     
-    // Rotação: apenas o Tank gira conforme o pedido
-    if (t.type === 'tank' && t.angle !== undefined) {
-      bCtx.rotate(t.angle + Math.PI/2); 
-    }
-
-    if (img && img.complete && img.naturalWidth > 0) {
-      // Imagem estática simples
+    const td = TROOPS[t.type];
+    const imgKey = t.type === 'star_warrior' ? 'star_warrior.png' : `${t.type}_sprite.png`;
+    const img = troopImgCache[imgKey];
+    if (img?.complete) {
       bCtx.drawImage(img, -tr, -tr, tr*2, tr*2);
     } else {
-      // Fallback visual se a imagem não carregar
-      bCtx.beginPath(); bCtx.arc(0, 0, tr, 0, Math.PI*2);
-      bCtx.fillStyle = td.color; bCtx.fill();
-      bCtx.strokeStyle = 'rgba(0,0,0,0.5)'; bCtx.lineWidth = 1; bCtx.stroke();
+      bCtx.fillStyle = td.color;
+      bCtx.beginPath(); bCtx.arc(0,0,tr,0,Math.PI*2); bCtx.fill();
     }
     bCtx.restore();
 
-    // hp bar
+    // HP
     if (t.hp < t.maxHp) {
-      const pct = Math.max(0, t.hp / t.maxHp);
-      bCtx.fillStyle = 'rgba(0,0,0,0.5)'; bCtx.fillRect(s.x-tr, s.y-tr-8, tr*2, 4);
-      bCtx.fillStyle = pct > 0.5 ? '#44ff88' : pct > 0.2 ? '#ffd700' : '#ff4466';
-      bCtx.fillRect(s.x-tr, s.y-tr-8, (tr*2)*pct, 4);
+      bCtx.fillStyle = '#444';
+      bCtx.fillRect(sx - 10*scale, sy - tr - 5, 20*scale, 3);
+      bCtx.fillStyle = '#44FF88';
+      bCtx.fillRect(sx - 10*scale, sy - tr - 5, 20*scale * (t.hp / t.maxHp), 3);
     }
-  }
+  });
 
-  // Projectiles
-  for (const p of bs.projectiles) {
-    const s1 = toScr(p.x1, p.y1), s2 = toScr(p.x2, p.y2);
-    bCtx.beginPath(); bCtx.moveTo(s1.x,s1.y); bCtx.lineTo(s2.x,s2.y);
-    bCtx.strokeStyle = p.color; bCtx.lineWidth = 1.5;
-    bCtx.globalAlpha = p.life / 5; bCtx.stroke(); bCtx.globalAlpha = 1;
-  }
+  // Draw Projectiles
+  bCtx.lineWidth = 2;
+  bs.projectiles.forEach(p => {
+    const x1 = offX + p.x1 * CELL_SIZE * scale;
+    const y1 = offY + p.y1 * CELL_SIZE * scale;
+    const x2 = offX + p.x2 * CELL_SIZE * scale;
+    const y2 = offY + p.y2 * CELL_SIZE * scale;
+    bCtx.strokeStyle = p.color;
+    bCtx.globalAlpha = p.life / 0.3;
+    bCtx.beginPath(); bCtx.moveTo(x1, y1); bCtx.lineTo(x2, y2); bCtx.stroke();
+  });
+  bCtx.globalAlpha = 1;
 
-  // Explosions
-  for (const ex of bs.explosions) {
-    const s   = toScr(ex.x, ex.y);
-    const pct = ex.life / ex.maxLife;
-    bCtx.beginPath(); bCtx.arc(s.x, s.y, ex.r * scale * pct, 0, Math.PI*2);
-    bCtx.fillStyle = ex.color; bCtx.globalAlpha = pct * 0.8; bCtx.fill(); bCtx.globalAlpha = 1;
-  }
-
-  bCtx.restore();
+  // Draw Explosions
+  bs.explosions.forEach(e => {
+    bCtx.fillStyle = `rgba(255, ${100 + 155 * (e.life/e.maxLife)}, 0, ${e.life/e.maxLife})`;
+    bCtx.beginPath();
+    bCtx.arc(offX + e.x * CELL_SIZE * scale, offY + e.y * CELL_SIZE * scale, e.size * scale, 0, Math.PI*2);
+    bCtx.fill();
+    e.x += e.vx * 0.01;
+    e.y += e.vy * 0.01;
+  });
 }
 
-function tickBattleTimer() {
-  if (!G.battle) return;
-  const elapsed   = (Date.now() - G.battle.startTime) / 1000;
-  const remaining = Math.max(0, G.battle.duration - elapsed);
-  const el        = gel('atk-timer');
-  if (el) {
-    const m = Math.floor(remaining / 60), s = Math.floor(remaining % 60);
-    el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-    el.style.color = remaining < 30 ? '#ff4466' : 'var(--c-danger)';
-  }
-  if (remaining <= 0) endBattle();
+function surrenderBattle() {
+  if (confirm("Deseja realmente recuar da batalha?")) endBattle();
 }
 
 async function endBattle() {
   const bs = G.battle;
   if (!bs || bs.phase === 'end') return;
   bs.phase = 'end';
-  clearInterval(bInterval); clearInterval(bTimerInterval);
-  bCanvas.removeEventListener('click', onBattleClick);
-  bCanvas.removeEventListener('touchend', onBattleTouchEnd);
 
-  const pct  = Math.round((bs.destroyed / bs.totalBld) * 100);
-  const stars = pct >= 100 ? 3 : pct >= 50 ? 2 : pct > 0 ? 1 : 0;
-  const won   = stars >= 1;
+  const pct = Math.floor((bs.destroyed / bs.totalBld) * 100);
+  let stars = 0;
+  if (pct >= 50) stars = 1;
+  if (bs.buildings.find(b => b.type === 'command_center' && !b.alive)) stars = Math.max(stars, 1) + 1;
+  if (pct === 100) stars = 3;
 
-  // Trophy calculation
-  const prevLeague = getLeague(G.base.trophies || 0);
-  const tGain = won ? Math.floor(8 + pct / 8) : -5;
-  G.base.trophies = Math.max(0, (G.base.trophies || 0) + tGain);
-  const newLeague = getLeague(G.base.trophies || 0);
-
-  // Saque final baseado no que foi destruído durante a batalha
-  const stolenMin = bs.lootedMineral;
-  const stolenOxy = bs.lootedOxygen;
-  const blds = G.base.buildings || [];
-  G.base.resources.mineral = Math.min(G.base.resources.mineral + stolenMin, getStorageCapacity(blds, 'mineral'));
-  G.base.resources.oxygen  = Math.min(G.base.resources.oxygen  + stolenOxy, getStorageCapacity(blds, 'oxygen'));
-
-  // Consume troops used
-  for (const t of bs.troops) {
-    G.base.troops[t.type] = Math.max(0, (G.base.troops[t.type] || 0) - 1);
+  const won = stars > 0;
+  
+  // Trophies logic
+  const myT = G.base.trophies || 0;
+  const oppT = bs.opponent.trophies || 0;
+  let tGain = 0;
+  if (won) {
+    tGain = Math.floor(15 + (stars * 5) + Math.max(0, (oppT - myT) / 10));
+  } else {
+    tGain = -Math.floor(10 + Math.max(0, (myT - oppT) / 10));
   }
 
-  // Deduct from opponent in Firebase
-  let oppTrophyLoss = 0;
-  if (won && G.db && (bs.opponent.uid || bs.opponent.id)) {
+  // Update base
+  G.base.trophies = Math.max(0, (G.base.trophies || 0) + tGain);
+  G.base.resources.mineral = Math.min(G.base.resources.mineral + bs.lootedMin, getStorageCapacity(G.base.buildings, 'mineral'));
+  G.base.resources.oxygen  = Math.min(G.base.resources.oxygen  + bs.lootedOxy, getStorageCapacity(G.base.buildings, 'oxygen'));
+
+  // Consume used troops
+  bs.troops.forEach(t => {
+    G.base.troops[t.type] = Math.max(0, (G.base.troops[t.type] || 0) - 1);
+  });
+
+  // Sync with Firebase
+  if (G.db && (bs.opponent.uid || bs.opponent.id)) {
     try {
       const oppRef = G.db.collection('users').doc(bs.opponent.uid || bs.opponent.id);
       const oppDoc = await oppRef.get();
       if (oppDoc.exists) {
         const od = oppDoc.data();
-        oppTrophyLoss = won ? Math.floor(8 + pct / 8) : 0;
-        const newOppTrophies = Math.max(0, (od.trophies || 0) - oppTrophyLoss);
-        const newOppMin = Math.max(0, (od.resources?.mineral || 0) - stolenMin);
-        const newOppOxy = Math.max(0, (od.resources?.oxygen  || 0) - stolenOxy);
-        // Apply shield to opponent
-        const oppLeague  = getLeague(od.trophies || 0);
-        const shieldMs   = oppLeague.shieldHours * 3600 * 1000;
+        const oTrophyLoss = won ? Math.floor(tGain * 0.8) : 0;
         await oppRef.update({
-          trophies: newOppTrophies,
-          'resources.mineral': newOppMin,
-          'resources.oxygen':  newOppOxy,
-          shieldUntil: Date.now() + shieldMs
+          trophies: Math.max(0, (od.trophies || 0) - oTrophyLoss),
+          'resources.mineral': Math.max(0, (od.resources?.mineral || 0) - bs.lootedMin),
+          'resources.oxygen': Math.max(0, (od.resources?.oxygen || 0) - bs.lootedOxy),
+          shieldUntil: Date.now() + (won ? 3600000 * 12 : 0)
         });
       }
-    } catch(e) { console.warn('Could not update opponent:', e); }
-  }
-
-  // League advancement gem reward (first time only)
-  let leagueRewardStr = '';
-  if (newLeague.id > prevLeague.id && newLeague.gemReward > 0) {
-    if (!G.base.leaguesReached) G.base.leaguesReached = [];
-    if (!G.base.leaguesReached.includes(newLeague.id)) {
-      G.base.leaguesReached.push(newLeague.id);
-      G.base.gems = (G.base.gems || 0) + newLeague.gemReward;
-      leagueRewardStr = `<br>🎉 ${newLeague.emoji} ${newLeague.name}! +💎${newLeague.gemReward} gemas!`;
-      setTimeout(() => notify(`🎉 Nova Liga: ${newLeague.emoji} ${newLeague.name}! +💎${newLeague.gemReward}`, 'success'), 2000);
-    }
+    } catch (e) { console.warn("Opponent sync failed:", e); }
   }
 
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
-    G.base.winStreak = (G.base.winStreak || 0) + 1;
     G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
-    
-    if (G.base.missions) {
-      if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
-      MISSIONS.forEach(m => {
-        if (m.type === 'attack_win') {
-          G.base.missions.allProgress[m.id] = 1;
-        }
-        if (m.type === 'attack_win_total') {
-          G.base.missions.allProgress[m.id] = G.base.totalWins;
-        }
-        if (m.type === 'win_streak') {
-          G.base.missions.allProgress[m.id] = G.base.winStreak;
-        }
-        if (m.type === 'destroy_buildings_total') {
-          G.base.missions.allProgress[m.id] = G.base.totalDestroyed;
-        }
-      });
-    }
-  } else {
-    G.base.winStreak = 0; // Perdeu a sequência
   }
 
   await saveData();
-  updateHUD();
 
-  const starsStr = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
-  gel('result-stars').textContent = starsStr;
-  gel('result-title').textContent = won ? 'VITÓRIA!' : 'DERROTA';
-  gel('result-title').className   = 'result-title ' + (won ? 'win' : 'lose');
-  gel('result-pct').textContent   = pct + '%';
-  gel('result-details').innerHTML = `
-    Destruídas: ${bs.destroyed}/${bs.totalBld}<br>
-    🏆 Troféus: <span style="color:${tGain>=0?'#44FF88':'#FF4466'}">${tGain>0?'+':''}${tGain}</span> → ${G.base.trophies}
-    ${won && oppTrophyLoss ? `<br>🏆 Oponente: <span style="color:#FF4466">-${oppTrophyLoss}</span>` : ''}
-    ${stolenMin > 0 ? `<br>⛏️ +${fmtNum(stolenMin)} &nbsp; 💨 +${fmtNum(stolenOxy)}` : ''}
-    ${leagueRewardStr}
-  `;
+  // Show results
+  gel('res-stars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+  gel('res-title').textContent = won ? 'VITÓRIA!' : 'DERROTA';
+  gel('res-title').style.color = won ? 'var(--c-success)' : 'var(--c-danger)';
+  gel('res-pct').textContent = `${pct}%`;
+  gel('res-bld').textContent = `${bs.destroyed}/${bs.totalBld}`;
+  gel('res-trophy').textContent = (tGain >= 0 ? '+' : '') + tGain;
+  gel('res-trophy').style.color = tGain >= 0 ? 'var(--c-success)' : 'var(--c-danger)';
+  gel('res-min').textContent = fmtNum(bs.lootedMin);
+  gel('res-oxy').textContent = fmtNum(bs.lootedOxy);
+  
   gel('battle-result').classList.add('visible');
 }
 
