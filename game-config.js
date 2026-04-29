@@ -58,7 +58,7 @@ const BUILDINGS = {
         }
       },
       {
-        hp: 9000, buildTime: 3600, cost: { mineral: 50000, oxygen: 25000 },
+        hp: 9000, buildTime: 3600, cost: { mineral: 25000, oxygen: 25000 },
         theme: 'platinum', desc: 'Base de platina com tecnologia de clãs. Tema: Platina.',
         unlocks: {
           buildings: {
@@ -259,6 +259,15 @@ const TROOP_UPGRADES = {
       { level: 1, name: 'Blindagem Reforçada',     energyCost: 1200, mineralCost: 5000, desc: 'Tanque com +30% de HP.',      stat: 'hp',     bonus: 0.30, labLevel: 1 },
       { level: 2, name: 'Canhão Orbital',          energyCost: 2500, mineralCost: 12000, desc: 'Tanque com +40% de dano.',   stat: 'damage', bonus: 0.40, labLevel: 2 },
       { level: 3, name: 'Motor de Fusão',          energyCost: 5000, mineralCost: 25000, desc: 'Tanque com +25% de velocidade.', stat: 'speed', bonus: 0.25, labLevel: 3 }
+    ]
+  },
+  star_warrior: {
+    name: 'Guerreiro Estelar',
+    emoji: '⚔️',
+    upgrades: [
+      { level: 1, name: 'Armadura de Neutronio', energyCost: 10000, mineralCost: 40000, desc: 'Guerreiro com +25% de HP.', stat: 'hp', bonus: 0.25, labLevel: 2 },
+      { level: 2, name: 'Sabre de Antimatéria', energyCost: 25000, mineralCost: 100000, desc: 'Guerreiro com +35% de dano.', stat: 'damage', bonus: 0.35, labLevel: 3 },
+      { level: 3, name: 'Reflexos Galácticos', energyCost: 50000, mineralCost: 200000, desc: 'Guerreiro com +40% de velocidade.', stat: 'speed', bonus: 0.40, labLevel: 4 }
     ]
   }
 };
