@@ -277,22 +277,22 @@ const TROOPS = {
   drone: {
     id: 'drone', name: 'Drone', emoji: '🛸',
     hp: 150, damage: 20, speed: 1.5, range: 1.2,
-    cost: { energy: 50 }, time: 5, color: '#00D4FF', priority: 'any'
+    cost: { mineral: 50, oxygen: 0, energy: 0 }, time: 5, color: '#00D4FF', priority: 'any', space: 1
   },
   robot: {
     id: 'robot', name: 'Robô de Batalha', emoji: '🤖',
     hp: 400, damage: 45, speed: 1.0, range: 1.0,
-    cost: { energy: 100 }, time: 15, color: '#44FF88', priority: 'defense'
+    cost: { mineral: 150, oxygen: 50, energy: 0 }, time: 15, color: '#44FF88', priority: 'defense', space: 2
   },
   tank: {
     id: 'tank', name: 'Tanque Lunar', emoji: '🚜',
     hp: 1200, damage: 80, speed: 0.6, range: 4.0,
-    cost: { energy: 200 }, time: 45, color: '#FFD700', priority: 'defense'
+    cost: { mineral: 500, oxygen: 200, energy: 0 }, time: 45, color: '#FFD700', priority: 'defense', space: 4
   },
   star_warrior: {
     id: 'star_warrior', name: 'Guerreiro Estelar', emoji: '👨‍🚀',
     hp: 800, damage: 120, speed: 1.2, range: 3.5,
-    cost: { energy: 250 }, time: 60, color: '#FF4466', priority: 'any'
+    cost: { mineral: 1000, oxygen: 500, energy: 0 }, time: 60, color: '#FF4466', priority: 'any', space: 6
   }
 };
 

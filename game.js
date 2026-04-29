@@ -1876,9 +1876,23 @@ function renderTroopsPanel() {
     if (canTrain) {
       const btn = document.createElement('button');
       btn.className  = 'btn-train';
-      const energyCost = td.cost.energy || 0;
-      btn.disabled   = full || (G.base.resources.energy || 0) < energyCost;
-      btn.innerHTML  = `${t('train') || 'TREINAR'}<br><small>⚡ ${fmtNum(energyCost)}</small>`;
+      const minCost = td.cost.mineral || 0;
+      const oxyCost = td.cost.oxygen || 0;
+      const eneCost = td.cost.energy || 0;
+      
+      const affordable = (G.base.resources.mineral >= minCost) && 
+                         (G.base.resources.oxygen >= oxyCost) && 
+                         (G.base.resources.energy >= eneCost);
+                         
+      btn.disabled   = full || !affordable;
+      
+      let costHtml = '';
+      if (minCost > 0) costHtml += `⛏️${fmtNum(minCost)} `;
+      if (oxyCost > 0) costHtml += `💨${fmtNum(oxyCost)} `;
+      if (eneCost > 0) costHtml += `⚡${fmtNum(eneCost)} `;
+      if (!costHtml) costHtml = 'Grátis';
+
+      btn.innerHTML  = `${t('train') || 'TREINAR'}<br><small>${costHtml}</small>`;
       btn.onclick    = () => { trainTroop(troopId); renderTroopsPanel(); };
       row.appendChild(btn);
     } else {
@@ -2011,11 +2025,18 @@ function trainTroop(type) {
   const cap = getTotalCampCapacity(G.base.buildings);
   const used = getTotalTroopSpace(G.base.troops);
   if (used + td.space > cap) { notify(t('need_camp'), 'error'); return; }
-  const energyCost = td.cost.energy || 0;
-  if ((G.base.resources.energy || 0) < energyCost) {
-    notify('Energia insuficiente!', 'error'); return;
+  
+  const minCost = td.cost.mineral || 0;
+  const oxyCost = td.cost.oxygen || 0;
+  const eneCost = td.cost.energy || 0;
+
+  if (G.base.resources.mineral < minCost || G.base.resources.oxygen < oxyCost || G.base.resources.energy < eneCost) {
+    notify(t('insufficient_resources'), 'error'); return;
   }
-  G.base.resources.energy -= energyCost;
+  
+  G.base.resources.mineral -= minCost;
+  G.base.resources.oxygen  -= oxyCost;
+  G.base.resources.energy  -= eneCost;
 
   if (!G.base.queue) G.base.queue = [];
   const finishTime = Date.now() + td.trainTime * 1000;
@@ -2142,13 +2163,21 @@ function processOfflineObstacles() {
 // ============================================================
 function switchScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  gel(name + '-screen')?.classList.remove('hidden');
+  const target = gel(name + '-screen');
+  if (target) {
+    target.classList.remove('hidden');
+    // Força um reflow
+    void target.offsetWidth;
+  }
   G.ui.screen = name;
   
-  if (name === 'game') {
-    // Restaurar interface do jogo
-    forceCloseAllUI();
-  }
+  // Pequeno delay para garantir renderização antes de disparar eventos dependentes de layout
+  setTimeout(() => {
+    if (name === 'game') {
+      forceCloseAllUI();
+      if (typeof buildTerrain === 'function') buildTerrain();
+    }
+  }, 10);
 }
 
 function forceCloseAllUI() {
@@ -2327,23 +2356,26 @@ let battleRequest = null;
 let bCanvas, bCtx;
 
 function launchBattle(opponent) {
-  try {
-    if (!opponent) return;
-    
-    const myTroops = G.base.troops || {};
-    const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
-    if (totalT === 0) { notify(t('train_troops_first'), 'error'); return; }
+  if (!opponent) return;
+  
+  const myTroops = G.base.troops || {};
+  const totalT   = Object.values(myTroops).reduce((a, c) => a + c, 0);
+  if (totalT === 0) { notify(t('train_troops_first'), 'error'); return; }
 
-    forceCloseAllUI();
-    switchScreen('attack');
-    
+  forceCloseAllUI();
+  switchScreen('attack');
+  
+  // Garantir que o container tenha dimensões antes de configurar o canvas
+  requestAnimationFrame(() => {
     bCanvas = gel('battle-canvas');
+    if (!bCanvas) return;
     bCtx    = bCanvas.getContext('2d');
     const container = gel('battle-container');
     
-    // Canvas sizing
-    bCanvas.width  = container.clientWidth;
-    bCanvas.height = container.clientHeight;
+    // Forçar dimensões reais do container
+    const rect = container.getBoundingClientRect();
+    bCanvas.width  = rect.width || window.innerWidth;
+    bCanvas.height = rect.height || (window.innerHeight - 175); // Desconto do HUD e DeployBar
     
     const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
     const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
@@ -2380,7 +2412,7 @@ function launchBattle(opponent) {
       lastTick: Date.now()
     };
 
-    // Redistribute loot
+    // Redistribuir loot
     const storages = G.battle.buildings.filter(b => {
       const def = BUILDINGS[b.type];
       return def?.isStorage || def?.isResource || b.type === 'command_center';
@@ -2394,18 +2426,17 @@ function launchBattle(opponent) {
     renderDeployBar();
     updateBattleUI();
     
+    // Remover listeners antigos se houver
+    bCanvas.removeEventListener('mousedown', handleBattleInput);
+    bCanvas.removeEventListener('touchstart', handleBattleInput);
+    
     bCanvas.addEventListener('mousedown', handleBattleInput);
     bCanvas.addEventListener('touchstart', handleBattleInput, { passive: false });
 
     if (battleRequest) cancelAnimationFrame(battleRequest);
-    battleRequest = requestAnimationFrame(battleLoop);
-    
+    battleLoop();
     notify(t('deploy_tip'), 'info');
-  } catch (err) {
-    console.error("Modern Battle Launch Error:", err);
-    notify("Erro ao iniciar sistema de batalha moderno.", "error");
-    switchScreen('game');
-  }
+  });
 }
 
 function handleBattleInput(e) {
