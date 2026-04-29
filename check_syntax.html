@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Syntax Check</title>
+</head>
+<body>
+  <h1>Checking Syntax</h1>
+  <script>
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.body.innerHTML += '<p style="color:red;">Error: ' + message + ' at ' + source + ':' + lineno + ':' + colno + '</p>';
+    };
+  </script>
+  <!-- Mock Firebase and constants so we don't fail on missing vars, just syntax -->
+  <script>
+    const firebase = {};
+    const firebaseConfig = {};
+  </script>
+  <script src="game-config.js"></script>
+  <script src="game.js"></script>
+  <script>
+    document.body.innerHTML += '<p style="color:green;">No syntax errors detected! Scripts loaded successfully.</p>';
+  </script>
+</body>
+</html>

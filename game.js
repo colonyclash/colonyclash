@@ -61,16 +61,12 @@ const G = {
 let lastResourceTick = Date.now();
 
 // ---- DOM Helpers ----
+// DOM helpers now use game-config.js versions where possible, 
+// but we keep the UI-specific ones here.
 const gel   = id => document.getElementById(id);
 const qsel  = s  => document.querySelector(s);
 const show  = id => gel(id)?.classList.remove('hidden');
 const hide  = id => gel(id)?.classList.add('hidden');
-const fmtNum = n => Math.floor(n || 0).toLocaleString();
-const fmtTime = ms => {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
-};
 
 function notify(msg, type = 'info') {
   const stack = qsel('.notif-stack');
@@ -2987,67 +2983,75 @@ function doLabResearch(troopId, level, energyCost, mineralCost) {
 // MAIN INIT
 // ============================================================
 async function init() {
+  console.log('Engine: Inciando...');
   spawnLoginStars();
   setLoadProgress(10);
 
-  await preloadAssets();
-  preloadExtraAssets(); // Background load levels 2+
+  try {
+    await preloadAssets();
+    preloadExtraAssets(); // Background load levels 2+
+    setLoadProgress(35);
+  } catch (e) {
+    console.error('Assets preload failed:', e);
+    // Continue anyway to avoid hanging
+  }
   
   const hasFirebase = initFirebase();
-  setLoadProgress(35);
+  console.log('Firebase status:', hasFirebase);
 
   if (!hasFirebase) {
-    // Demo mode — no Firebase
+    console.log('Modo: DEMO');
     createStarterBase();
     G.base.playerName = 'Demo';
-    buildTerrain();
-    renderBuildingsLayer();
-    initMapEvents();
-    initMapZoom();
-    setMapZoom(1.0);
-    initBattleZoom();
-    updateHUD();
-    updateUILanguage();
-    startTimers();
-    setLoadProgress(100);
-    setTimeout(() => {
-      switchScreen('game');
-      centerMap();
-      notify('Modo demo: configure firebase-config.js para jogar online!', 'info');
-      if (!G.base.tutorialDone) setTimeout(showTutorial, 800);
-    }, 600);
+    completeInitialization('demo');
     return;
   }
 
   G.auth.onAuthStateChanged(async user => {
+    console.log('Auth state change:', user ? user.uid : 'null');
     if (user) {
       G.user = user;
       G.pid  = user.uid;
       setLoadProgress(55);
-      await loadData();
-      G.base.ccLevel = getCurrentCCLevel();
-      setLoadProgress(80);
-      buildTerrain();
-      renderBuildingsLayer();
-      initMapEvents();
-      initMapZoom();
-      setMapZoom(1.0);
-      initBattleZoom();
-      updateHUD();
-      startTimers();
-      updateUILanguage();
-      setLoadProgress(100);
-      setTimeout(() => {
-        switchScreen('game');
-        centerMap();
-        if (!G.base.tutorialDone) setTimeout(showTutorial, 800);
-      }, 500);
+      try {
+        await loadData();
+        G.base.ccLevel = getCurrentCCLevel();
+        setLoadProgress(80);
+        completeInitialization('online');
+      } catch (e) {
+        console.error('Failed to load user data:', e);
+        createStarterBase();
+        completeInitialization('error-fallback');
+      }
     } else {
       updateUILanguage();
       setLoadProgress(100);
-      setTimeout(() => switchScreen('login'), 400);
+      setTimeout(() => switchScreen('login'), 500);
     }
   });
+}
+
+function completeInitialization(mode) {
+  buildTerrain();
+  renderBuildingsLayer();
+  initMapEvents();
+  initMapZoom();
+  setMapZoom(1.0);
+  initBattleZoom();
+  updateHUD();
+  startTimers();
+  updateUILanguage();
+  setLoadProgress(100);
+  
+  setTimeout(() => {
+    switchScreen('game');
+    centerMap();
+    if (mode === 'demo') {
+      notify('Modo demo: configure firebase-config.js para jogar online!', 'info');
+    }
+    if (!G.base.tutorialDone) setTimeout(showTutorial, 1000);
+    console.log('Engine: Pronto (' + mode + ')');
+  }, 600);
 }
 
 // ============================================================
