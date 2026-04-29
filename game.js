@@ -336,6 +336,14 @@ function processOfflineBuildings() {
       const nextLvl = b.level + 1;
       setTimeout(() => finishUpgrade(bId, nextLvl), rem);
     }
+    if (b.removing && b.removeFinish && b.removeFinish <= now) {
+      finishObstacleRemoval(b.id);
+    }
+    if (b.removing && b.removeFinish && b.removeFinish > now) {
+      const rem = b.removeFinish - now;
+      const bId = b.id;
+      setTimeout(() => finishObstacleRemoval(bId), rem);
+    }
   }
   const cc = G.base.buildings.find(b => b.type === 'command_center');
   if (cc) G.base.ccLevel = cc.level;
@@ -558,61 +566,66 @@ function removeObstacle(bId) {
   
   notify(t('removing_obstacle') + ' (10s)...', 'info');
   
-  setTimeout(() => {
-    const rewards = [
-      { type: 'mineral', amt: 100, weight: 25 },
-      { type: 'mineral', amt: 200, weight: 10 },
-      { type: 'oxygen',  amt: 100, weight: 20 },
-      { type: 'oxygen',  amt: 200, weight: 10 },
-      { type: 'gems',    amt: 1,   weight: 20 },
-      { type: 'gems',    amt: 3,   weight: 10 },
-      { type: 'gems',    amt: 5,   weight: 5 },
-    ];
-    
-    // Sistema de Piedade: Garante gemas a cada 3 rochas removidas
-    const rocksRemoved = G.base.totalObstaclesRemoved || 0;
-    const forceGems = (rocksRemoved + 1) % 3 === 0;
+  setTimeout(() => finishObstacleRemoval(bId), 10000);
+}
 
-    let reward;
-    if (forceGems) {
-      const gemRewards = rewards.filter(r => r.type === 'gems');
-      const totalW = gemRewards.reduce((a, c) => a + c.weight, 0);
-      let r = Math.random() * totalW;
-      reward = gemRewards[0];
-      for (const rw of gemRewards) {
-        r -= rw.weight;
-        if (r <= 0) { reward = rw; break; }
-      }
-    } else {
-      const totalW = rewards.reduce((a, c) => a + c.weight, 0);
-      let r = Math.random() * totalW;
-      reward = rewards[0];
-      for (const rw of rewards) {
-        r -= rw.weight;
-        if (r <= 0) { reward = rw; break; }
-      }
-    }
-    
-    if (reward.type === 'gems') G.base.gems += reward.amt;
-    else G.base.resources[reward.type] = Math.min(G.base.resources[reward.type] + reward.amt, getStorageCapacity(G.base.buildings, reward.type));
-    
-    const idx = G.base.buildings.findIndex(x => x.id === bId);
-    if (idx >= 0) G.base.buildings.splice(idx, 1);
-    gel('bld-' + bId)?.remove();
-    
-    G.base.totalObstaclesRemoved = (G.base.totalObstaclesRemoved || 0) + 1;
-    if (G.base.missions && G.base.missions.allProgress) {
-      MISSIONS.forEach(m => {
-        if (m.type === 'remove_obstacle') {
-          G.base.missions.allProgress[m.id] = G.base.totalObstaclesRemoved;
-        }
-      });
-    }
+function finishObstacleRemoval(bId) {
+  const b = G.base.buildings.find(x => x.id === bId);
+  if (!b || b.type !== 'lunar_rock') return;
 
-    notify(`${t('obstacle_removed')} ${t('earn_reward')}: ${reward.amt} ${reward.type === 'gems' ? t('gems_unit') : t(reward.type)}`, 'success');
-    updateHUD();
-    saveData();
-  }, 10000);
+  const rewards = [
+    { type: 'mineral', amt: 100, weight: 25 },
+    { type: 'mineral', amt: 200, weight: 10 },
+    { type: 'oxygen',  amt: 100, weight: 20 },
+    { type: 'oxygen',  amt: 200, weight: 10 },
+    { type: 'gems',    amt: 1,   weight: 20 },
+    { type: 'gems',    amt: 3,   weight: 10 },
+    { type: 'gems',    amt: 5,   weight: 5 },
+  ];
+  
+  // Sistema de Piedade: Garante gemas a cada 3 rochas removidas
+  const rocksRemoved = G.base.totalObstaclesRemoved || 0;
+  const forceGems = (rocksRemoved + 1) % 3 === 0;
+
+  let reward;
+  if (forceGems) {
+    const gemRewards = rewards.filter(r => r.type === 'gems');
+    const totalW = gemRewards.reduce((a, c) => a + c.weight, 0);
+    let r = Math.random() * totalW;
+    reward = gemRewards[0];
+    for (const rw of gemRewards) {
+      r -= rw.weight;
+      if (r <= 0) { reward = rw; break; }
+    }
+  } else {
+    const totalW = rewards.reduce((a, c) => a + c.weight, 0);
+    let r = Math.random() * totalW;
+    reward = rewards[0];
+    for (const rw of rewards) {
+      r -= rw.weight;
+      if (r <= 0) { reward = rw; break; }
+    }
+  }
+  
+  if (reward.type === 'gems') G.base.gems += reward.amt;
+  else G.base.resources[reward.type] = Math.min(G.base.resources[reward.type] + reward.amt, getStorageCapacity(G.base.buildings, reward.type));
+  
+  const idx = G.base.buildings.findIndex(x => x.id === bId);
+  if (idx >= 0) G.base.buildings.splice(idx, 1);
+  gel('bld-' + bId)?.remove();
+  
+  G.base.totalObstaclesRemoved = (G.base.totalObstaclesRemoved || 0) + 1;
+  if (G.base.missions && G.base.missions.allProgress) {
+    MISSIONS.forEach(m => {
+      if (m.type === 'remove_obstacle') {
+        G.base.missions.allProgress[m.id] = G.base.totalObstaclesRemoved;
+      }
+    });
+  }
+
+  notify(`${t('obstacle_removed')} ${t('earn_reward')}: ${reward.amt} ${reward.type === 'gems' ? t('gems_unit') : t(reward.type)}`, 'success');
+  updateHUD();
+  saveData();
 }
 function bldInProgress(b) {
   return (b.buildFinish && b.buildFinish > Date.now()) ||
@@ -2300,9 +2313,10 @@ function launchBattle(opponent) {
     opponent,
     buildings: opponent.buildings.map(b => {
       const def  = BUILDINGS[b.type];
-      const lvl  = def?.levels?.[b.level];
+      if (!def) return null;
+      const lvl  = def.levels[b.level] || def.levels[1];
       return { ...b, curHp: lvl?.hp || 400, maxHp: lvl?.hp || 400, alive: true, atkTimer: 0 };
-    }),
+    }).filter(b => b !== null),
     troops: [],
     deployPool: { ...myTroops },
     selectedTroop: null,
@@ -2321,8 +2335,11 @@ function launchBattle(opponent) {
     totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3)
   };
 
-  // Distribuir saque entre armazéns e CC
-  const storages = G.battle.buildings.filter(b => BUILDINGS[b.type]?.isStorage || b.type === 'command_center');
+  // Distribuir saque entre armazéns, extratores e CC
+  const storages = G.battle.buildings.filter(b => {
+    const def = BUILDINGS[b.type];
+    return def?.isStorage || def?.isResource || b.type === 'command_center';
+  });
   const count = storages.length || 1;
   storages.forEach(b => {
     b.lootMin = Math.floor(G.battle.totalStealMin / count);
@@ -2337,6 +2354,8 @@ function launchBattle(opponent) {
   bCanvas.addEventListener('touchend', onBattleTouchEnd);
 
   drawBattleFrame();
+  clearInterval(bInterval);
+  clearInterval(bTimerInterval);
   bInterval      = setInterval(battleTick, 100);
   bTimerInterval = setInterval(tickBattleTimer, 500);
 }
@@ -2449,6 +2468,8 @@ function battleTick() {
         bs.projectiles.push({ x1:t.x, y1:t.y, x2:tx, y2:ty, life:5, color: td.color });
         if (tb.curHp <= 0) {
           tb.alive = false; bs.destroyed++;
+          if (tb.lootMin) bs.lootedMineral += tb.lootMin;
+          if (tb.lootOxy) bs.lootedOxygen += tb.lootOxy;
           for (let i = 0; i < 15; i++)
             bs.explosions.push({ x: tx + (Math.random()-.5)*2, y: ty + (Math.random()-.5)*2,
               r: 8+Math.random()*16, life:18+Math.random()*8, maxLife:26,
@@ -2698,9 +2719,9 @@ async function endBattle() {
 
   // Deduct from opponent in Firebase
   let oppTrophyLoss = 0;
-  if (won && G.db && bs.opponent.uid) {
+  if (won && G.db && (bs.opponent.uid || bs.opponent.id)) {
     try {
-      const oppRef = G.db.collection('users').doc(bs.opponent.uid);
+      const oppRef = G.db.collection('users').doc(bs.opponent.uid || bs.opponent.id);
       const oppDoc = await oppRef.get();
       if (oppDoc.exists) {
         const od = oppDoc.data();
@@ -3058,16 +3079,25 @@ async function leaveClan() {
   if (!G.db || !G.base.clanId) return;
   if (!confirm('Deseja mesmo sair do clã?')) return;
   try {
-    await G.db.collection('clans').doc(G.base.clanId).update({
-      members: firebase.firestore.FieldValue.arrayRemove(G.pid)
-    });
+    const clanId = G.base.clanId;
+    const clanRef = G.db.collection('clans').doc(clanId);
+    const clanDoc = await clanRef.get();
+    
+    if (clanDoc.exists) {
+      await clanRef.update({
+        members: firebase.firestore.FieldValue.arrayRemove(G.pid)
+      });
+    }
+  } catch (e) { 
+    console.warn('Erro ao atualizar membros no Firestore, mas limpando localmente:', e);
+  } finally {
     G.base.clanId = null;
     G.base.clanName = null;
     if (clanUnsubscribe) { clanUnsubscribe(); clanUnsubscribe = null; }
     await saveData();
     notify('Você saiu do clã.', 'info');
     refreshSocialUI();
-  } catch (e) { notify('Erro ao sair do clã.', 'error'); }
+  }
 }
 
 window.switchClanSubtab = function(sub) {
@@ -3195,7 +3225,14 @@ window.renderMyClanMembers = async function(clanId) {
   
   try {
     const clanDoc = await G.db.collection('clans').doc(clanId).get();
-    if (!clanDoc.exists) return;
+    if (!clanDoc.exists) {
+      console.warn('Clã não encontrado no Firestore. Limpando dados do usuário.');
+      G.base.clanId = null;
+      G.base.clanName = null;
+      await saveData();
+      refreshSocialUI();
+      return;
+    }
     const members = clanDoc.data().members || [];
     
     // In a real app we'd fetch all member details. For now, placeholders or stored data.
@@ -3204,6 +3241,7 @@ window.renderMyClanMembers = async function(clanId) {
     let html = '';
     for (const mid of members) {
       const userDoc = await G.db.collection('users').doc(mid).get();
+      if (!userDoc.exists) continue;
       const p = userDoc.data() || { playerName: 'Membro', trophies: 0, ccLevel: 1 };
       const league = getLeague(p.trophies || 0);
       html += `
@@ -3217,8 +3255,11 @@ window.renderMyClanMembers = async function(clanId) {
         </div>
       `;
     }
-    list.innerHTML = html;
-  } catch (e) { list.innerHTML = 'Erro ao cargegar membros.'; }
+    list.innerHTML = html || '<div style="text-align:center;padding:20px;color:#888;">Sem membros.</div>';
+  } catch (e) { 
+    console.error('Erro ao carregar membros do clã:', e);
+    list.innerHTML = 'Erro ao carregar membros.'; 
+  }
 };
 
 async function createClan() {

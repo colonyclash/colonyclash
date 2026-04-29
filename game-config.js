@@ -104,7 +104,7 @@ const BUILDINGS = {
     size: 1, isDefense: false, isResource: true, resourceType: 'energy',
     maxLevel: 4,
     levels: [null,
-      { hp: 200, buildTime: 10,  cost: { mineral: 200,  oxygen: 100  }, production: 40,  desc: 'Energia solar máxima sem atmosfera.' },
+      { hp: 200, buildTime: 10,  cost: { mineral: 200,  oxygen: 0  }, production: 40,  desc: 'Energia solar máxima sem atmosfera.' },
       { hp: 350, buildTime: 900,  cost: { mineral: 1500, oxygen: 600  }, production: 90,  desc: 'Painel de alta voltagem com rastreamento solar.' },
       { hp: 500, buildTime: 1800, cost: { mineral: 5000, oxygen: 2000 }, production: 200, desc: 'Megapainel fotovoltaico de fusão quântica.' },
       { hp: 800, buildTime: 3600, cost: { mineral: 15000, oxygen: 6000 }, production: 500, desc: 'Matriz de energia de antimatéria solar.' }
@@ -116,7 +116,7 @@ const BUILDINGS = {
     size: 1, isDefense: false, isResource: false,
     maxLevel: 4,
     levels: [null,
-      { hp: 500,  buildTime: 10,  cost: { mineral: 500,   oxygen: 200  }, desc: 'Treina Drones de combate.',                    availableTroops: ['drone'] },
+      { hp: 500,  buildTime: 10,  cost: { mineral: 500,   oxygen: 0  }, desc: 'Treina Drones de combate.',                    availableTroops: ['drone'] },
       { hp: 750,  buildTime: 900,  cost: { mineral: 3000,  oxygen: 1200 }, desc: 'Treina Drones e Robôs de batalha.',            availableTroops: ['drone', 'robot'] },
       { hp: 1000, buildTime: 1800, cost: { mineral: 10000, oxygen: 4000 }, desc: 'Treina todas as tropas, incluindo Tanques.', availableTroops: ['drone', 'robot', 'tank'] },
       { hp: 1500, buildTime: 3600, cost: { mineral: 30000, oxygen: 12000 }, desc: 'Elite militar. Treina Guerreiros Estelares.', availableTroops: ['drone', 'robot', 'tank', 'star_warrior'] }
@@ -128,7 +128,7 @@ const BUILDINGS = {
     size: 1, isDefense: false, isResource: false,
     maxLevel: 4,
     levels: [null,
-      { hp: 300, buildTime: 10,  cost: { mineral: 250,  oxygen: 100  }, capacity: 10, desc: 'Acomoda até 10 unidades de tropa.' },
+      { hp: 300, buildTime: 10,  cost: { mineral: 250,  oxygen: 0  }, capacity: 10, desc: 'Acomoda até 10 unidades de tropa.' },
       { hp: 450, buildTime: 900,  cost: { mineral: 1500, oxygen: 600  }, capacity: 15, desc: 'Acomoda até 15 unidades de tropa.' },
       { hp: 650, buildTime: 1800, cost: { mineral: 5000, oxygen: 2000 }, capacity: 20, desc: 'Acomoda até 20 unidades de tropa.' },
       { hp: 900, buildTime: 3600, cost: { mineral: 15000, oxygen: 6000 }, capacity: 30, desc: 'Mega-alojamento para 30 unidades.' }
@@ -140,7 +140,7 @@ const BUILDINGS = {
     size: 1, isDefense: true, isResource: false,
     maxLevel: 4,
     levels: [null,
-      { hp: 600,  buildTime: 10,  cost: { mineral: 700,   oxygen: 300  }, damage: 25,  range: 3, rate: 1.0, desc: 'Defesa automática de curto alcance.' },
+      { hp: 600,  buildTime: 10,  cost: { mineral: 700,   oxygen: 0  }, damage: 25,  range: 3, rate: 1.0, desc: 'Defesa automática de curto alcance.' },
       { hp: 900,  buildTime: 900,  cost: { mineral: 4000,  oxygen: 1500 }, damage: 55,  range: 4, rate: 0.8, desc: 'Torreta aprimorada com mira assistida.' },
       { hp: 1200, buildTime: 1800, cost: { mineral: 12000, oxygen: 5000 }, damage: 100, range: 5, rate: 0.6, desc: 'Torreta de plasma de alta cadência.' },
       { hp: 1800, buildTime: 3600, cost: { mineral: 30000, oxygen: 12000 }, damage: 180, range: 6, rate: 0.5, desc: 'Torreta pesada de feixe contínuo.' }
@@ -153,7 +153,7 @@ const BUILDINGS = {
     isLaboratory: true,
     maxLevel: 4,
     levels: [null,
-      { hp: 800,  buildTime: 10,  cost: { mineral: 15000, oxygen: 7000  }, desc: 'Pesquisa melhorias básicas para suas tropas. (Requer CC3)' },
+      { hp: 800,  buildTime: 10,  cost: { mineral: 15000, oxygen: 0  }, desc: 'Pesquisa melhorias básicas para suas tropas. (Requer CC3)' },
       { hp: 1000, buildTime: 900,  cost: { mineral: 30000, oxygen: 15000 }, desc: 'Laboratório avançado. Melhorias de nível 2. (Requer CC3)' },
       { hp: 1400, buildTime: 1800, cost: { mineral: 60000, oxygen: 30000 }, desc: 'Laboratório supremo. Melhorias de nível 3. (Requer CC3)' },
       { hp: 2000, buildTime: 3600, cost: { mineral: 120000, oxygen: 60000 }, desc: 'Pesquisa avançada de nível 4. (Requer CC4)' }
@@ -165,7 +165,7 @@ const BUILDINGS = {
     size: 1, isDefense: true, isResource: false,
     maxLevel: 4,
     levels: [null,
-      { hp: 1200, buildTime: 10,  cost: { mineral: 25000, oxygen: 10000 }, damage: 300, range: 8, rate: 0.25, desc: 'Canhão eletromagnético de longo alcance.' },
+      { hp: 1200, buildTime: 10,  cost: { mineral: 25000, oxygen: 0 }, damage: 300, range: 8, rate: 0.25, desc: 'Canhão eletromagnético de longo alcance.' },
       { hp: 1800, buildTime: 900,  cost: { mineral: 50000, oxygen: 20000 }, damage: 500, range: 9, rate: 0.30, desc: 'Railgun aprimorado de alta precisão.' },
       { hp: 2400, buildTime: 1800, cost: { mineral: 90000, oxygen: 40000 }, damage: 800, range: 10, rate: 0.40, desc: 'Railgun supremo com mira quântica.' },
       { hp: 3500, buildTime: 3600, cost: { mineral: 200000, oxygen: 100000 }, damage: 1500, range: 12, rate: 0.50, desc: 'Destruidor orbital de railgun.' }
@@ -226,7 +226,7 @@ const BUILDINGS = {
     size: 1, isDefense: false, isResource: false,
     maxLevel: 1,
     levels: [null,
-      { hp: 1500, buildTime: 10, cost: { mineral: 50000, oxygen: 20000 }, desc: 'Centro de comunicação para clãs e amigos.' }
+      { hp: 1500, buildTime: 10, cost: { mineral: 1000, oxygen: 0 }, desc: 'Centro de comunicação para clãs e amigos.' }
     ],
     getAsset: (lvl) => `clan_tower_lvl1.png`,
   }
