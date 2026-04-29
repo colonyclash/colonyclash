@@ -65,6 +65,12 @@ const gel   = id => document.getElementById(id);
 const qsel  = s  => document.querySelector(s);
 const show  = id => gel(id)?.classList.remove('hidden');
 const hide  = id => gel(id)?.classList.add('hidden');
+const fmtNum = n => Math.floor(n || 0).toLocaleString();
+const fmtTime = ms => {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
+};
 
 function notify(msg, type = 'info') {
   const stack = qsel('.notif-stack');
@@ -2599,16 +2605,22 @@ function drawBattleFrame() {
   bCtx.fillStyle = '#07091a';
   bCtx.fillRect(0,0,W,H);
 
+  // Draw Moon Surface
+  const gridW = GRID_W * CELL_SIZE * scale;
+  const gridH = GRID_H * CELL_SIZE * scale;
+  bCtx.fillStyle = '#1a1c2c';
+  bCtx.fillRect(offX, offY, gridW, gridH);
+
   // Draw Grid/Floor
-  bCtx.strokeStyle = 'rgba(0, 212, 255, 0.05)';
+  bCtx.strokeStyle = 'rgba(0, 212, 255, 0.1)';
   bCtx.lineWidth = 1;
   for (let i = 0; i <= GRID_W; i++) {
     const x = offX + i * CELL_SIZE * scale;
-    bCtx.beginPath(); bCtx.moveTo(x, offY); bCtx.lineTo(x, offY + GRID_H * CELL_SIZE * scale); bCtx.stroke();
+    bCtx.beginPath(); bCtx.moveTo(x, offY); bCtx.lineTo(x, offY + gridH); bCtx.stroke();
   }
   for (let j = 0; j <= GRID_H; j++) {
     const y = offY + j * CELL_SIZE * scale;
-    bCtx.beginPath(); bCtx.moveTo(offX, y); bCtx.lineTo(offX + GRID_W * CELL_SIZE * scale, y); bCtx.stroke();
+    bCtx.beginPath(); bCtx.moveTo(offX, y); bCtx.lineTo(offX + gridW, y); bCtx.stroke();
   }
 
   // Draw Buildings

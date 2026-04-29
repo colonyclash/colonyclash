@@ -376,10 +376,8 @@
 
   <!-- Troops Deployment Bar -->
   <div class="deploy-bar-v2">
-    <div class="deploy-scroll" id="troops-deploy-bar">
-      <!-- Troops will be injected here -->
-    </div>
-    <button class="btn-end-battle-v2" onclick="surrenderBattle()">${t('end_battle') || 'RECUAR'}</button>
+    <div class="deploy-scroll" id="troops-deploy-bar"></div>
+    <button class="btn-end-battle-v2" onclick="surrenderBattle()" data-t="end_battle">RECUAR</button>
   </div>
 </div>
 
@@ -388,18 +386,18 @@
   <div class="result-card-v2">
     <div class="result-header">
       <div id="res-stars" class="res-stars">☆☆☆</div>
-      <h2 id="res-title" class="res-title">VITÓRIA!</h2>
+      <h2 id="res-title" class="res-title" data-t="victory">VITÓRIA!</h2>
     </div>
     
     <div class="result-body">
       <div class="res-pct-main" id="res-pct">0%</div>
       <div class="res-stats-grid">
         <div class="res-stat-box">
-          <span class="rs-label">Destruição</span>
+          <span class="rs-label" data-t="destruction">Destruição</span>
           <span class="rs-val" id="res-bld">0/0</span>
         </div>
         <div class="res-stat-box">
-          <span class="rs-label">Troféus</span>
+          <span class="rs-label" data-t="trophies">Troféus</span>
           <span class="rs-val" id="res-trophy">+0</span>
         </div>
       </div>
@@ -410,7 +408,7 @@
       </div>
     </div>
 
-    <button class="btn-res-close" onclick="closeBattleResult()">RETORNAR À BASE</button>
+    <button class="btn-res-close" onclick="closeBattleResult()" data-t="return_base">RETORNAR À BASE</button>
   </div>
 </div>
 
