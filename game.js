@@ -898,7 +898,12 @@ function showBldPopup(bId, cx, cy) {
   popup.style.top  = top + 'px';
 
   gel('popup-img').src   = def.getAsset(b.level, b.id);
-  gel('popup-name').textContent  = t(b.type);
+  
+  // Atualiza nome mantendo o botão (i)
+  const nameEl = gel('popup-name');
+  nameEl.innerHTML = `${t(b.type)} <button id="popup-info-btn" class="info-circle-btn">i</button>`;
+  gel('popup-info-btn').onclick = (e) => { e.stopPropagation(); showBuildingDetails(bId); };
+
   const hpPct = Math.round(((b.hp || b.maxHp) / b.maxHp) * 100);
   gel('popup-hp-fill').style.width = hpPct + '%';
   gel('popup-hp-fill').style.background = hpPct > 60 ? '#44FF88' : hpPct > 30 ? '#FFCC00' : '#FF4466';
@@ -1007,9 +1012,37 @@ function showBldPopup(bId, cx, cy) {
 }
 
 function hideBldPopup() {
-  const p = gel('building-popup');
-  p.classList.remove('visible');
+  gel('building-popup').classList.remove('visible');
   G.ui.selectedBldId = null;
+}
+
+function showBuildingDetails(bId) {
+  const b = G.base.buildings.find(x => x.id === bId);
+  if (!b) return;
+  const def = BUILDINGS[b.type];
+  const lvl = def.levels[b.level];
+  
+  let details = `[ ${t(b.type).toUpperCase()} ]\n\n`;
+  details += `❤️ ${t('hp')}: ${b.hp || lvl.hp} / ${lvl.hp}\n`;
+  
+  if (def.isResource) {
+    const resNames = { mineral: t('mineral'), oxygen: t('oxygen'), energy: t('energy') };
+    details += `💎 ${t('production')}: ${lvl.production}/min (${resNames[def.resourceType]})\n`;
+  }
+  if (def.isDefense) {
+    details += `⚔️ ${t('damage')}: ${lvl.damage}\n`;
+    details += `📏 ${t('range')}: ${lvl.range}\n`;
+    details += `⏱️ Rate: ${lvl.rate}s\n`;
+  }
+  if (b.type === 'camp') {
+    details += `🏕️ ${t('capacity')}: ${lvl.capacity}\n`;
+  }
+  if (b.type === 'barracks') {
+    const troops = lvl.availableTroops.map(tid => t(tid)).join(', ');
+    details += `🪖 Desbloqueia: ${troops}\n`;
+  }
+  
+  alert(details); // Simples para agora, pode ser um modal depois
 }
 
 // ============================================================
@@ -1027,7 +1060,30 @@ function showUpgradeModal(bId) {
   gel('modal-icon').textContent  = '⬆️';
   gel('modal-title').textContent = `${t('upgrade')} ${t(b.type)}`;
   let timeStr = nextLvl.buildTime > 0 ? ` · ${fmtTime(nextLvl.buildTime)}` : '';
-  gel('modal-desc').textContent  = `${t('level')} ${b.level} → ${nextLv}${timeStr}\n${t(b.type + '_desc')}`;
+  
+  const curLvl = def.levels[b.level];
+  let statsHtml = '';
+  const compareStats = (label, cur, next, icon) => {
+    if (next !== undefined && next !== cur) {
+      statsHtml += `<div style="margin-bottom:4px;">${icon} ${label}: ${cur} → <span style="color:#44FF88; font-weight:bold;">${next}</span></div>`;
+    }
+  };
+
+  compareStats(t('hp'), curLvl.hp, nextLvl.hp, '❤️');
+  if (def.isResource) compareStats(t('production'), curLvl.production, nextLvl.production, '💎');
+  if (def.isDefense) {
+    compareStats(t('damage'), curLvl.damage, nextLvl.damage, '⚔️');
+    compareStats(t('range'), curLvl.range, nextLvl.range, '📏');
+  }
+  if (b.type === 'camp') compareStats(t('capacity'), curLvl.capacity, nextLvl.capacity, '🏕️');
+
+  let descHtml = `${t('level')} ${b.level} → ${nextLv}${timeStr}`;
+  if (statsHtml) {
+    descHtml += `<div style="margin-top:12px; padding:10px; background:rgba(0,0,0,0.3); border-radius:10px; border:1px solid rgba(255,255,255,0.05); text-align:left;">${statsHtml}</div>`;
+  } else {
+    descHtml += `<br>${t(b.type + '_desc')}`;
+  }
+  gel('modal-desc').innerHTML = descHtml;
 
   const costsEl = gel('modal-costs');
   costsEl.innerHTML = '';
