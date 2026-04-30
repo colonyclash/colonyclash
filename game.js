@@ -1022,27 +1022,30 @@ function showBuildingDetails(bId) {
   const def = BUILDINGS[b.type];
   const lvl = def.levels[b.level];
   
-  let details = `[ ${t(b.type).toUpperCase()} ]\n\n`;
-  details += `❤️ ${t('hp')}: ${b.hp || lvl.hp} / ${lvl.hp}\n`;
+  let html = `<ul style="list-style:none; padding:0; margin:0;">`;
+  html += `<li style="margin-bottom:8px;">❤️ <b>${t('hp')}:</b> ${b.hp || lvl.hp} / ${lvl.hp}</li>`;
   
   if (def.isResource) {
     const resNames = { mineral: t('mineral'), oxygen: t('oxygen'), energy: t('energy') };
-    details += `💎 ${t('production')}: ${lvl.production}/min (${resNames[def.resourceType]})\n`;
+    html += `<li style="margin-bottom:8px;">💎 <b>${t('production')}:</b> ${lvl.production}/min (${resNames[def.resourceType]})</li>`;
   }
   if (def.isDefense) {
-    details += `⚔️ ${t('damage')}: ${lvl.damage}\n`;
-    details += `📏 ${t('range')}: ${lvl.range}\n`;
-    details += `⏱️ Rate: ${lvl.rate}s\n`;
+    html += `<li style="margin-bottom:8px;">⚔️ <b>${t('damage')}:</b> ${lvl.damage}</li>`;
+    html += `<li style="margin-bottom:8px;">📏 <b>${t('range')}:</b> ${lvl.range}</li>`;
+    html += `<li style="margin-bottom:8px;">⏱️ <b>Rate:</b> ${lvl.rate}s</li>`;
   }
   if (b.type === 'camp') {
-    details += `🏕️ ${t('capacity')}: ${lvl.capacity}\n`;
+    html += `<li style="margin-bottom:8px;">🏕️ <b>${t('capacity')}:</b> ${lvl.capacity}</li>`;
   }
   if (b.type === 'barracks') {
     const troops = lvl.availableTroops.map(tid => t(tid)).join(', ');
-    details += `🪖 Desbloqueia: ${troops}\n`;
+    html += `<li style="margin-bottom:8px;">🪖 <b>Desbloqueia:</b> ${troops}</li>`;
   }
+  html += `</ul>`;
   
-  alert(details); // Simples para agora, pode ser um modal depois
+  gel('info-modal-title').textContent = t(b.type);
+  gel('info-modal-desc').innerHTML = html;
+  gel('info-modal').classList.add('visible');
 }
 
 // ============================================================
@@ -1473,28 +1476,41 @@ function initBattleZoom() {
   const atk = gel('attack-screen');
   if (!atk) return;
   let lastDist = null;
+
+  const applyZoom = () => {
+    const bs = G.battle;
+    if (!bs || !bCanvas) return;
+    bs.scale = bs.baseScale * bs.userZoom;
+    bs.offX = (bCanvas.width - GRID_W * CELL_SIZE * bs.scale) / 2;
+    bs.offY = (bCanvas.height - GRID_H * CELL_SIZE * bs.scale) / 2;
+    drawBattleFrame();
+  };
+
   atk.addEventListener('wheel', e => {
     e.preventDefault();
     if (!G.battle) return;
-    G.battle.userZoom = Math.min(2, Math.max(1.0, (G.battle.userZoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)));
-    drawBattleFrame();
+    G.battle.userZoom = Math.min(3, Math.max(0.5, (G.battle.userZoom || 1) * (e.deltaY < 0 ? 1.1 : 0.9)));
+    applyZoom();
   }, { passive: false });
+
   atk.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
       const t0 = e.touches[0], t1 = e.touches[1];
       lastDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
     }
   }, { passive: true });
+
   atk.addEventListener('touchmove', e => {
     if (e.touches.length === 2 && lastDist && G.battle) {
       e.preventDefault();
       const t0 = e.touches[0], t1 = e.touches[1];
       const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-      G.battle.userZoom = Math.min(2, Math.max(1.0, (G.battle.userZoom || 1) * (dist / lastDist)));
+      G.battle.userZoom = Math.min(3, Math.max(0.5, (G.battle.userZoom || 1) * (dist / lastDist)));
       lastDist = dist;
-      drawBattleFrame();
+      applyZoom();
     }
   }, { passive: false });
+
   atk.addEventListener('touchend', () => { lastDist = null; });
 }
 
@@ -2460,6 +2476,8 @@ function launchBattle(opponent) {
       projectiles: [],
       explosions: [],
       scale, offX, offY,
+      baseScale: scale, baseOffX: offX, baseOffY: offY,
+      userZoom: 1.0,
       lootedMin: 0,
       lootedOxy: 0,
       totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
@@ -2849,9 +2867,11 @@ async function endBattle() {
   G.base.resources.mineral = Math.min(G.base.resources.mineral + bs.lootedMin, getStorageCapacity(G.base.buildings, 'mineral'));
   G.base.resources.oxygen  = Math.min(G.base.resources.oxygen  + bs.lootedOxy, getStorageCapacity(G.base.buildings, 'oxygen'));
 
-  // Consume used troops
+  // Consume used troops (only those that were killed)
   bs.troops.forEach(t => {
-    G.base.troops[t.type] = Math.max(0, (G.base.troops[t.type] || 0) - 1);
+    if (!t.alive) {
+      G.base.troops[t.type] = Math.max(0, (G.base.troops[t.type] || 0) - 1);
+    }
   });
 
   // Sync with Firebase

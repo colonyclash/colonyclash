@@ -154,9 +154,9 @@ const BUILDINGS = {
     maxLevel: 4,
     levels: [null,
       { hp: 800,  buildTime: 10,  cost: { mineral: 500, oxygen: 0  }, desc: 'Pesquisa melhorias básicas para suas tropas. (Requer CC3)' },
-      { hp: 1000, buildTime: 900,  cost: { mineral: 30000, oxygen: 15000 }, desc: 'Laboratório avançado. Melhorias de nível 2. (Requer CC3)' },
-      { hp: 1400, buildTime: 1800, cost: { mineral: 60000, oxygen: 30000 }, desc: 'Laboratório supremo. Melhorias de nível 3. (Requer CC3)' },
-      { hp: 2000, buildTime: 3600, cost: { mineral: 120000, oxygen: 60000 }, desc: 'Pesquisa avançada de nível 4. (Requer CC4)' }
+      { hp: 1000, buildTime: 900,  cost: { mineral: 3000, oxygen: 500 }, desc: 'Laboratório avançado. Melhorias de nível 2. (Requer CC3)' },
+      { hp: 1400, buildTime: 1800, cost: { mineral: 6000, oxygen: 1500 }, desc: 'Laboratório supremo. Melhorias de nível 3. (Requer CC3)' },
+      { hp: 2000, buildTime: 3600, cost: { mineral: 12000, oxygen: 4000 }, desc: 'Pesquisa avançada de nível 4. (Requer CC4)' }
     ],
     getAsset: (lvl) => `laboratory_lvl${lvl}.png`,
   },
@@ -166,9 +166,9 @@ const BUILDINGS = {
     maxLevel: 4,
     levels: [null,
       { hp: 1200, buildTime: 10,  cost: { mineral: 1000, oxygen: 0 }, damage: 150, range: 5, rate: 0.25, desc: 'Canhão eletromagnético de longo alcance.' },
-      { hp: 1800, buildTime: 900,  cost: { mineral: 50000, oxygen: 20000 }, damage: 200, range: 6, rate: 0.25, desc: 'Railgun aprimorado de alta precisão.' },
-      { hp: 2400, buildTime: 1800, cost: { mineral: 90000, oxygen: 40000 }, damage: 250, range: 7, rate: 0.25, desc: 'Railgun supremo com mira quântica.' },
-      { hp: 3500, buildTime: 3600, cost: { mineral: 200000, oxygen: 100000 }, damage: 300, range: 8, rate: 0.25, desc: 'Destruidor orbital de railgun.' }
+      { hp: 1800, buildTime: 900,  cost: { mineral: 3000, oxygen: 1000 }, damage: 200, range: 6, rate: 0.25, desc: 'Railgun aprimorado de alta precisão.' },
+      { hp: 2400, buildTime: 1800, cost: { mineral: 7500, oxygen: 3000 }, damage: 250, range: 7, rate: 0.25, desc: 'Railgun supremo com mira quântica.' },
+      { hp: 3500, buildTime: 3600, cost: { mineral: 18000, oxygen: 8000 }, damage: 300, range: 8, rate: 0.25, desc: 'Destruidor orbital de railgun.' }
     ],
     getAsset: (lvl) => `turret_railgun_lvl${lvl}.png`,
   },

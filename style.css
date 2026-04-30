@@ -507,6 +507,17 @@ html, body {
   color: var(--c-danger); text-shadow: 0 0 10px rgba(255,68,102,0.5);
 }
 
+@media (max-width: 600px) {
+  .attack-hud { padding: 10px 15px; height: 60px; }
+  .atk-header-right { gap: 10px; }
+  .atk-timer-modern { font-size: 18px; }
+  #atk-pct { font-size: 16px; }
+  .atk-pct-wrap { min-width: 80px; gap: 2px; }
+  .loot-item { font-size: 11px; }
+  .atk-label { font-size: 9px; letter-spacing: 1px; }
+  .atk-header-left { gap: 2px; }
+}
+
 .deploy-bar-v2 {
   display: flex; align-items: center; padding: 12px 20px;
   background: rgba(8, 14, 32, 0.95); border-top: 1px solid var(--border-glow);
