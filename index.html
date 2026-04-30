@@ -323,27 +323,29 @@
 </div>
 
 <!-- ===================== INFO MODAL ===================== -->
-<div class="modal-overlay" id="info-modal">
+<div class="modal-overlay" id="info-modal" onclick="if(event.target===this)this.classList.remove('visible')">
   <div class="modal-box">
+    <button class="popup-x" onclick="gel('info-modal').classList.remove('visible')">×</button>
     <div class="modal-icon"  id="info-modal-icon">📊</div>
     <div class="modal-title" id="info-modal-title">Informações</div>
     <div class="modal-desc"  id="info-modal-desc" style="text-align:left; font-family:var(--font-hd); font-size:13px; line-height:1.6;"></div>
     <div class="modal-actions">
-      <button class="modal-confirm" onclick="gel('info-modal').classList.remove('visible')" style="width:100%">ENTENDIDO</button>
+      <button class="modal-confirm" onclick="gel('info-modal').classList.remove('visible')" style="width:100%; height:45px;">ENTENDIDO</button>
     </div>
   </div>
 </div>
 
 <!-- ===================== UPGRADE MODAL ===================== -->
-<div class="modal-overlay" id="upgrade-modal">
-  <div class="modal-box">
+<div class="modal-overlay" id="upgrade-modal" onclick="if(event.target===this)this.classList.remove('visible')">
+  <div class="modal-box" style="position:relative;">
+    <button class="popup-x" onclick="gel('upgrade-modal').classList.remove('visible')">×</button>
     <div class="modal-icon"  id="modal-icon">⬆️</div>
     <div class="modal-title" id="modal-title">Melhorar</div>
     <div class="modal-desc"  id="modal-desc"></div>
     <div class="modal-costs" id="modal-costs"></div>
     <div class="modal-actions">
-      <button class="modal-confirm" id="modal-confirm" data-t="confirm">CONFIRMAR</button>
-      <button class="modal-cancel"  id="modal-cancel" data-t="cancel">CANCELAR</button>
+      <button class="modal-confirm" id="modal-confirm" data-t="confirm" style="height:45px;">CONFIRMAR</button>
+      <button class="modal-cancel"  id="modal-cancel" data-t="cancel" style="height:45px;">CANCELAR</button>
     </div>
   </div>
 </div>

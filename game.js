@@ -2460,7 +2460,7 @@ function launchBattle(opponent) {
       if (!def) return null;
       const lvl = def.levels[b.level] || def.levels[1];
       return { ...b, curHp: lvl.hp, maxHp: lvl.hp, alive: true, atkTimer: 0 };
-    }).filter(b => b !== null);
+    }).filter(b => b !== null && b.type !== 'lunar_rock');
 
     G.battle = {
       opponent,
@@ -3443,12 +3443,16 @@ async function loadClanData(clanId) {
 function renderClanChat(msgs) {
   const box = gel('clan-chat-box');
   if (!box) return;
-  box.innerHTML = msgs.map(m => `
-    <div class="chat-msg ${m.senderId === G.pid ? 'mine' : 'other'}">
-      <div class="chat-msg-sender">${m.senderName}</div>
-      <div class="chat-msg-text">${m.text}</div>
-    </div>
-  `).join('');
+  box.innerHTML = msgs.map(m => {
+    const isMine = m.senderId === G.pid;
+    const nameColor = isMine ? '#00D4FF' : '#5D8AA8'; // Azul claro para mim, azul escuro para outros
+    return `
+      <div class="chat-msg ${isMine ? 'mine' : 'other'}" style="opacity:0.75; font-size:9px; margin-bottom:4px;">
+        <div class="chat-msg-sender" style="color:${nameColor}; font-weight:bold; font-size:8px;">${m.senderName}</div>
+        <div class="chat-msg-text" style="color:rgba(255,255,255,0.9);">${m.text}</div>
+      </div>
+    `;
+  }).join('');
   box.scrollTop = box.scrollHeight;
 }
 
