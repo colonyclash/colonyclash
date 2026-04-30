@@ -618,7 +618,11 @@ const TRANSLATIONS = {
     try_again_btn: "TENTAR NOVAMENTE",
     production: "Produção",
     damage: "Dano",
-    range: "Alcance"
+    range: "Alcance",
+    end_battle: "RECUAR",
+    return_base: "RETORNAR À BASE",
+    destruction: "Destruição",
+    trophies: "Troféus"
   },
   en: {
     lang_name: "English",
@@ -812,7 +816,11 @@ const TRANSLATIONS = {
     try_again_btn: "TRY AGAIN",
     production: "Production",
     damage: "Damage",
-    range: "Range"
+    range: "Range",
+    end_battle: "RETREAT",
+    return_base: "RETURN TO BASE",
+    destruction: "Destruction",
+    trophies: "Trophies"
   },
   es: {
     lang_name: "Español",
@@ -1006,7 +1014,11 @@ const TRANSLATIONS = {
     try_again_btn: "REINTENTAR",
     production: "Producción",
     damage: "Daño",
-    range: "Alcance"
+    range: "Alcance",
+    end_battle: "RETIRARSE",
+    return_base: "VOLVER A LA BASE",
+    destruction: "Destrucción",
+    trophies: "Trofeos"
   }
 };
 
