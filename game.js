@@ -2096,7 +2096,16 @@ function trainTroop(type) {
   const td  = TROOPS[type]; if (!td) return;
   const cap = getTotalCampCapacity(G.base.buildings);
   const used = getTotalTroopSpace(G.base.troops);
-  if (used + td.space > cap) { notify(t('need_camp'), 'error'); return; }
+  
+  // Considerar tropas já em treinamento na fila
+  const queueSpace = (G.base.queue || []).reduce((acc, item) => {
+    return acc + (TROOPS[item.type]?.space || 0);
+  }, 0);
+
+  if (used + queueSpace + td.space > cap) { 
+    notify(t('need_camp') || 'Capacidade dos acampamentos insuficiente!', 'error'); 
+    return; 
+  }
   
   const minCost = td.cost.mineral || 0;
   const oxyCost = td.cost.oxygen || 0;
@@ -2531,6 +2540,16 @@ function deployTroop(px, py) {
   const { offX, offY, scale } = bs;
   const gx = (px - offX) / (CELL_SIZE * scale);
   const gy = (py - offY) / (CELL_SIZE * scale);
+
+  // Impedir deploy em cima de edifícios inimigos
+  for (const b of bs.buildings) {
+    if (!b.alive) continue;
+    const bsz = BUILDINGS[b.type]?.size || 1;
+    if (gx >= b.x && gx < b.x + bsz && gy >= b.y && gy < b.y + bsz) {
+      notify('Posição inválida: Edifício detectado!', 'error');
+      return;
+    }
+  }
 
   const td = TROOPS[type];
   bs.troops.push({

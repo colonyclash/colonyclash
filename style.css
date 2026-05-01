@@ -960,7 +960,6 @@ html, body {
   padding: 12px 6px; border-radius: 10px; border: none; font-family: var(--font-hd);
   font-size: 11px; cursor: pointer; transition: 0.2s; color: #fff;
   touch-action: manipulation;
-}
   display: flex; align-items: center; justify-content: center; gap: 4px;
   text-transform: uppercase; font-weight: 700;
 }
@@ -1247,7 +1246,7 @@ html, body {
 @media (max-width: 600px) {
   #building-popup { width: 220px; padding: 10px; }
   .popup-header { margin-bottom: 5px; }
-  #popup-name { font-size: 14px; }
+  #popup-name { font-size: 11px; }
   #popup-desc { font-size: 11px; margin-bottom: 10px; }
   .pbtn { padding: 8px 4px; font-size: 10px; }
 }
