@@ -902,7 +902,11 @@ function showBldPopup(bId, cx, cy) {
   // Atualiza nome mantendo o botão (i)
   const nameEl = gel('popup-name');
   nameEl.innerHTML = `${t(b.type)} <button id="popup-info-btn" class="info-circle-btn">i</button>`;
-  gel('popup-info-btn').onclick = (e) => { e.stopPropagation(); showBuildingDetails(bId); };
+  gel('popup-info-btn').onclick = (e) => { 
+    e.stopPropagation(); 
+    if (b.type === 'command_center') showCCPath();
+    else showBuildingDetails(bId); 
+  };
 
   const hpPct = Math.round(((b.hp || b.maxHp) / b.maxHp) * 100);
   gel('popup-hp-fill').style.width = hpPct + '%';
@@ -2492,7 +2496,10 @@ function launchBattle(opponent) {
       totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
       totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3),
       timer: 180,
-      lastTick: Date.now()
+      lastTick: Date.now(),
+      isPanning: false,
+      lastX: 0,
+      lastY: 0
     };
 
     // Redistribuir loot
@@ -2512,9 +2519,17 @@ function launchBattle(opponent) {
     // Remover listeners antigos se houver
     bCanvas.removeEventListener('mousedown', handleBattleInput);
     bCanvas.removeEventListener('touchstart', handleBattleInput);
+    bCanvas.removeEventListener('mousemove', handleBattleMove);
+    bCanvas.removeEventListener('touchmove', handleBattleMove);
+    window.removeEventListener('mouseup', handleBattleEnd);
+    window.removeEventListener('touchend', handleBattleEnd);
     
     bCanvas.addEventListener('mousedown', handleBattleInput);
     bCanvas.addEventListener('touchstart', handleBattleInput, { passive: false });
+    bCanvas.addEventListener('mousemove', handleBattleMove);
+    bCanvas.addEventListener('touchmove', handleBattleMove, { passive: false });
+    window.addEventListener('mouseup', handleBattleEnd);
+    window.addEventListener('touchend', handleBattleEnd);
 
     if (battleRequest) cancelAnimationFrame(battleRequest);
     battleLoop();
@@ -2522,12 +2537,69 @@ function launchBattle(opponent) {
   });
 }
 
+function handleBattleMove(e) {
+  const bs = G.battle;
+  if (!bs || !bs.isPanning) return;
+  
+  const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+  const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+  
+  const dx = clientX - bs.lastX;
+  const dy = clientY - bs.lastY;
+  
+  bs.offX += dx;
+  bs.offY += dy;
+  
+  bs.lastX = clientX;
+  bs.lastY = clientY;
+  
+  // Limites básicos para não fugir demais
+  const margin = 200 * bs.scale;
+  const gridW = GRID_W * CELL_SIZE * bs.scale;
+  const gridH = GRID_H * CELL_SIZE * bs.scale;
+  
+  if (bs.offX > bCanvas.width - margin) bs.offX = bCanvas.width - margin;
+  if (bs.offX < -gridW + margin) bs.offX = -gridW + margin;
+  if (bs.offY > bCanvas.height - margin) bs.offY = bCanvas.height - margin;
+  if (bs.offY < -gridH + margin) bs.offY = -gridH + margin;
+  
+  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) bs.moved = true;
+}
+
+
+
 function handleBattleInput(e) {
+  const bs = G.battle;
+  if (!bs) return;
   if (e.type === 'touchstart') e.preventDefault();
-  const rect = bCanvas.getBoundingClientRect();
+  
   const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
   const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-  deployTroop(clientX - rect.left, clientY - rect.top);
+  
+  bs.isPanning = true;
+  bs.moved = false;
+  bs.lastX = clientX;
+  bs.lastY = clientY;
+  
+  // Se for apenas clique (mousedown curto), o deploy acontece no handleBattleEnd?
+  // Na verdade, para jogos de estratégia, o deploy costuma ser no mousedown se não arrastar.
+  // Mas para simplificar pan, vamos fazer o deploy no 'mouseup' através de um novo handler
+}
+
+function handleBattleEnd(e) {
+  const bs = G.battle;
+  if (!bs) return;
+  
+  if (bs.isPanning && !bs.moved) {
+    const rect = bCanvas.getBoundingClientRect();
+    // Pegar as coordenadas do evento final ou usar as últimas conhecidas
+    const clientX = (e.type === 'touchend' || e.type === 'touchcancel') ? bs.lastX : e.clientX;
+    const clientY = (e.type === 'touchend' || e.type === 'touchcancel') ? bs.lastY : e.clientY;
+    
+    deployTroop(clientX - rect.left, clientY - rect.top);
+  }
+  
+  bs.isPanning = false;
 }
 
 function deployTroop(px, py) {
@@ -3202,8 +3274,19 @@ function closeClanModal() {
 async function joinClan(clanId, clanName) {
   if (!G.db || !G.user) { notify('Firebase necessário.', 'error'); return; }
   if (G.base.clanId) { notify('Você já está em um clã!', 'error'); return; }
+  
   try {
-    await G.db.collection('clans').doc(clanId).update({
+    const clanRef = G.db.collection('clans').doc(clanId);
+    const doc = await clanRef.get();
+    if (!doc.exists) { notify('Clã não encontrado.', 'error'); return; }
+    
+    const clanData = doc.data();
+    if (clanData.members && clanData.members.length >= 20) {
+      notify('Este clã já atingiu o limite de 20 membros!', 'error');
+      return;
+    }
+
+    await clanRef.update({
       members: firebase.firestore.FieldValue.arrayUnion(G.pid)
     });
     G.base.clanId = clanId;
@@ -3717,3 +3800,42 @@ window.addEventListener('resize', () => {
     }
   }
 });
+
+function showCCPath() {
+  const ccDef = BUILDINGS.command_center;
+  const currentLvl = getCurrentCCLevel();
+  const body = gel('cc-path-body');
+  if (!body) return;
+
+  let html = '';
+  for (let i = 1; i <= ccDef.maxLevel; i++) {
+    const lvl = ccDef.levels[i];
+    const isCurrent = i === currentLvl;
+    
+    html += `
+      <div class="cc-path-item ${isCurrent ? 'current' : ''}">
+        ${isCurrent ? '<div style="position:absolute; top:10px; right:15px; font-size:10px; color:var(--c-gold); font-weight:bold;">ATUAL</div>' : ''}
+        <div class="cc-path-header">
+          <div class="cc-path-lvl">${t('command_center')} Nível ${i}</div>
+        </div>
+        <div class="cc-path-unlocks">
+          <p style="margin:5px 0;">HP: ${lvl.hp} · ${lvl.desc}</p>
+          <div class="cc-path-list">
+            <div class="cc-unlock-tag">🪖 ${lvl.unlocks.troop_unlock.map(t).join(', ')}</div>
+            <div class="cc-unlock-tag">🏗️ Nív. Máx Edifícios: ${lvl.unlocks.max_building_level}</div>
+            <div class="cc-unlock-tag">⚒️ Quartel Máx: ${lvl.unlocks.barracks_max_level}</div>
+          </div>
+          <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">
+            ${Object.entries(lvl.unlocks.buildings).map(([type, count]) => {
+              if (count === 0) return '';
+              return `<span style="background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; font-size:9px;">${count}x ${t(type)}</span>`;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  body.innerHTML = html;
+  gel('cc-path-modal').classList.add('visible');
+}
