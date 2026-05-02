@@ -22,7 +22,8 @@ const MISSIONS = [
   { id: 15, text: 'PESQUISAR 3 MELHORIAS DE TROPA NO LABORATÓRIO', goal: 3, type: 'research_total', reward: 30 },
   { id: 16, text: 'CONSTRUIR 1 ACAMPAMENTO', goal: 1, type: 'build', bldType: 'camp', reward: 1000, rewardType: 'mineral' },
   { id: 17, text: 'TREINAR 1 DRONE', goal: 1, type: 'train_troop', troop: 'drone', reward: 1000, rewardType: 'energy' },
-  { id: 18, text: 'DESTRUIR 1 EDIFICIO ENEMIGO', goal: 1, type: 'destroy_buildings_total', reward: 1000, rewardType: 'mineral' }
+  { id: 18, text: 'DESTRUIR 1 EDIFICIO ENEMIGO', goal: 1, type: 'destroy_buildings_total', reward: 1000, rewardType: 'mineral' },
+  { id: 19, text: 'CONTRATAR O SEGUNDO ASTRONAUTA CONSTRUTOR', goal: 2, type: 'builders', reward: 20 }
 ];
 
 // ---- Global State ----
@@ -252,7 +253,7 @@ function createStarterBase() {
       maxHp: BUILDINGS.command_center.levels[1].hp,
       buildFinish: 0, upgradeFinish: 0
     }],
-    resources: { mineral: 1500, oxygen: 1000, energy: 0 },
+    resources: { mineral: 1500, oxygen: 1000, energy: 500 },
     lastSave: Date.now(),
     troops: { drone: 0, robot: 0, tank: 0 },
     queue: [],
@@ -1872,6 +1873,7 @@ function checkMissionProgress() {
   if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
 
   MISSIONS.forEach(m => {
+    const oldProg = G.base.missions.allProgress[m.id] || 0;
     let prog = 0;
     if (m.type === 'build') {
       prog = getBuildingCountOfType(m.bldType);
@@ -1889,13 +1891,18 @@ function checkMissionProgress() {
       prog = G.base.totalResearch || 0;
     } else if (m.type === 'train_troop') {
       if (m.troop === 'drone') prog = G.base.totalDronesTrained || 0;
-      // Adicione outros se necessário
+    } else if (m.type === 'builders') {
+      prog = getTotalBuilders();
     } else if (m.type === 'attack_win') {
       prog = G.base.missions.allProgress[m.id] || 0;
     }
     
     if (prog > m.goal) prog = m.goal;
     G.base.missions.allProgress[m.id] = prog;
+
+    if (prog >= m.goal && oldProg < m.goal) {
+       notify(`🎯 ${t('mission_title')}: ${t('mission_' + m.id)} ${t('ready') || 'Concluída!'}`, 'success');
+    }
   });
 
   if (G.ui.panel === 'mission') renderMissionPanel();
