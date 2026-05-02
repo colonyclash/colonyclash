@@ -17,6 +17,7 @@ const BUILDINGS = {
       {
         hp: 2500, buildTime: 10, cost: { mineral: 0, oxygen: 0 },
         theme: 'iron', desc: 'O coração da sua colônia lunar. Tema: Ferro.',
+        novelty: 'Desbloqueia as construções básicas e o Drone.',
         unlocks: {
           buildings: {
             mineral_extractor: 2, oxygen_extractor: 2, solar_panel: 1,
@@ -31,6 +32,7 @@ const BUILDINGS = {
       {
         hp: 4000, buildTime: 900, cost: { mineral: 5000, oxygen: 2500 },
         theme: 'energy', desc: 'Centro expandido com núcleo de energia. Tema: Energia.',
+        novelty: 'Desbloqueia o Robô de Batalha e novas torretas.',
         unlocks: {
           buildings: {
             mineral_extractor: 3, oxygen_extractor: 3, solar_panel: 2,
@@ -45,6 +47,7 @@ const BUILDINGS = {
       {
         hp: 6000, buildTime: 1800, cost: { mineral: 15000, oxygen: 8000 },
         theme: 'gold', desc: 'Supremo centro de comando banhado a ouro. Tema: Ouro.',
+        novelty: 'Desbloqueia o Tanque Lunar e o Laboratório.',
         unlocks: {
           buildings: {
             mineral_extractor: 4, oxygen_extractor: 4, solar_panel: 3,
@@ -60,6 +63,7 @@ const BUILDINGS = {
       {
         hp: 9000, buildTime: 3600, cost: { mineral: 25000, oxygen: 25000 },
         theme: 'platinum', desc: 'Base de platina com tecnologia de clãs. Tema: Platina.',
+        novelty: 'Desbloqueia a Torre do Clã e o Guerreiro Estelar.',
         unlocks: {
           buildings: {
             mineral_extractor: 6, oxygen_extractor: 6, solar_panel: 5,
@@ -565,6 +569,9 @@ const TRANSLATIONS = {
     mission_13: "VENÇA 3 BATALHAS SEGUIDAS",
     mission_14: "REMOVA 1 ROCHA LUNAR",
     mission_15: "PESQUISAR 3 MELHORIAS DE TROPA NO LABORATÓRIO",
+    mission_16: "CONSTRUIR 1 ACAMPAMENTO",
+    mission_17: "TREINAR 1 DRONE",
+    mission_18: "DESTRUIR 1 EDIFÍCIO INIMIGO",
     next: "Próximo",
     ready: "pronto",
     admin_access_denied: "Acesso negado",
@@ -763,6 +770,9 @@ const TRANSLATIONS = {
     mission_13: "WIN 3 BATTLES IN A ROW",
     mission_14: "REMOVE 1 LUNAR ROCK",
     mission_15: "RESEARCH 3 TROOP UPGRADES IN THE LAB",
+    mission_16: "BUILD 1 CAMP",
+    mission_17: "TRAIN 1 DRONE",
+    mission_18: "DESTROY 1 ENEMY BUILDING",
     next: "Next",
     ready: "ready",
     admin_access_denied: "Access denied",

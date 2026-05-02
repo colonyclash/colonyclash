@@ -1251,46 +1251,93 @@ html, body {
   .pbtn { padding: 8px 4px; font-size: 10px; }
 }
 
-/* CC Path Modal Styles */
-.cc-path-item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 12px;
-  position: relative;
+/* CC Path Modal Styles - Modernized */
+.cc-path-box {
+  background: rgba(15, 23, 42, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border: 2px solid var(--c-primary);
+  border-radius: 30px !important;
+  max-width: 550px !important;
+  box-shadow: 0 0 50px rgba(0, 212, 255, 0.2) !important;
 }
+
+.cc-path-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 15px;
+  position: relative;
+  transition: 0.3s ease;
+}
+
+.cc-path-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
 .cc-path-item.current {
   border-color: var(--c-gold);
-  background: rgba(255, 215, 0, 0.05);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.02));
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
 }
-.cc-path-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
+
 .cc-path-lvl {
   font-family: var(--font-hd);
-  color: var(--c-gold);
-  font-size: 16px;
+  color: #fff;
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
 }
-.cc-path-unlocks {
-  font-size: 11px;
-  color: #aaa;
+
+.cc-path-novelty {
+  background: rgba(0, 212, 255, 0.1);
+  border-left: 3px solid var(--c-primary);
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 0 10px 10px 0;
+  color: var(--c-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-hd);
 }
+
+.cc-path-unlocks p {
+  color: #888;
+  font-size: 12px;
+  margin-bottom: 15px !important;
+}
+
 .cc-path-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 15px;
 }
+
 .cc-unlock-tag {
-  background: rgba(0, 212, 255, 0.1);
-  border: 1px solid var(--c-primary);
-  color: var(--c-primary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ccc;
   font-size: 10px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
   text-align: center;
+  transition: 0.2s;
+}
+
+.cc-unlock-tag:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--c-primary);
+  color: var(--c-primary);
+}
+
+.cc-bld-tag {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #888;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }

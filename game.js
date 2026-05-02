@@ -19,7 +19,10 @@ const MISSIONS = [
   { id: 12, text: 'TREINAR 10 DRONES', goal: 10, type: 'train_troop', troop: 'drone', reward: 10 },
   { id: 13, text: 'VENÇA 3 BATALHAS SEGUIDAS', goal: 3, type: 'win_streak', reward: 30 },
   { id: 14, text: 'REMOVA 1 ROCHA LUNAR', goal: 1, type: 'remove_obstacle', reward: 10 },
-  { id: 15, text: 'PESQUISAR 3 MELHORIAS DE TROPA NO LABORATÓRIO', goal: 3, type: 'research_total', reward: 30 }
+  { id: 15, text: 'PESQUISAR 3 MELHORIAS DE TROPA NO LABORATÓRIO', goal: 3, type: 'research_total', reward: 30 },
+  { id: 16, text: 'CONSTRUIR 1 ACAMPAMENTO', goal: 1, type: 'build', bldType: 'camp', reward: 1000, rewardType: 'mineral' },
+  { id: 17, text: 'TREINAR 1 DRONE', goal: 1, type: 'train_troop', troop: 'drone', reward: 1000, rewardType: 'energy' },
+  { id: 18, text: 'DESTRUIR 1 EDIFICIO ENEMIGO', goal: 1, type: 'destroy_buildings_total', reward: 1000, rewardType: 'mineral' }
 ];
 
 // ---- Global State ----
@@ -972,7 +975,14 @@ function showBldPopup(bId, cx, cy) {
 
   if (b.type === 'clan_tower' && !bldInProgress(b)) {
     clanBtn.style.display = 'block';
-    clanBtn.onclick = () => { hideBldPopup(); openUnifiedModal('clan'); };
+    clanBtn.onclick = () => { 
+      if (!canAccessClans()) {
+        notify('Melhore seu CC para o Nível 4 para liberar as funções de clã!', 'error');
+        return;
+      }
+      hideBldPopup(); 
+      openUnifiedModal('clan'); 
+    };
   } else {
     clanBtn.style.display = 'none';
   }
@@ -1830,7 +1840,9 @@ function renderMissionPanel() {
         <div class="mission-flex">
           <div class="mission-info">
             <div class="mission-text">${t('mission_' + m.id)}</div>
-            <div class="mission-reward-label">${t('earn_reward')} ${m.reward} ${t('gems_unit')}</div>
+            <div class="mission-reward-label">
+              ${t('earn_reward')} ${m.reward} ${m.rewardType === 'mineral' ? '⛏️' : m.rewardType === 'energy' ? '⚡' : '💎'}
+            </div>
             <div class="mission-prog-wrap">
               <div class="mission-prog-bar">
                 <div class="mission-prog-fill ${isDone ? 'done' : ''}" style="width:${pct}%"></div>
@@ -1898,10 +1910,21 @@ function claimMissionReward(id) {
   if (prog < m.goal) return;
   
   G.base.missions.claimed.push(id);
-  G.base.gems = (G.base.gems || 0) + m.reward;
+  
+  if (m.rewardType === 'mineral') {
+    G.base.resources.mineral += m.reward;
+    clampResources();
+    notify(`${t('reward_claimed_success')}: +${m.reward} ⛏️`, 'success');
+  } else if (m.rewardType === 'energy') {
+    G.base.resources.energy += m.reward;
+    clampResources();
+    notify(`${t('reward_claimed_success')}: +${m.reward} ⚡`, 'success');
+  } else {
+    G.base.gems = (G.base.gems || 0) + m.reward;
+    notify(`${t('reward_claimed_success')}: +${m.reward} 💎`, 'success');
+  }
   
   updateHUD();
-  notify(`${t('reward_claimed_success')}: +${m.reward} 💎`, 'success');
   saveData();
   renderMissionPanel();
 }
@@ -2983,9 +3006,9 @@ async function endBattle() {
     } catch (e) { console.warn("Opponent sync failed:", e); }
   }
 
+  G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
-    G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
   }
 
   await saveData();
@@ -3394,6 +3417,10 @@ window.modernCreateClan = function() {
 };
 
 window.toggleClanChat = function() {
+  if (!canAccessClans()) {
+    notify('Chat do clã bloqueado!', 'error');
+    return;
+  }
   const overlay = gel('clan-chat-overlay');
   if (overlay.style.display === 'none' || !overlay.style.display) {
     overlay.style.display = 'flex';
@@ -3610,6 +3637,12 @@ if (document.readyState === 'loading') {
 
 
 /* ========== UNIFIED MODERN MODAL LOGIC ========== */
+function canAccessClans() {
+  const ccLvl = getCurrentCCLevel();
+  const hasClanTower = (G.base.buildings || []).some(b => b.type === 'clan_tower' && !bldInProgress(b));
+  return ccLvl >= 4 && hasClanTower;
+}
+
 window.openUnifiedModal = function(initialTab = 'profile') {
   gel('unified-modal').classList.add('visible');
   switchModernTab(initialTab);
@@ -3620,6 +3653,12 @@ window.closeUnifiedModal = function() {
 };
 
 window.switchModernTab = function(tab) {
+  if (tab === 'clan' && !canAccessClans()) {
+    notify('Acesso bloqueado! Requer CC Nível 4 e Torre do Clã construída.', 'error');
+    switchModernTab('profile');
+    return;
+  }
+
   document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
   gel('tab-m-' + tab)?.classList.add('active');
 
@@ -3819,6 +3858,7 @@ function showCCPath() {
           <div class="cc-path-lvl">${t('command_center')} Nível ${i}</div>
         </div>
         <div class="cc-path-unlocks">
+          <div class="cc-path-novelty">✨ ${lvl.novelty || 'Novas tecnologias'}</div>
           <p style="margin:5px 0;">HP: ${lvl.hp} · ${lvl.desc}</p>
           <div class="cc-path-list">
             <div class="cc-unlock-tag">🪖 ${lvl.unlocks.troop_unlock.map(t).join(', ')}</div>
@@ -3828,7 +3868,7 @@ function showCCPath() {
           <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">
             ${Object.entries(lvl.unlocks.buildings).map(([type, count]) => {
               if (count === 0) return '';
-              return `<span style="background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; font-size:9px;">${count}x ${t(type)}</span>`;
+              return `<span class="cc-bld-tag">${count}x ${t(type)}</span>`;
             }).join('')}
           </div>
         </div>
