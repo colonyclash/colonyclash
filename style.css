@@ -1472,8 +1472,10 @@ html, body {
   box-shadow: none;
 }
 
-.tc-emoji {
-  font-size: 40px;
+.tc-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
   margin-bottom: 5px;
 }
 
@@ -1605,8 +1607,10 @@ html, body {
   opacity: 0.5;
 }
 
-.tc-card-emoji {
-  font-size: 45px;
+.tc-card-img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
   margin: 10px 0;
 }
 
@@ -1685,8 +1689,8 @@ html, body {
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
   }
-  .tc-card-emoji { font-size: 35px; }
-  .tc-emoji { font-size: 30px; }
+  .tc-card-img { width: 50px; height: 50px; }
+  .tc-img { width: 40px; height: 40px; }
   .training-container-modern { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .trained-container-modern { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .troop-card-modern { padding: 5px; }

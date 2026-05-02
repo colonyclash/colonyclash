@@ -2010,7 +2010,7 @@ function renderTrainTabContent(totalCap, usedSpace) {
         html += `
           <div class="training-card-modern">
             <span class="tc-count">${data.count}x</span>
-            <span class="tc-emoji">${td.emoji}</span>
+            <img src="${td.asset}" class="tc-img">
             <div class="tc-progress-bar">${fmtTime(rem)}</div>
           </div>
         `;
@@ -2018,7 +2018,7 @@ function renderTrainTabContent(totalCap, usedSpace) {
         html += `
           <div class="training-card-modern waiting">
             <span class="tc-count">${data.count}x</span>
-            <span class="tc-emoji">${td.emoji}</span>
+            <img src="${td.asset}" class="tc-img">
             <div class="tc-waiting-label">${t('waiting')}</div>
           </div>
         `;
@@ -2058,7 +2058,7 @@ function renderTrainTabContent(totalCap, usedSpace) {
     troopsHtml += `
       <div class="troop-card-modern ${canTrain ? '' : 'locked'}" onclick="${canTrain ? `trainTroop('${troopId}')` : `notify('${t('need_barracks')}', 'info')`}">
         <span class="tc-info-btn" onclick="event.stopPropagation(); showTroopInfo('${troopId}')">ⓘ</span>
-        <span class="tc-card-emoji">${td.emoji}</span>
+        <img src="${td.asset}" class="tc-card-img">
         <div class="tc-cost-bar" style="color:${affordable ? '#fff' : 'var(--c-danger)'}">
           ${minCost > 0 ? `⛏️${fmtNum(minCost)} ` : ''}
           ${oxyCost > 0 ? `💨${fmtNum(oxyCost)} ` : ''}
@@ -2086,7 +2086,7 @@ function renderTroopsTabContent() {
     const td = TROOPS[id];
     html += `
       <div class="trained-card-modern">
-        <span class="tc-emoji">${td.emoji}</span>
+        <img src="${td.asset}" class="tc-img">
         <div class="tc-count-label">x${count}</div>
       </div>
     `;
@@ -2306,7 +2306,7 @@ function startTimers() {
     for (const item of [...G.base.queue]) {
       if (item.finishTime <= now) finishTraining(item.type, item.finishTime);
     }
-    if (G.ui.panel === 'troops') renderTrainingQueue();
+    if (G.ui.panel === 'troops') renderTroopsPanel();
   }, 1000);
 
   // Spawning de obstáculos (Rochas)
