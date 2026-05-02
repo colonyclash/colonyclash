@@ -1341,3 +1341,354 @@ html, body {
   color: #888;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
+/* ========== MODERN TROOP MANAGEMENT (REPLACEMENT) ========== */
+.troop-design {
+  padding: 0 !important;
+  background: radial-gradient(circle at top, #162447 0%, #0f172a 100%) !important;
+  border: 2px solid var(--c-primary) !important;
+  border-radius: 30px !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 50px rgba(0,212,255,0.2);
+}
+
+.troop-tabs {
+  display: flex;
+  height: 60px;
+  background: rgba(0,0,0,0.3);
+}
+
+.t-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-hd);
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: 0.3s;
+  position: relative;
+  border-bottom: 3px solid transparent;
+}
+
+.t-tab.active {
+  color: #fff;
+  background: rgba(255,255,255,0.05);
+  border-bottom-color: var(--c-primary);
+}
+
+.t-tab:not(.active):hover {
+  background: rgba(255,255,255,0.02);
+  color: #94a3b8;
+}
+
+.troop-inner {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 20px;
+}
+
+/* Modern Capacity Bar */
+.cap-modern {
+  background: rgba(0,0,0,0.4);
+  padding: 12px 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.cap-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cap-header span:first-child {
+  font-family: var(--font-hd);
+  font-size: 10px;
+  color: #888;
+  letter-spacing: 1px;
+}
+
+#cap-val-modern {
+  font-family: var(--font-hd);
+  font-size: 12px;
+  color: #fff;
+}
+
+.cap-track-modern {
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#cap-fill-modern {
+  height: 100%;
+  background: linear-gradient(90deg, #00D4FF, #0088AA);
+  box-shadow: 0 0 10px rgba(0,212,255,0.5);
+  transition: width 0.3s ease;
+}
+
+.section-label-modern {
+  font-family: var(--font-hd);
+  font-size: 14px;
+  color: var(--c-gold);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+/* Training Queue Grid */
+.training-container-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 15px;
+  min-height: 120px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 15px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.training-card-modern {
+  aspect-ratio: 1;
+  background: #00D4FF;
+  border-radius: 15px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 15px rgba(0,212,255,0.2);
+  overflow: hidden;
+}
+
+.training-card-modern.waiting {
+  background: #334155;
+  box-shadow: none;
+}
+
+.tc-emoji {
+  font-size: 40px;
+  margin-bottom: 5px;
+}
+
+.tc-count {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--font-hd);
+  font-size: 14px;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.tc-progress-bar {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  height: 18px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-hd);
+  font-size: 10px;
+}
+
+.tc-waiting-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-hd);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* Training Controls */
+.training-controls-modern {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.time-box-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-box-modern span:first-child {
+  font-size: 9px;
+  color: #64748b;
+  font-family: var(--font-hd);
+}
+
+#total-training-time-modern {
+  font-family: var(--font-hd);
+  font-size: 14px;
+  color: var(--c-primary);
+}
+
+.btn-accelerate-modern {
+  background: #00C853;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 15px;
+  color: #fff;
+  font-family: var(--font-hd);
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: 0.2s;
+}
+
+.btn-accelerate-modern:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0,200,83,0.4);
+}
+
+/* Troop Training Grid */
+.troop-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 15px;
+}
+
+.troop-card-modern {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 15px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
+}
+
+.troop-card-modern:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--c-primary);
+}
+
+.troop-card-modern.locked {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.tc-info-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #fff;
+  font-size: 16px;
+  opacity: 0.5;
+}
+
+.tc-card-emoji {
+  font-size: 45px;
+  margin: 10px 0;
+}
+
+.tc-cost-bar {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: var(--font-hd);
+  font-size: 12px;
+  color: #fff;
+}
+
+/* Trained Troops Grid */
+.trained-container-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 12px;
+  min-height: 100px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 15px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.trained-card-modern {
+  aspect-ratio: 1;
+  background: #00D4FF;
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0,212,255,0.2);
+}
+
+.trained-card-modern .tc-count-label {
+  position: absolute;
+  bottom: 5px;
+  background: rgba(0,0,0,0.4);
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-family: var(--font-hd);
+  font-size: 12px;
+  color: #fff;
+}
+
+.btn-attack-modern {
+  width: 100%;
+  margin-top: auto;
+  padding: 18px;
+  background: linear-gradient(135deg, #FF6D00, #E65100);
+  border: none;
+  border-radius: 15px;
+  color: #fff;
+  font-family: var(--font-hd);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 10px 20px rgba(255,109,0,0.3);
+}
+
+.btn-attack-modern:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(255,109,0,0.5);
+}
+
+@media (max-width: 480px) {
+  .troop-grid-modern {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .tc-card-emoji { font-size: 35px; }
+  .tc-emoji { font-size: 30px; }
+  .training-container-modern { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .trained-container-modern { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .troop-card-modern { padding: 5px; }
+  .tc-cost-bar { font-size: 10px; }
+}

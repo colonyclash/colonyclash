@@ -1936,117 +1936,212 @@ function claimMissionReward(id) {
   renderMissionPanel();
 }
 
-function renderTroopsPanel() {
-  const list     = gel('troops-list');
-  const capFill  = gel('cap-bar-fill');
-  const capLabel = gel('cap-bar-label-val');
-  if (!list) return;
+window.switchTroopTab = function(tab) {
+  G.ui.troopTab = tab || 'train';
+  document.querySelectorAll('.t-tab').forEach(t => t.classList.remove('active'));
+  gel('ttab-' + G.ui.troopTab)?.classList.add('active');
 
+  document.querySelectorAll('.troop-tab-content').forEach(c => c.style.display = 'none');
+  const content = gel('t-content-' + G.ui.troopTab);
+  if (content) {
+    content.style.display = G.ui.troopTab === 'troops' ? 'flex' : 'block';
+    if (G.ui.troopTab === 'troops') content.style.flexDirection = 'column';
+  }
+
+  renderTroopsPanel();
+};
+
+function renderTroopsPanel() {
+  if (!G.ui.troopTab) G.ui.troopTab = 'train';
+  
   const totalCap  = getTotalCampCapacity(G.base.buildings);
   const usedSpace = getTotalTroopSpace(G.base.troops);
   const capPct    = totalCap > 0 ? Math.min(100, (usedSpace / totalCap) * 100) : 0;
 
-  if (capFill)  capFill.style.width   = capPct + '%';
-  if (capLabel) capLabel.textContent  = `${usedSpace} / ${totalCap}`;
+  // Update Capacity Bar
+  const capFill = gel('cap-fill-modern');
+  const capVal  = gel('cap-val-modern');
+  if (capFill) capFill.style.width = capPct + '%';
+  if (capVal)  capVal.textContent  = `${usedSpace} / ${totalCap}`;
 
-  list.innerHTML = '';
-  const ccLvl     = getCurrentCCLevel();
-  const unlocked  = BUILDINGS.command_center.levels[ccLvl].unlocks.troop_unlock || [];
-  const available = getAvailableTroops(G.base.buildings);
+  if (G.ui.troopTab === 'train') {
+    renderTrainTabContent(totalCap, usedSpace);
+  } else {
+    renderTroopsTabContent();
+  }
+}
 
-  if (totalCap === 0) {
-    list.innerHTML = `<p style="color:rgba(255,255,255,0.35);text-align:center;padding:18px;font-size:12px">
-      ${t('build_camp_tip') || 'Construa um Acampamento para abrigar tropas!'}</p>`;
+function renderTrainTabContent(totalCap, usedSpace) {
+  const queueList = gel('training-queue-modern');
+  const troopsGrid = gel('available-troops-grid-modern');
+  if (!queueList || !troopsGrid) return;
+
+  // 1. Training Queue
+  const queue = G.base.queue || [];
+  if (queue.length === 0) {
+    queueList.innerHTML = `<div style="grid-column:1/-1; color:#555; text-align:center; font-size:11px; padding:20px;">Nenhuma tropa em treinamento</div>`;
+    gel('total-training-time-modern').textContent = '0s';
+    gel('accelerate-cost-modern').textContent = '0 💎';
+  } else {
+    let totalTime = 0;
+    let totalGemCost = 0;
+    const now = Date.now();
+
+    // Group queue items by type for better visualization (optional, but requested layout shows 16x Drone)
+    // Actually, the current queue is an array of individual items. Let's group them.
+    const grouped = {};
+    queue.forEach((it, idx) => {
+      if (!grouped[it.type]) grouped[it.type] = { count: 0, items: [] };
+      grouped[it.type].count++;
+      grouped[it.type].items.push(it);
+    });
+
+    let html = '';
+    let first = true;
+    for (const [type, data] of Object.entries(grouped)) {
+      const td = TROOPS[type];
+      const isTraining = first; // Assuming the first group contains the current training item
+      // Note: In this simple engine, the first item in G.base.queue is the one currently ticking.
+      
+      const item0 = data.items[0];
+      const rem = Math.max(0, (item0.finishTime - now) / 1000);
+      
+      if (isTraining) {
+        html += `
+          <div class="training-card-modern">
+            <span class="tc-count">${data.count}x</span>
+            <span class="tc-emoji">${td.emoji}</span>
+            <div class="tc-progress-bar">${fmtTime(rem)}</div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="training-card-modern waiting">
+            <span class="tc-count">${data.count}x</span>
+            <span class="tc-emoji">${td.emoji}</span>
+            <div class="tc-waiting-label">${t('waiting')}</div>
+          </div>
+        `;
+      }
+      first = false;
+    }
+    queueList.innerHTML = html;
+
+    // Calculate totals
+    queue.forEach(it => {
+      const itRem = Math.max(0, (it.finishTime - now) / 1000);
+      totalTime += itRem;
+      totalGemCost += Math.max(1, Math.ceil(itRem / 60));
+    });
+    gel('total-training-time-modern').textContent = fmtTime(totalTime);
+    gel('accelerate-cost-modern').textContent = `${totalGemCost} 💎`;
   }
 
-  for (const troopId of unlocked) {
-    const td    = TROOPS[troopId]; if (!td) continue;
-    const count = G.base.troops?.[troopId] || 0;
-    const canTrain = available.includes(troopId);
-    const full     = (usedSpace + td.space) > totalCap;
+  // 2. Available Troops
+  const ccLvl = getCurrentCCLevel();
+  const unlocked = BUILDINGS.command_center.levels[ccLvl].unlocks.troop_unlock || [];
+  const availableToTrain = getAvailableTroops(G.base.buildings);
 
-    const row = document.createElement('div');
-    row.className  = 'troop-row';
-    row.style.opacity = canTrain ? '1' : '0.45';
-    row.innerHTML = `
-      <span class="tr-emoji">${td.emoji}</span>
-      <div class="tr-info">
-        <div class="tr-name">${t(troopId)}</div>
-        <div class="tr-stats">❤️${td.hp} ⚔️${td.damage} 🕐${fmtTime(td.trainTime)}</div>
-        <div class="tr-stats">${t('capacity')}: ${td.space} · ${t(troopId + '_desc')}</div>
-      </div>
-      <div class="tr-count-wrap">
-        <span class="tr-cnt">${count}</span>
+  let troopsHtml = '';
+  for (const troopId of unlocked) {
+    const td = TROOPS[troopId];
+    const canTrain = availableToTrain.includes(troopId);
+    const full = (usedSpace + td.space) > totalCap;
+    
+    const minCost = td.cost.mineral || 0;
+    const oxyCost = td.cost.oxygen || 0;
+    const eneCost = td.cost.energy || 0;
+    const affordable = (G.base.resources.mineral >= minCost) && 
+                       (G.base.resources.oxygen >= oxyCost) && 
+                       (G.base.resources.energy >= eneCost);
+
+    troopsHtml += `
+      <div class="troop-card-modern ${canTrain ? '' : 'locked'}" onclick="${canTrain ? `trainTroop('${troopId}')` : `notify('${t('need_barracks')}', 'info')`}">
+        <span class="tc-info-btn" onclick="event.stopPropagation(); showTroopInfo('${troopId}')">ⓘ</span>
+        <span class="tc-card-emoji">${td.emoji}</span>
+        <div class="tc-cost-bar" style="color:${affordable ? '#fff' : 'var(--c-danger)'}">
+          ${minCost > 0 ? `⛏️${fmtNum(minCost)} ` : ''}
+          ${oxyCost > 0 ? `💨${fmtNum(oxyCost)} ` : ''}
+          ${eneCost > 0 ? `⚡${fmtNum(eneCost)} ` : ''}
+          ${!minCost && !oxyCost && !eneCost ? 'Grátis' : ''}
+        </div>
+        ${full && canTrain ? '<div style="position:absolute; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; border-radius:15px; font-size:10px; color:#ff4466; font-weight:bold; pointer-events:none;">CHEIO</div>' : ''}
       </div>
     `;
-    if (canTrain) {
-      const btn = document.createElement('button');
-      btn.className  = 'btn-train';
-      const minCost = td.cost.mineral || 0;
-      const oxyCost = td.cost.oxygen || 0;
-      const eneCost = td.cost.energy || 0;
-      
-      const affordable = (G.base.resources.mineral >= minCost) && 
-                         (G.base.resources.oxygen >= oxyCost) && 
-                         (G.base.resources.energy >= eneCost);
-                         
-      btn.disabled   = full || !affordable;
-      
-      let costHtml = '';
-      if (minCost > 0) costHtml += `⛏️${fmtNum(minCost)} `;
-      if (oxyCost > 0) costHtml += `💨${fmtNum(oxyCost)} `;
-      if (eneCost > 0) costHtml += `⚡${fmtNum(eneCost)} `;
-      if (!costHtml) costHtml = 'Grátis';
-
-      btn.innerHTML  = `${t('train') || 'TREINAR'}<br><small>${costHtml}</small>`;
-      btn.onclick    = () => { trainTroop(troopId); renderTroopsPanel(); };
-      row.appendChild(btn);
-    } else {
-      const lck = document.createElement('span');
-      lck.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.25)';
-      lck.textContent   = t('locked') || 'Bloqueado';
-      row.appendChild(lck);
-    }
-    list.appendChild(row);
   }
-
-  if (unlocked.length === 0) {
-    list.innerHTML = `<p style="color:rgba(255,255,255,0.35);text-align:center;padding:18px;font-size:12px">
-      Construa um Quartel para treinar tropas!</p>`;
-  }
-
-  renderTrainingQueue();
+  troopsGrid.innerHTML = troopsHtml;
 }
 
-function renderTrainingQueue() {
-  const el = gel('training-queue-list');
-  if (!el) return;
-  if (!G.base.queue || G.base.queue.length === 0) {
-    el.innerHTML = '<p style="color:rgba(255,255,255,0.25);font-size:11px">Nenhum treinamento em andamento.</p>';
+function renderTroopsTabContent() {
+  const grid = gel('trained-troops-grid-modern');
+  if (!grid) return;
+
+  const troops = G.base.troops || {};
+  let html = '';
+  let hasTroops = false;
+
+  for (const [id, count] of Object.entries(troops)) {
+    if (count <= 0) continue;
+    hasTroops = true;
+    const td = TROOPS[id];
+    html += `
+      <div class="trained-card-modern">
+        <span class="tc-emoji">${td.emoji}</span>
+        <div class="tc-count-label">x${count}</div>
+      </div>
+    `;
+  }
+
+  if (!hasTroops) {
+    grid.innerHTML = `<div style="grid-column:1/-1; color:#555; text-align:center; padding:40px; font-size:12px;">Nenhuma tropa treinada.</div>`;
+  } else {
+    grid.innerHTML = html;
+  }
+}
+
+window.speedUpTotalTraining = function() {
+  const queue = G.base.queue || [];
+  if (queue.length === 0) return;
+
+  let totalCost = 0;
+  const now = Date.now();
+  queue.forEach(it => {
+    const rem = Math.max(0, (it.finishTime - now) / 1000);
+    totalCost += Math.max(1, Math.ceil(rem / 60));
+  });
+
+  if ((G.base.gems || 0) < totalCost) {
+    notify(t('not_enough_gems'), 'error');
     return;
   }
-  el.innerHTML = '';
-  for (const item of G.base.queue) {
-    const td  = TROOPS[item.type];
-    const rem = Math.max(0, (item.finishTime - Date.now()) / 1000);
-    const cost = Math.max(1, Math.ceil(rem / 60));
-    const div = document.createElement('div');
-    div.className = 'queue-item';
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.justifyContent = 'space-between';
-    div.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:18px">${td?.emoji || '?'}</span>
-        <span style="font-size:12px">${td?.name || item.type}</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span class="qi-time">${fmtTime(rem)}</span>
-        <button onclick="speedUpTraining(${item.finishTime}, ${cost})" style="cursor:pointer; background:var(--c-gem); border:none; padding:4px 8px; border-radius:4px; color:#fff; font-weight:bold; font-size:10px; display:flex; align-items:center; gap:4px;">⚡💎${cost}</button>
-      </div>`;
-    el.appendChild(div);
-  }
-}
+
+  G.base.gems -= totalCost;
+  queue.forEach(it => { it.finishTime = now; });
+  
+  processOfflineQueue();
+  renderTroopsPanel();
+  updateHUD();
+  saveData();
+  notify('⚡ Todas as tropas estão prontas!', 'success');
+};
+
+window.showTroopInfo = function(troopId) {
+  const td = TROOPS[troopId];
+  if (!td) return;
+  
+  let html = `<ul style="list-style:none; padding:0; margin:0;">
+    <li>❤️ <b>${t('hp')}:</b> ${td.hp}</li>
+    <li>⚔️ <b>${t('damage')}:</b> ${td.damage}</li>
+    <li>📏 <b>${t('range')}:</b> ${td.range || 'Corpo a corpo'}</li>
+    <li>🏕️ <b>${t('capacity')}:</b> ${td.space}</li>
+    <li>⏱️ <b>${t('training_time')}:</b> ${fmtTime(td.trainTime)}</li>
+    <li style="margin-top:10px; color:#888; font-size:11px;">${t(troopId + '_desc')}</li>
+  </ul>`;
+
+  gel('info-modal-title').textContent = t(troopId);
+  gel('info-modal-desc').innerHTML = html;
+  gel('info-modal').classList.add('visible');
+};
 
 // ---- Info Panel ----
 function renderInfoPanel() {

@@ -181,23 +181,58 @@
     <div class="mission-inner" id="mission-content"></div>
   </div>
 
-  <!-- Troops Panel -->
-  <div class="panel" id="troops-panel">
-    <div class="panel-handle"></div>
-    <div class="panel-head" data-t="manage_troops">🪖 Gerenciar Tropas</div>
-    <div class="cap-bar-wrap">
-      <div class="cap-bar-label">
-        <span data-t="capacity">Capacidade</span>
-        <span id="cap-bar-label-val">0 / 0</span>
-      </div>
-      <div class="cap-bar-track">
-        <div class="cap-bar-fill" id="cap-bar-fill" style="width:0%"></div>
-      </div>
+  <!-- Troops Panel (Modernized) -->
+  <div class="panel troop-design" id="troops-panel">
+    <div class="troop-tabs">
+      <div class="t-tab active" id="ttab-train" onclick="switchTroopTab('train')" data-t="train_troops_tab">Treinar Tropas</div>
+      <div class="t-tab" id="ttab-troops" onclick="switchTroopTab('troops')" data-t="troops_tab">Tropas</div>
     </div>
-    <div class="troop-list" id="troops-list"></div>
-    <div class="queue-section">
-      <div class="queue-section-title" data-t="in_training">Em Treinamento</div>
-      <div id="training-queue-list"></div>
+
+    <div class="troop-inner">
+      <!-- Common Capacity Bar -->
+      <div class="cap-modern">
+        <div class="cap-header">
+          <span data-t="capacity">CAPACIDADE</span>
+          <span id="cap-val-modern">0/0</span>
+        </div>
+        <div class="cap-track-modern">
+          <div id="cap-fill-modern" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Tab 1: Train -->
+      <div id="t-content-train" class="troop-tab-content">
+        <div class="section-label-modern" data-t="in_training_modern">EM TREINAMENTO</div>
+        <div class="training-container-modern" id="training-queue-modern">
+          <!-- Dynamic: Training cards -->
+        </div>
+
+        <div class="training-controls-modern">
+          <div class="time-box-modern">
+            <span data-t="training_time">TEMPO DE TREINO</span>
+            <span id="total-training-time-modern">0s</span>
+          </div>
+          <button class="btn-accelerate-modern" onclick="speedUpTotalTraining()">
+            <span data-t="accelerate">ACELERAR</span>
+            <span id="accelerate-cost-modern">0 💎</span>
+          </button>
+        </div>
+
+        <div class="section-label-modern" style="text-align:center; margin-top:30px;" data-t="train_troops_label">TREINAR TROPAS</div>
+        <div class="troop-grid-modern" id="available-troops-grid-modern">
+          <!-- Dynamic: Available troop cards -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Troops -->
+      <div id="t-content-troops" class="troop-tab-content" style="display:none">
+        <div class="section-label-modern" data-t="trained_troops_label">TROPAS TREINADAS</div>
+        <div class="trained-container-modern" id="trained-troops-grid-modern">
+          <!-- Dynamic: Trained troop cards -->
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn-attack-modern" onclick="closePanels(); startMatchmaking();" data-t="attack_label">ATACAR</button>
+      </div>
     </div>
   </div>
 

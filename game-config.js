@@ -630,7 +630,16 @@ const TRANSLATIONS = {
     end_battle: "RECUAR",
     return_base: "RETORNAR À BASE",
     destruction: "Destruição",
-    trophies: "Troféus"
+    trophies: "Troféus",
+    train_troops_tab: "Treinar Tropas",
+    troops_tab: "Tropas",
+    in_training_modern: "EM TREINAMENTO",
+    training_time: "TEMPO DE TREINO",
+    accelerate: "ACELERAR",
+    train_troops_label: "TREINAR TROPAS",
+    trained_troops_label: "TROPAS TREINADAS",
+    waiting: "EM ESPERA",
+    attack_label: "ATACAR"
   },
   en: {
     lang_name: "English",
@@ -832,7 +841,16 @@ const TRANSLATIONS = {
     end_battle: "RETREAT",
     return_base: "RETURN TO BASE",
     destruction: "Destruction",
-    trophies: "Trophies"
+    trophies: "Trophies",
+    train_troops_tab: "Train Troops",
+    troops_tab: "Troops",
+    in_training_modern: "IN TRAINING",
+    training_time: "TRAINING TIME",
+    accelerate: "ACCELERATE",
+    train_troops_label: "TRAIN TROOPS",
+    trained_troops_label: "TRAINED TROOPS",
+    waiting: "WAITING",
+    attack_label: "ATTACK"
   },
   es: {
     lang_name: "Español",
@@ -1030,8 +1048,17 @@ const TRANSLATIONS = {
     end_battle: "RETIRARSE",
     return_base: "VOLVER A LA BASE",
     destruction: "Destrucción",
-    trophies: "Trofeos"
-  }
+    trophies: "Trofeos",
+    train_troops_tab: "Entrenar Tropas",
+    troops_tab: "Tropas",
+    in_training_modern: "EN ENTRENAMIENTO",
+    training_time: "TIEMPO DE ENTRENAMIENTO",
+    accelerate: "ACELERAR",
+    train_troops_label: "ENTRENAR TROPAS",
+    trained_troops_label: "TROPAS ENTRENADAS",
+    waiting: "EN ESPERA",
+    attack_label: "ATACAR"
+  },
 };
 
 let currentLang = localStorage.getItem('colony_clash_lang') || 'pt';
