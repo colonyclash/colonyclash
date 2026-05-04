@@ -1943,22 +1943,23 @@ html, body {
   .tutorial-skip-btn { top: -8px; right: -8px; padding: 3px 8px; font-size: 8px; }
 }
 
-/* ========== TUTORIAL DIALOG (bottom, above FAB, behind panels) ========== */
 .tutorial-dialog {
   position: fixed;
-  bottom: 100px;     /* above FAB bar */
+  bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 95;       /* behind panels (100) and modals (300+) */
+  z-index: 95;
   background: rgba(10, 16, 40, 0.85);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 212, 255, 0.2);
-  border-radius: 12px;
-  padding: 8px 12px;
-  width: min(300px, 90vw);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 30px; /* Pill shape */
+  padding: 6px 12px;
+  width: max-content;
+  max-width: 95vw;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
   transition: opacity 0.3s;
 }
@@ -1968,41 +1969,44 @@ html, body {
 .tutorial-dialog-content {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tutorial-dialog-avatar img {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
 .tutorial-dialog-text {
   font-family: var(--font-body, 'Rajdhani', sans-serif);
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255,255,255,0.9);
-  line-height: 1.4;
-  flex: 1;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tutorial-btn {
-  align-self: flex-end;
-  padding: 6px 18px;
+  padding: 4px 10px;
   background: var(--c-primary, #00D4FF);
   border: none;
-  border-radius: 20px;
+  border-radius: 15px;
   color: #000;
   font-family: var(--font-hd, 'Orbitron', sans-serif);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   cursor: pointer;
+  white-space: nowrap;
   transition: 0.2s;
 }
 .tutorial-btn:hover { transform: scale(1.05); }
 
 @media (max-width: 600px) {
-  .tutorial-dialog { bottom: 90px; padding: 6px 10px; width: min(280px, 95vw); }
-  .tutorial-dialog-text { font-size: 11px; }
-  .tutorial-dialog-avatar img { width: 22px; height: 22px; }
+  .tutorial-dialog { bottom: 90px; padding: 4px 8px; }
+  .tutorial-dialog-text { font-size: 10px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tutorial-dialog-avatar img { width: 18px; height: 18px; }
+  .tutorial-skip-btn { top: -12px; right: 0; }
 }
 
 /* ========== TUTORIAL GLOW ANIMATION ========== */
