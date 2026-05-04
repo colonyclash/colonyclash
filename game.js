@@ -1409,10 +1409,10 @@ function confirmPlace() {
   exitBuildMode();
   updateHUD();
   saveData();
-  if (buildType === 'mineral_extractor') advanceTutorialIf(3);
-  if (buildType === 'oxygen_extractor')  advanceTutorialIf(8);
-  if (buildType === 'barracks')          advanceTutorialIf(11);
-  if (buildType === 'camp')              advanceTutorialIf(14);
+  if (buildType === 'mineral_extractor') { G.base.tutorialStep === 3 && nextTutorialStep(); }
+  if (buildType === 'oxygen_extractor')  { G.base.tutorialStep === 8  && nextTutorialStep(); }
+  if (buildType === 'barracks')          { G.base.tutorialStep === 12 && nextTutorialStep(); }
+  if (buildType === 'camp')              { G.base.tutorialStep === 15 && nextTutorialStep(); }
 }
 
 // ============================================================
@@ -2406,9 +2406,12 @@ function trainTroop(type) {
   notify(`${t('training')} ${t(type)}... (${fmtTime(td.trainTime)})`, 'info');
 
   if (!G.base.tutorialTroopCount) G.base.tutorialTroopCount = 0;
-  if ((G.base.tutorialStep || 0) === 16) {
+  if ((G.base.tutorialStep || 0) === 19) {
     G.base.tutorialTroopCount++;
-    if (G.base.tutorialTroopCount >= 8) advanceTutorialIf(16);
+    if (G.base.tutorialTroopCount >= 8) {
+      G.base.tutorialStep = 20;
+      updateTutorialStep();
+    }
   }
 }
 
@@ -3464,23 +3467,23 @@ let tutorialArrowInterval = null;
 function showTutorial() {
   if (G.base.tutorialDone) return;
   
-  // Verificação inicial do estado da base para pular passos já concluídos
   let step = G.base.tutorialStep || 0;
   
-  const hasMineral = getBuildingCountOfType('mineral_extractor') > 0;
-  const hasOxygen = getBuildingCountOfType('oxygen_extractor') > 0;
+  const hasMineral  = getBuildingCountOfType('mineral_extractor') > 0;
+  const hasOxygen   = getBuildingCountOfType('oxygen_extractor') > 0;
   const hasBarracks = getBuildingCountOfType('barracks') > 0;
-  const hasCamp = getBuildingCountOfType('camp') > 0;
+  const hasCamp     = getBuildingCountOfType('camp') > 0;
   
-  const usedSpace = getTotalTroopSpace(G.base.troops);
-  const queueSpace = (G.base.queue || []).reduce((acc, it) => acc + (TROOPS[it.type]?.space || 0), 0);
-  const hasTroops = (usedSpace + queueSpace) >= 3;
+  const usedSpace   = getTotalTroopSpace(G.base.troops);
+  const queueSpace  = (G.base.queue || []).reduce((acc, it) => acc + (TROOPS[it.type]?.space || 0), 0);
+  const hasTroops   = (usedSpace + queueSpace) >= 8;
 
-  if (step < 6 && hasMineral) step = 6;
-  if (step < 9 && hasOxygen) step = 9;
-  if (step < 12 && hasBarracks) step = 12;
-  if (step < 15 && hasCamp) step = 15;
-  if (step < 18 && hasTroops) step = 18;
+  // Skip steps for already-built items (using the new step numbering)
+  if (step < 4  && hasMineral)  step = 4;   // skip to speedup after mineral
+  if (step < 8  && hasOxygen)   step = 8;   // skip to speedup after oxygen
+  if (step < 11 && hasBarracks) step = 11;  // skip to speedup after barracks
+  if (step < 14 && hasCamp)     step = 14;  // skip to speedup after camp
+  if (step < 22 && hasTroops)   step = 22;  // skip past troop training
 
   G.base.tutorialStep = step;
   
@@ -3493,13 +3496,14 @@ function showTutorial() {
 }
 
 function updateTutorialStep() {
+  if (G.ui.screen !== 'game') { closeTutorialDialog(); return; }
 
   const textEl = gel('tutorial-text');
-  const arrow = gel('tutorial-arrow');
-  const btn = gel('tutorial-next-btn');
+  const arrow  = gel('tutorial-arrow');
+  const btn    = gel('tutorial-next-btn');
   
   if (arrow) arrow.classList.add('hidden');
-  if (btn) btn.style.display = 'none';
+  if (btn)   btn.style.display = 'none';
 
   if (tutorialArrowInterval) {
     clearTimeout(tutorialArrowInterval);
@@ -3514,28 +3518,36 @@ function updateTutorialStep() {
   if (!G.base.tutorialDone && dialog) {
     dialog.classList.remove('hidden');
     dialog.classList.add('visible');
-  } else {
-    closeTutorialDialog();
+  } else if (G.base.tutorialDone) {
+    closeTutorialDialog(); return;
   }
 
+  if (!textEl) return;
+
+  // Step flow:
+  // 0=welcome, 1=open build panel, 2=select mineral, 3=place mineral,
+  // 4=click building, 5=speedup mineral,
+  // 6=open build panel, 7=select oxygen, 8=place oxygen, 9=speedup oxygen,
+  // 10=open build panel, 11=select barracks, 12=place barracks (wait speedup),
+  // 13=open build panel, 14=select camp, 15=place camp (wait speedup),
+  // 16=open troops panel, 17=train 8 drones, 18=click troops tab,
+  // 19=click attack button, 20=click attack confirm, 21=battle, 22=done
   if (step === 0) {
     textEl.textContent = t('tut_step0');
-    btn.style.display = 'block';
-    btn.textContent = t('continue');
+    if (btn) { btn.style.display = 'block'; btn.textContent = t('continue'); }
   } else if (step === 1) {
     textEl.textContent = t('tut_step1');
     pointArrowToElement('nav-build', 'top');
   } else if (step === 2) {
     textEl.textContent = t('tut_step2');
     pointArrowToBuildingCard('mineral_extractor');
-  } else if (step === 3 || step === 10 || step === 13) {
+  } else if (step === 3 || step === 8 || step === 12 || step === 15) {
     textEl.textContent = t('tut_step3');
     pointArrowToGhost();
-  } else if (step === 4 || step === 8 || step === 11 || step === 14) {
-    // After placement: instruct to speedup
+  } else if (step === 4 || step === 9 || step === 13 || step === 16) {
     textEl.textContent = t('tut_step4');
     pointArrowToLastBuilding();
-  } else if (step === 5 || step === 9 || step === 12 || step === 15) {
+  } else if (step === 5 || step === 10 || step === 14 || step === 17) {
     textEl.textContent = t('tut_step5');
     pointArrowToElement('popup-speedup', 'top');
   } else if (step === 6) {
@@ -3544,42 +3556,30 @@ function updateTutorialStep() {
   } else if (step === 7) {
     textEl.textContent = t('tut_step7');
     pointArrowToBuildingCard('oxygen_extractor');
-  } else if (step === 16) {
-    textEl.textContent = t('tut_step9');
-    pointArrowToElement('nav-build', 'top');
-  } else if (step === 17) {
+  } else if (step === 11) {
     textEl.textContent = t('tut_step10');
     pointArrowToBuildingCard('barracks');
-  } else if (step === 19) {
-    textEl.textContent = t('tut_step12');
-    pointArrowToElement('nav-build', 'top');
-  } else if (step === 20) {
-    textEl.textContent = t('tut_step13');
-    pointArrowToBuildingCard('camp');
-  } else if (step === 15) {
+  } else if (step === 18) {
     textEl.textContent = t('tut_step15');
     pointArrowToElement('nav-troops', 'top');
-  } else if (step === 16) {
+  } else if (step === 19) {
     textEl.textContent = t('tut_step16');
-    pointArrowToBuildingCard('drone'); 
-  } else if (step === 17) {
+    pointArrowToBuildingCard('drone');
+  } else if (step === 20) {
     textEl.textContent = t('tut_step17');
     pointArrowToElement('ttab-troops', 'bottom');
-  } else if (step === 18) {
+  } else if (step === 21) {
     textEl.textContent = t('tut_step18');
     pointArrowToElement('btn-attack-modern', 'top');
-  } else if (step === 19) {
+  } else if (step === 22) {
     textEl.textContent = t('tut_step19');
     pointArrowToElement('mm-confirm-btn', 'bottom');
-  } else if (step === 20) {
+  } else if (step === 23) {
     textEl.textContent = t('tut_step20');
-  } else if (step === 21) {
+  } else if (step === 24) {
     textEl.textContent = t('tut_step21');
-    if (btn) {
-      btn.style.display = 'block';
-      btn.textContent = t('tut_finish');
-    }
-  } else if (step > 21) {
+    if (btn) { btn.style.display = 'block'; btn.textContent = t('tut_finish'); }
+  } else if (step > 24) {
     closeTutorial();
   }
 }
@@ -3609,40 +3609,32 @@ function checkTutorialAutoAdvance() {
   const step = G.base.tutorialStep || 0;
   if (G.base.tutorialDone) return;
 
-  // Detecção de construções concluídas (ou em andamento)
-  const hasMineral = getBuildingCountOfType('mineral_extractor') > 0;
-  const hasOxygen = getBuildingCountOfType('oxygen_extractor') > 0;
+  const hasMineral  = getBuildingCountOfType('mineral_extractor') > 0;
+  const hasOxygen   = getBuildingCountOfType('oxygen_extractor') > 0;
   const hasBarracks = getBuildingCountOfType('barracks') > 0;
-  const hasCamp = getBuildingCountOfType('camp') > 0;
+  const hasCamp     = getBuildingCountOfType('camp') > 0;
 
-  if (step === 3 && hasMineral) nextTutorialStep();
-  if (step === 8 && hasOxygen) nextTutorialStep();
-  if (step === 11 && hasBarracks) nextTutorialStep();
-  if (step === 14 && hasCamp) nextTutorialStep();
+  // After placement, advance from ghost step to click-building step
+  if (step === 3  && hasMineral)  { nextTutorialStep(); return; }
+  if (step === 8  && hasOxygen)   { nextTutorialStep(); return; }
+  if (step === 12 && hasBarracks) { nextTutorialStep(); return; }
+  if (step === 15 && hasCamp)     { nextTutorialStep(); return; }
 
-  // Detecção de UI
+  // UI detection
+  if (step === 1  && G.ui.panel === 'build')  { nextTutorialStep(); return; }
+  if (step === 2  && G.ui.buildMode && G.ui.buildType === 'mineral_extractor') { nextTutorialStep(); return; }
+  if (step === 6  && G.ui.panel === 'build')  { nextTutorialStep(); return; }
+  if (step === 7  && G.ui.buildMode && G.ui.buildType === 'oxygen_extractor')  { nextTutorialStep(); return; }
+  if (step === 10 && G.ui.panel === 'build')  { nextTutorialStep(); return; }
+  if (step === 11 && G.ui.buildMode && G.ui.buildType === 'barracks')          { nextTutorialStep(); return; }
+  if (step === 13 && G.ui.panel === 'build')  { nextTutorialStep(); return; }
+  if (step === 14 && G.ui.buildMode && G.ui.buildType === 'camp')              { nextTutorialStep(); return; }
+  if (step === 18 && G.ui.panel === 'troops') { nextTutorialStep(); return; }
+  if (step === 20 && G.ui.panel === 'troops' && G.ui.troopTab === 'troops') { nextTutorialStep(); return; }
+
+  // Matchmaking opened
   const mmVisible = gel('opponent-screen')?.classList.contains('visible');
-  if (step === 18 && mmVisible) nextTutorialStep();
-
-  if (step === 1 && G.ui.panel === 'build') {
-    nextTutorialStep(); // Painel abriu
-  } else if (step === 2 && G.ui.mode === 'build') {
-    nextTutorialStep(); // Entrou no modo construção
-  } else if (step === 6 && G.ui.panel === 'build') {
-    nextTutorialStep();
-  } else if (step === 7 && G.ui.mode === 'build' && G.ui.buildType === 'oxygen_extractor') {
-    nextTutorialStep();
-  } else if (step === 9 && G.ui.panel === 'build') {
-    nextTutorialStep();
-  } else if (step === 10 && G.ui.mode === 'build' && G.ui.buildType === 'barracks') {
-    nextTutorialStep();
-  } else if (step === 12 && G.ui.panel === 'build') {
-    nextTutorialStep();
-  } else if (step === 13 && G.ui.mode === 'build' && G.ui.buildType === 'camp') {
-    nextTutorialStep();
-  } else if (step === 15 && G.ui.panel === 'troops') {
-    nextTutorialStep();
-  }
+  if (step === 21 && mmVisible) { nextTutorialStep(); return; }
 }
 
 function closeTutorial() {
