@@ -1531,31 +1531,56 @@ function initBattleZoom() {
 
 function updateHUD() {
   const r = G.base.resources || {};
+  const blds = G.base.buildings || [];
+  
+  const caps = {
+    mineral: getStorageCapacity(blds, 'mineral'),
+    oxygen: getStorageCapacity(blds, 'oxygen'),
+    energy: getStorageCapacity(blds, 'energy'),
+    gem: 5000 // Just for visual scale
+  };
+
   gel('hud-mineral').textContent  = fmtNum(r.mineral);
   gel('hud-oxygen').textContent   = fmtNum(r.oxygen);
   gel('hud-energy').textContent   = fmtNum(r.energy);
   gel('hud-gems').textContent     = fmtNum(G.base.gems || 0);
   gel('hud-trophies').textContent = G.base.trophies || 0;
+
+  // Update Bar Fills
+  ['mineral', 'oxygen', 'energy', 'gems'].forEach(type => {
+    const val = type === 'gems' ? (G.base.gems || 0) : (r[type] || 0);
+    const cap = type === 'gems' ? caps.gem : caps[type];
+    const pct = Math.min(100, (val / cap) * 100);
+    const fillEl = gel(`hud-${type}-fill`);
+    if (fillEl) fillEl.style.width = `${pct}%`;
+  });
+
   const name = G.base.playerName || t('colono');
   gel('hud-name').textContent  = name;
   gel('hud-cc').textContent    = `CC ${t('level')} ${getCurrentCCLevel()}`;
   gel('hud-avatar').textContent = name[0]?.toUpperCase() || 'C';
+  
   const league = getLeague(G.base.trophies || 0);
   const lb = gel('hud-league');
-  if (lb) { lb.innerHTML = `${league.emoji} <span data-t="${league.name.toLowerCase()}">${t(league.name.toLowerCase())}</span>`; lb.style.color = league.color; }
+  if (lb) { 
+    lb.innerHTML = `${league.emoji} <span data-t="${league.name.toLowerCase()}">${t(league.name.toLowerCase())}</span>`; 
+    lb.style.color = league.color; 
+  }
+
   const shieldEl = gel('hud-shield');
   if (shieldEl) {
     const shieldActive = G.base.shieldUntil && G.base.shieldUntil > Date.now();
     shieldEl.style.display = shieldActive ? 'flex' : 'none';
     if (shieldActive) {
       const rem = Math.ceil((G.base.shieldUntil - Date.now()) / 3600000);
-      shieldEl.textContent = `🛡️ ${rem}h`;
+      shieldEl.innerHTML = `🛡️ ${rem}h`;
     }
   }
+
   const bldEl = gel('hud-builders');
   if (bldEl) {
     bldEl.textContent = `${getBuildersInUse()} / ${getTotalBuilders()}`;
-    bldEl.parentElement.style.color = hasFreeBuilder() ? 'var(--c-success)' : 'var(--c-danger)';
+    // No longer updating parent color here as it's a bar now
   }
 
   // Update Mission Badge
@@ -1874,7 +1899,7 @@ function renderMissionPanel() {
           <div class="mission-info">
             <div class="mission-text">${t('mission_' + m.id)}</div>
             <div class="mission-reward-label">
-              ${t('earn_reward')} ${m.reward} ${m.rewardType === 'mineral' ? '⛏️' : m.rewardType === 'energy' ? '⚡' : '💎'}
+              ${t('earn_reward')} ${m.reward} <img src="${m.rewardType === 'mineral' ? 'mineral_icon.svg' : m.rewardType === 'energy' ? 'energy_icon.svg' : 'gems_icon.svg'}" class="inline-icon">
             </div>
             <div class="mission-prog-wrap">
               <div class="mission-prog-bar">
@@ -1886,7 +1911,7 @@ function renderMissionPanel() {
           <button class="btn-claim-mission ${(!isDone || isClaimed) ? 'disabled' : ''}" 
             ${(!isDone || isClaimed) ? 'disabled' : ''} 
             onclick="claimMissionReward(${m.id})">
-            ${isClaimed ? t('claimed') : `${t('claim_reward')}<br>${m.reward} ${t('gems_unit')}`}
+            ${isClaimed ? t('claimed') : t('claim_reward')}
           </button>
         </div>
       </div>
@@ -3355,7 +3380,7 @@ function showLabModal() {
         <div class="lab-upg-info">
           <span class="lab-upg-name">${upg.name} <span style="font-size:9px;color:#888">Nív.${upg.level}</span></span>
           <span class="lab-upg-desc">${upg.desc}</span>
-          <span class="lab-upg-cost">⚡${fmtNum(upg.energyCost)} ⛏️${fmtNum(upg.mineralCost)}</span>
+          <span class="lab-upg-cost"><img src="energy_icon.svg" class="inline-icon"> ${fmtNum(upg.energyCost)} <img src="mineral_icon.svg" class="inline-icon"> ${fmtNum(upg.mineralCost)}</span>
         </div>
         <div>
           ${done
@@ -3897,7 +3922,7 @@ window.updateModernProfileUI = function() {
     <div class="profile-center">
       <div class="profile-user-row">
         <span class="profile-name">${G.base.playerName || 'Colono'}</span>
-        <div class="profile-gems-badge">💎 ${G.base.gems || 0}</div>
+        <div class="profile-gems-badge"><img src="gems_icon.svg" class="inline-icon"> ${G.base.gems || 0}</div>
       </div>
       <div class="profile-clan-box">
         <div class="p-clan-avatar">${(G.base.clanName || 'C')[0].toUpperCase()}</div>

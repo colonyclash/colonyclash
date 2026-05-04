@@ -122,15 +122,71 @@ html, body {
 .hud-cc { font-size: 9px; color: var(--c-gold); }
 
 .hud-resources {
-  display: flex; gap: 8px; background: rgba(0,0,0,0.6);
-  padding: 4px 8px; border-radius: 20px; backdrop-filter: blur(5px);
-  border: 1px solid rgba(255,255,255,0.08); flex: 1; justify-content: center;
+  display: flex; gap: 20px; flex: 1; justify-content: center; align-items: center;
+  pointer-events: none;
 }
-.res-chip { font-family: var(--font-hd); font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
-.res-chip.mineral span { color: var(--c-mineral); }
-.res-chip.oxygen span { color: var(--c-oxygen); }
-.res-chip.energy span { color: var(--c-energy); }
-.res-chip.gem span { color: var(--c-gem); text-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+.hud-resources > * { pointer-events: auto; }
+
+.res-bar-container {
+  position: relative;
+  height: 20px;
+  min-width: 90px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding-right: 15px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.res-bar-container:hover { transform: scale(1.05); }
+
+.res-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  opacity: 0.9;
+}
+
+.res-bar-container.mineral .res-bar-fill { background: linear-gradient(to right, #005b88, var(--c-mineral)); border: 1px solid var(--c-mineral); }
+.res-bar-container.oxygen .res-bar-fill  { background: linear-gradient(to right, #1e8449, var(--c-oxygen)); border: 1px solid var(--c-oxygen); }
+.res-bar-container.energy .res-bar-fill  { background: linear-gradient(to right, #9a7d0a, var(--c-energy)); border: 1px solid var(--c-energy); }
+.res-bar-container.gem .res-bar-fill     { background: linear-gradient(to right, #881122, var(--c-danger)); border: 1px solid var(--c-danger); }
+.res-bar-container.builders .res-bar-fill { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+
+.inline-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin: 0 2px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.res-icon {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  z-index: 5;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.res-val {
+  position: relative;
+  z-index: 4;
+  font-family: var(--font-hd);
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 1px 1px 2px #000;
+  width: 100%;
+  text-align: center;
+  padding-right: 5px;
+}
 
 .hud-trophy {
   display: flex; align-items: center; gap: 4px; padding: 6px 12px;
