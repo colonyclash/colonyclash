@@ -168,16 +168,21 @@ html, body {
 
 /* ========== BUILD/MOVE CANCEL BAR ========== */
 #build-cancel-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; display: none;
+  position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%);
+  display: none;
   align-items: center; justify-content: center; gap: 12px;
-  padding: 16px; background: rgba(7,10,26,0.96);
-  border-top: 1px solid rgba(0,212,255,0.2); z-index: 55;
-  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding: 12px 20px; background: rgba(7,10,26,0.92);
+  border: 1px solid rgba(0,212,255,0.4); z-index: 55;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  width: auto;
+  min-width: 300px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 #build-cancel-bar.visible { display: flex; }
-#build-mode-label { font-family: var(--font-hd); font-size: 11px; color: var(--c-primary); letter-spacing: 1px; flex: 1; text-align: center; }
-.btn-cancel-build { padding: 10px 24px; background: rgba(255,68,102,0.15); border: 1px solid rgba(255,68,102,0.4); border-radius: 8px; color: var(--c-danger); font-family: var(--font-hd); font-size: 10px; font-weight: 700; cursor: pointer; letter-spacing: 1px; }
-.btn-confirm-build { padding: 10px 24px; background: rgba(68,255,136,0.15); border: 1px solid rgba(68,255,136,0.4); border-radius: 8px; color: var(--c-success); font-family: var(--font-hd); font-size: 10px; font-weight: 700; cursor: pointer; letter-spacing: 1px; }
+#build-mode-label { font-family: var(--font-hd); font-size: 11px; color: var(--c-primary); letter-spacing: 1px; margin: 0 10px; }
+.btn-cancel-build { padding: 10px 20px; background: rgba(255,68,102,0.15); border: 1px solid rgba(255,68,102,0.4); border-radius: 8px; color: var(--c-danger); font-family: var(--font-hd); font-size: 10px; font-weight: 700; cursor: pointer; letter-spacing: 1px; }
+.btn-confirm-build { padding: 10px 20px; background: rgba(68,255,136,0.15); border: 1px solid rgba(68,255,136,0.4); border-radius: 8px; color: var(--c-success); font-family: var(--font-hd); font-size: 10px; font-weight: 700; cursor: pointer; letter-spacing: 1px; }
 .btn-confirm-build:hover { background: rgba(68,255,136,0.25); }
 
 /* ========== PANELS OVERLAY ========== */
@@ -1566,6 +1571,32 @@ html, body {
 .btn-accelerate-modern:hover {
   transform: scale(1.05);
   box-shadow: 0 0 15px rgba(0,200,83,0.4);
+}
+
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--c-danger);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #07091a;
+  box-shadow: 0 0 5px rgba(255, 68, 102, 0.5);
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 210, 21, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(0, 210, 21, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 210, 21, 0); }
 }
 
 /* Troop Training Grid */

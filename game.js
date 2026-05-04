@@ -1557,6 +1557,24 @@ function updateHUD() {
     bldEl.textContent = `${getBuildersInUse()} / ${getTotalBuilders()}`;
     bldEl.parentElement.style.color = hasFreeBuilder() ? 'var(--c-success)' : 'var(--c-danger)';
   }
+
+  // Update Mission Badge
+  const missionBadge = gel('mission-badge');
+  if (missionBadge && G.base.missions) {
+    let pendingCount = 0;
+    MISSIONS.forEach(m => {
+      const prog = G.base.missions.allProgress[m.id] || 0;
+      const isDone = prog >= m.goal;
+      const isClaimed = G.base.missions.claimed.includes(m.id);
+      if (isDone && !isClaimed) pendingCount++;
+    });
+    if (pendingCount > 0) {
+      missionBadge.textContent = pendingCount;
+      missionBadge.style.display = 'flex';
+    } else {
+      missionBadge.style.display = 'none';
+    }
+  }
 }
 
 function updateUILanguage() {
@@ -1824,10 +1842,24 @@ function renderMissionPanel() {
   
   let hasPending = false;
   
-  // Dividimos em Pendentes e Concluídas/Resgatadas?
-  // Vamos mostrar todas em uma lista única, mas destacando as que podem ser resgatadas.
-  
-  MISSIONS.forEach(m => {
+  // Sort missions: Done & !Claimed first, then !Done, then Claimed
+  const sortedMissions = [...MISSIONS].sort((a, b) => {
+    const progA = G.base.missions.allProgress[a.id] || 0;
+    const isDoneA = progA >= a.goal;
+    const isClaimedA = G.base.missions.claimed.includes(a.id);
+    
+    const progB = G.base.missions.allProgress[b.id] || 0;
+    const isDoneB = progB >= b.goal;
+    const isClaimedB = G.base.missions.claimed.includes(b.id);
+    
+    if (isDoneA && !isClaimedA && !(isDoneB && !isClaimedB)) return -1;
+    if (!(isDoneA && !isClaimedA) && isDoneB && !isClaimedB) return 1;
+    if (!isClaimedA && isClaimedB) return -1;
+    if (isClaimedA && !isClaimedB) return 1;
+    return a.id - b.id;
+  });
+
+  sortedMissions.forEach(m => {
     const prog = G.base.missions.allProgress[m.id] || 0;
     const isDone = prog >= m.goal;
     const pct = Math.min(100, Math.floor((prog / m.goal) * 100));
@@ -1837,7 +1869,7 @@ function renderMissionPanel() {
 
     html += `
       <div class="${isClaimed ? 'mission-card-next' : 'mission-box-current'}" style="${isClaimed ? 'opacity: 0.7; border-color: #444;' : ''}">
-        ${isDone && !isClaimed ? `<div class="mission-badge" style="background:#00D215;">${t('ready') || 'PRONTO'}</div>` : ''}
+        ${isDone && !isClaimed ? `<div class="mission-badge" style="background:#00D215; animation: pulse-green 2s infinite;">${t('ready') || 'PRONTO'}</div>` : ''}
         <div class="mission-flex">
           <div class="mission-info">
             <div class="mission-text">${t('mission_' + m.id)}</div>
@@ -2458,6 +2490,33 @@ async function startMatchmaking() {
   const area = gel('matchmaking-area');
   if (!area) return;
 
+  // USER REQUEST: Limite de 5 ataques por hora
+  if (!G.base.lastAttackReset) G.base.lastAttackReset = Date.now();
+  if (!G.base.attackCount) G.base.attackCount = 0;
+
+  const now = Date.now();
+  const hour = 3600000;
+  if (now - G.base.lastAttackReset >= hour) {
+    G.base.attackCount = 0;
+    G.base.lastAttackReset = now;
+    saveData();
+  }
+
+  if (G.base.attackCount >= 5) {
+    const nextReset = G.base.lastAttackReset + hour;
+    const waitMs = nextReset - now;
+    const waitMin = Math.ceil(waitMs / 60000);
+    area.innerHTML = `
+      <div class="mm-status">
+        <div style="font-size:40px; margin-bottom:10px;">⏳</div>
+        <div style="color:var(--c-danger); font-weight:bold;">Limite de ataques atingido!</div>
+        <div style="font-size:12px; margin-top:5px;">Você pode fazer 5 ataques por hora.<br>Próximo ataque disponível em <b>${waitMin} min</b>.</div>
+      </div>
+      <button class="mm-btn" onclick="gel('opponent-screen').classList.remove('visible')">VOLTAR</button>
+    `;
+    return;
+  }
+
   // Check own shield
   if (G.base.shieldUntil && G.base.shieldUntil > Date.now()) {
     const rem = Math.ceil((G.base.shieldUntil - Date.now()) / 3600000);
@@ -2549,6 +2608,11 @@ function confirmMatchmaking() {
   const screen = gel('opponent-screen');
   screen.classList.remove('visible');
   screen.classList.add('hidden');
+  
+  // Incrementar contador de ataques
+  G.base.attackCount = (G.base.attackCount || 0) + 1;
+  saveData();
+
   launchBattle(G._pendingOpponent);
   G._pendingOpponent = null;
 }
@@ -2589,7 +2653,7 @@ function launchBattle(opponent) {
     
     const scaleX = bCanvas.width  / (GRID_W * CELL_SIZE);
     const scaleY = bCanvas.height / (GRID_H * CELL_SIZE);
-    const scale  = Math.min(scaleX, scaleY) * 0.9 || 0.5;
+    const scale  = Math.min(scaleX, scaleY) * 1.5 || 0.8; // USER REQUEST: Zoom inicial maior
     const offX   = (bCanvas.width  - GRID_W * CELL_SIZE * scale) / 2;
     const offY   = (bCanvas.height - GRID_H * CELL_SIZE * scale) / 2;
 
@@ -2775,8 +2839,14 @@ function renderDeployBar() {
       G.battle.selectedTroop = type;
       renderDeployBar();
     };
+    
+    // USER REQUEST: Usar asset da tropa em vez de emoji
+    const imgKey = type === 'star_warrior' ? 'star_warrior.png' : `${type}_sprite.png`;
+    
     card.innerHTML = `
-      <div class="dc-emoji">${td.emoji}</div>
+      <div class="dc-emoji">
+        <img src="${imgKey}" style="width:32px; height:32px; object-fit:contain;">
+      </div>
       <div class="dc-count">${count}</div>
     `;
     bar.appendChild(card);
@@ -2946,13 +3016,36 @@ function drawBattleFrame() {
   const W = bCanvas.width, H = bCanvas.height;
   const { scale, offX, offY } = bs;
 
-  bCtx.fillStyle = '#07091a';
+  // Draw Moon Background (Igual ao da base)
+  if (!window.battleCraters) {
+    const rng = mulberry32(123);
+    window.battleCraters = [];
+    for (let i = 0; i < 30; i++)
+      window.battleCraters.push({ cx: rng() * W, cy: rng() * H, r: 10 + rng() * 40, d: 0.2 + rng() * 0.5 });
+  }
+
+  // Desenha fundo escuro
+  bCtx.fillStyle = '#1e1e2e';
   bCtx.fillRect(0,0,W,H);
 
-  // Draw Moon Surface
+  // Desenha crateras de fundo
+  for (const c of window.battleCraters) {
+    const g = bCtx.createRadialGradient(c.cx - c.r*0.3, c.cy - c.r*0.3, 0, c.cx, c.cy, c.r);
+    g.addColorStop(0, `rgba(100,100,120,${c.d * 0.3})`);
+    g.addColorStop(1, `rgba(0,0,0,0)`);
+    bCtx.beginPath(); bCtx.arc(c.cx, c.cy, c.r, 0, Math.PI*2);
+    bCtx.fillStyle = g; bCtx.fill();
+  }
+
+  // Draw Moon Surface (Onde fica a grade)
   const gridW = GRID_W * CELL_SIZE * scale;
   const gridH = GRID_H * CELL_SIZE * scale;
-  bCtx.fillStyle = '#1a1c2c';
+  
+  // Gradiente radial para a superfície lunar
+  const surfG = bCtx.createRadialGradient(offX + gridW/2, offY + gridH/2, 0, offX + gridW/2, offY + gridH/2, gridW*0.7);
+  surfG.addColorStop(0, '#505060');
+  surfG.addColorStop(1, '#343444');
+  bCtx.fillStyle = surfG;
   bCtx.fillRect(offX, offY, gridW, gridH);
 
   // Draw Grid/Floor
@@ -3083,11 +3176,19 @@ async function endBattle() {
   G.base.resources.mineral = Math.min(G.base.resources.mineral + bs.lootedMin, getStorageCapacity(G.base.buildings, 'mineral'));
   G.base.resources.oxygen  = Math.min(G.base.resources.oxygen  + bs.lootedOxy, getStorageCapacity(G.base.buildings, 'oxygen'));
 
-  // Consume used troops (only those that were killed)
-  bs.troops.forEach(t => {
-    if (!t.alive) {
-      G.base.troops[t.type] = Math.max(0, (G.base.troops[t.type] || 0) - 1);
-    }
+  // Consume ALL deployed troops (USER REQUEST)
+  Object.keys(bs.deployPool).forEach(type => {
+    // Total original - what's left in deployPool
+    const originalCount = G.base.troops[type] || 0;
+    const remainingInPool = bs.deployPool[type] || 0;
+    // We already subtracted killed troops in some logic? No, let's do it clean:
+    // Any troop that was deployed (original - remainingInPool) is lost.
+    // However, the current code logic might be confusing. 
+    // Let's assume deployPool is what wasn't used yet.
+    // So troops used = (Original before battle) - (Remaining in deployPool)
+    // Actually, launchBattle copies G.base.troops to bs.deployPool.
+    // So G.base.troops[type] should be updated to match the remaining bs.deployPool.
+    G.base.troops[type] = remainingInPool;
   });
 
   // Sync with Firebase
@@ -3859,7 +3960,18 @@ window.modernSearchPlayers = async function() {
   results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
   
   try {
-    const snap = await G.db.collection('users').where('playerName', '==', query).limit(10).get();
+    // USER REQUEST: Buscar por nome OU por UID
+    let snap = await G.db.collection('users').where('playerName', '==', query).limit(10).get();
+    
+    // Se não achou por nome, tenta por UID
+    if (snap.empty) {
+      const doc = await G.db.collection('users').doc(query).get();
+      if (doc.exists) {
+        // Criar um "mock" de snapshot
+        snap = { docs: [doc], forEach: (cb) => cb(doc) };
+      }
+    }
+
     let html = '';
     snap.forEach(doc => {
       const p = doc.data();
@@ -3872,6 +3984,7 @@ window.modernSearchPlayers = async function() {
           <div class="sp-info">
             <span class="sp-name">${pName}</span>
             <span class="sp-meta">CC Nível ${p.ccLevel || 1} <span>${league.name}</span></span>
+            <span style="font-size:9px; color:#666;">UID: ${doc.id}</span>
           </div>
           <div class="sp-actions">
             <button class="btn-sp-visit" onclick="visitPlayer('${doc.id}')">VISITAR</button>
