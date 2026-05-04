@@ -658,39 +658,81 @@ html, body {
 /* ========== POPUP LAB BUTTON ========== */
 .popup-btn.lab { grid-column: span 2; background: linear-gradient(135deg,rgba(124,77,255,0.3),rgba(77,0,255,0.15)); border: 1px solid rgba(124,77,255,0.5); color: #c4a8ff; font-family: var(--font-hd); }
 
-/* ========== TUTORIAL OVERLAY ========== */
-.tutorial-overlay {
-  position: fixed; inset: 0; z-index: 600;
-  background: rgba(0,0,0,0.88); backdrop-filter: blur(14px);
-  display: flex; align-items: center; justify-content: center;
-  opacity: 0; visibility: hidden; transition: 0.3s;
+/* ========== INTERACTIVE TUTORIAL ========== */
+.tutorial-arrow {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: none;
+  animation: bounceArrow 1s infinite alternate;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+  transform-origin: center;
 }
-.tutorial-overlay.visible { opacity: 1; visibility: visible; }
-.tutorial-box {
-  background: var(--bg-panel); border: 1px solid var(--border-glow);
-  border-radius: 24px; padding: 28px; max-width: 420px; width: 92%;
-  box-shadow: 0 0 60px rgba(0,212,255,0.2);
+
+@keyframes bounceArrow {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(10px); }
 }
-.tutorial-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-.tutorial-icon { font-size: 36px; }
-.tutorial-title { font-family: var(--font-hd); font-size: 14px; font-weight: 900; color: var(--c-primary); letter-spacing: 1px; }
-.tutorial-body p { font-size: 13px; color: #ccc; margin-bottom: 14px; line-height: 1.6; }
-.tutorial-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-.tstep { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: #bbb; line-height: 1.5; }
-.tstep-num {
-  min-width: 22px; height: 22px; border-radius: 50%;
+
+.tutorial-dialog {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid var(--c-primary);
+  border-radius: 15px;
+  padding: 15px;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+  backdrop-filter: blur(10px);
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.tutorial-dialog.visible { opacity: 1; visibility: visible; }
+.tutorial-dialog.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.tutorial-dialog-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.tutorial-dialog-avatar {
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  padding: 5px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.tutorial-dialog-text {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #fff;
+  line-height: 1.4;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.tutorial-btn {
   background: linear-gradient(135deg, var(--c-primary), #005b88);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-hd); font-size: 10px; font-weight: 900; color: #fff; flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  padding: 10px;
+  font-family: var(--font-hd);
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+  text-align: center;
 }
-.tutorial-tip { background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.25); border-radius: 10px; padding: 10px 14px; font-size: 11px; color: var(--c-gold); }
-.tutorial-close-btn {
-  width: 100%; padding: 16px; margin-top: 20px;
-  background: linear-gradient(135deg, var(--c-primary), #005b88);
-  border: none; border-radius: 12px; color: #fff;
-  font-family: var(--font-hd); font-size: 12px; font-weight: 700;
-  cursor: pointer; letter-spacing: 1px;
-  box-shadow: 0 0 20px rgba(0,212,255,0.3);
+.tutorial-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 5px 15px rgba(0,212,255,0.4);
 }
 
 /* ========== LAB MODAL ========== */

@@ -3332,17 +3332,138 @@ function renderShopPanel() {
 }
 
 // ============================================================
-// TUTORIAL
+// INTERACTIVE TUTORIAL
 // ============================================================
+let currentTutorialStep = 0;
+let tutorialArrowInterval = null;
+
 function showTutorial() {
-  const overlay = gel('tutorial-overlay');
-  if (overlay) overlay.classList.add('visible');
+  if (G.base.tutorialDone) return;
+  const dialog = gel('tutorial-dialog');
+  if (dialog) {
+    dialog.classList.remove('hidden');
+    dialog.classList.add('visible');
+    currentTutorialStep = 0;
+    updateTutorialStep();
+  }
 }
+
+function updateTutorialStep() {
+  const textEl = gel('tutorial-text');
+  const arrow = gel('tutorial-arrow');
+  const btn = gel('tutorial-next-btn');
+  
+  if (tutorialArrowInterval) clearTimeout(tutorialArrowInterval);
+  if (tutorialArrowInterval) clearInterval(tutorialArrowInterval);
+  if (arrow) arrow.classList.add('hidden');
+  if (btn) btn.style.display = 'none';
+
+  if (currentTutorialStep === 0) {
+    textEl.textContent = "Bem-vindo, Comandante! Vou te guiar nos primeiros passos.";
+    btn.style.display = 'block';
+    btn.textContent = "Continuar";
+  } else if (currentTutorialStep === 1) {
+    textEl.textContent = "Primeiro, precisamos de Minério. Clique no botão de Construir (+).";
+    pointArrowToElement('fab-build', 'top');
+  } else if (currentTutorialStep === 2) {
+    textEl.textContent = "Excelente! Agora selecione o 'Extrator de Minério'.";
+    pointArrowToBuildingCard('mineral_extractor');
+  } else if (currentTutorialStep === 3) {
+    textEl.textContent = "Ótimo! Mova o mapa se precisar. Escolha um local na grade (onde fica verde) e confirme a construção clicando no ✔.";
+    pointArrowToCanvasCenter();
+  } else if (currentTutorialStep === 4) {
+    textEl.textContent = "Pronto! Você acaba de dar o primeiro passo. Siga as missões (ícone no topo) para evoluir a base!";
+    if (btn) {
+      btn.style.display = 'block';
+      btn.textContent = "Entendido, Começar!";
+    }
+  } else if (currentTutorialStep > 4) {
+    closeTutorial();
+  }
+}
+
+function nextTutorialStep() {
+  currentTutorialStep++;
+  updateTutorialStep();
+}
+
+function advanceTutorialIf(step) {
+  if (!G.base.tutorialDone && currentTutorialStep === step) {
+    nextTutorialStep();
+  }
+}
+
 function closeTutorial() {
-  const overlay = gel('tutorial-overlay');
-  if (overlay) overlay.classList.remove('visible');
+  const dialog = gel('tutorial-dialog');
+  const arrow = gel('tutorial-arrow');
+  if (dialog) {
+    dialog.classList.remove('visible');
+    dialog.classList.add('hidden');
+  }
+  if (arrow) arrow.classList.add('hidden');
+  if (tutorialArrowInterval) clearInterval(tutorialArrowInterval);
+  if (tutorialArrowInterval) clearTimeout(tutorialArrowInterval);
   G.base.tutorialDone = true;
   saveData();
+}
+
+function pointArrowToElement(id, direction='top') {
+  const el = gel(id);
+  if (!el || el.offsetParent === null) {
+    tutorialArrowInterval = setTimeout(() => pointArrowToElement(id, direction), 200);
+    return;
+  }
+  const arrow = gel('tutorial-arrow');
+  if (arrow) arrow.classList.remove('hidden');
+  
+  tutorialArrowInterval = setInterval(() => {
+    const rect = el.getBoundingClientRect();
+    if (arrow) {
+      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+      arrow.style.top = (rect.top - 50) + 'px';
+      // Seta apontando pra baixo para o FAB
+      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
+    }
+  }, 50);
+}
+
+function pointArrowToBuildingCard(bldId) {
+  const cards = document.querySelectorAll('.build-card-new');
+  let target = null;
+  for (let c of cards) {
+    if (c.onclick && c.onclick.toString().includes(`'${bldId}'`)) {
+      target = c;
+      break;
+    }
+  }
+  if (!target || target.offsetParent === null) {
+    tutorialArrowInterval = setTimeout(() => pointArrowToBuildingCard(bldId), 200);
+    return;
+  }
+  const arrow = gel('tutorial-arrow');
+  if (arrow) arrow.classList.remove('hidden');
+  tutorialArrowInterval = setInterval(() => {
+    const rect = target.getBoundingClientRect();
+    if (arrow) {
+      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+      arrow.style.top = (rect.top - 40) + 'px';
+      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
+    }
+  }, 50);
+}
+
+function pointArrowToCanvasCenter() {
+  const arrow = gel('tutorial-arrow');
+  if (arrow) arrow.classList.remove('hidden');
+  const canvas = gel('game-canvas');
+  tutorialArrowInterval = setInterval(() => {
+    const rect = canvas.getBoundingClientRect();
+    if (arrow) {
+      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+      arrow.style.top = (rect.top + rect.height / 2 - 50) + 'px';
+      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
+    }
+  }, 50);
 }
 
 // ============================================================

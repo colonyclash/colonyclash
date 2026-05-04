@@ -519,27 +519,19 @@
 </div>
 
 
-<!-- ===================== TUTORIAL OVERLAY ===================== -->
-<div id="tutorial-overlay" class="tutorial-overlay">
-  <div class="tutorial-box">
-    <div class="tutorial-header">
-      <span class="tutorial-icon">🚀</span>
-      <div class="tutorial-title" data-t="welcome">BEM-VINDO À COLÔNIA LUNAR!</div>
-    </div>
-    <div class="tutorial-body">
-      <p>Você começa com <strong>1.500 <img src="mineral_icon.svg" class="inline-icon"> Minério</strong>, <strong>1.000 <img src="oxygen_icon.svg" class="inline-icon"> Oxigênio</strong> e <strong>500 <img src="energy_icon.svg" class="inline-icon"> Energia</strong>.</p>
-      <div class="tutorial-steps">
-        <div class="tstep"><span class="tstep-num">1</span><span>Construa um <b>Extrator de Minério</b> (100<img src="mineral_icon.svg" class="inline-icon">) — gera minério passivamente.</span></div>
-        <div class="tstep"><span class="tstep-num">2</span><span>Construa um <b>Extrator de Oxigênio</b> (150<img src="mineral_icon.svg" class="inline-icon">) — gera oxigênio passivamente.</span></div>
-        <div class="tstep"><span class="tstep-num">3</span><span>Construa um <b>Quartel</b> (500<img src="mineral_icon.svg" class="inline-icon"> + 200<img src="oxygen_icon.svg" class="inline-icon">) para treinar tropas.</span></div>
-        <div class="tstep"><span class="tstep-num">4</span><span>Construa um <b>Acampamento</b> (250<img src="mineral_icon.svg" class="inline-icon"> + 100<img src="oxygen_icon.svg" class="inline-icon">) para abrigar as tropas.</span></div>
-        <div class="tstep"><span class="tstep-num">5</span><span data-t="tutorial_step5">Melhore o CC para nível 2 e 3 para desbloquear mais construções.</span></div>
-        <div class="tstep"><span class="tstep-num">6</span><span data-t="tutorial_step6">No CC nível 3 o Laboratório é desbloqueado — pesquise melhorias de tropas com <img src="energy_icon.svg" class="inline-icon"> Energia.</span></div>
-      </div>
-      <div class="tutorial-tip" data-t="tutorial_tip">💡 Dica: Construa Armazéns para aumentar sua capacidade de recursos!</div>
-    </div>
-    <button class="tutorial-close-btn" onclick="closeTutorial()" data-t="tutorial_start">ENTENDIDO — COMEÇAR! 🚀</button>
+<!-- ===================== INTERACTIVE TUTORIAL ===================== -->
+<div id="tutorial-arrow" class="tutorial-arrow hidden">
+  <svg viewBox="0 0 24 24" fill="var(--c-primary)" width="40" height="40">
+    <path d="M12 21l-8-8h5V3h6v10h5z"/>
+  </svg>
+</div>
+
+<div id="tutorial-dialog" class="tutorial-dialog hidden">
+  <div class="tutorial-dialog-content">
+    <div class="tutorial-dialog-avatar"><img src="astronaut_builder.svg" style="width:40px;height:40px;"></div>
+    <div class="tutorial-dialog-text" id="tutorial-text">Bem-vindo, Comandante! Vou te guiar nos primeiros passos.</div>
   </div>
+  <button id="tutorial-next-btn" class="tutorial-btn" onclick="nextTutorialStep()">Continuar</button>
 </div>
 
 <!-- ===================== LAB MODAL ===================== -->
