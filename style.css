@@ -675,7 +675,7 @@ html, body {
 
 .tutorial-dialog {
   position: fixed;
-  bottom: 20px;
+  top: 80px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -683,14 +683,14 @@ html, body {
   background: rgba(15, 23, 42, 0.95);
   border: 2px solid var(--c-primary);
   border-radius: 15px;
-  padding: 15px;
+  padding: 20px;
   z-index: 9998;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
-  backdrop-filter: blur(10px);
-  transition: opacity 0.3s, visibility 0.3s;
+  gap: 12px;
+  box-shadow: 0 15px 40px rgba(0, 0, 255, 0.4);
+  backdrop-filter: blur(15px);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .tutorial-dialog.visible { opacity: 1; visibility: visible; }
@@ -1088,12 +1088,24 @@ html, body {
 
 /* ===================== BUILD GHOST & BADGES ===================== */
 .bld-ghost {
-  position: absolute; pointer-events: none; z-index: 50; opacity: 0.6;
-  border-radius: 4px; transition: left 0.1s, top 0.1s;
+  position: absolute; pointer-events: none; z-index: 50; 
+  border-radius: 8px; transition: left 0.1s, top 0.1s;
+  overflow: hidden;
 }
-.bld-ghost.valid { background: rgba(46, 204, 113, 0.4); border: 2px solid #2ecc71; }
-.bld-ghost.invalid { background: rgba(231, 76, 60, 0.4); border: 2px solid #e74c3c; }
-.bld-ghost img { width: 100%; height: 100%; object-fit: contain; }
+.bld-ghost.valid { 
+  background: rgba(0, 212, 255, 0.1); 
+  border: 2px solid var(--c-primary);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+.bld-ghost.invalid { 
+  background: rgba(255, 68, 102, 0.1); 
+  border: 2px solid var(--c-danger);
+  box-shadow: 0 0 20px rgba(255, 68, 102, 0.4);
+}
+.bld-ghost img { 
+  width: 100%; height: 100%; object-fit: contain;
+  filter: brightness(1.2);
+}
 
 .bld-badge {
   position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
@@ -1836,4 +1848,16 @@ html, body {
   .hud-meta { flex-direction: row; gap: 10px; align-items: center; width: 100%; justify-content: space-between; }
   .hud-name { font-size: 12px; max-width: none; }
   .hud-cc { font-size: 11px; }
+}
+
+.badge {
+  position: absolute; top: -5px; right: -5px;
+  background: #ff4466; color: #fff;
+  font-size: 10px; font-weight: bold;
+  min-width: 18px; height: 18px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+  z-index: 10;
 }

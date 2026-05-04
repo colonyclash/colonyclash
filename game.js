@@ -1193,6 +1193,8 @@ function enterBuildMode(type) {
   G.ui.buildType = type;
   G.ui.ghostX = -1; G.ui.ghostY = -1;
 
+  if (type === 'mineral_extractor') advanceTutorialIf(2);
+
   closePanels();
   gel('map-container').classList.add('build-mode');
   gel('build-cancel-bar').classList.add('visible');
@@ -1336,6 +1338,7 @@ function confirmPlace() {
   exitBuildMode();
   updateHUD();
   saveData();
+  if (buildType === 'mineral_extractor') advanceTutorialIf(3);
   notify(`${t(buildType)} ${t('ready')}!`, 'success');
 }
 
@@ -1630,7 +1633,10 @@ function showPanel(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   gel('nav-' + name)?.classList.add('active');
 
-  if (name === 'build')   renderBuildPanel();
+  if (name === 'build') {
+    renderBuildPanel();
+    advanceTutorialIf(1);
+  }
   if (name === 'troops')  renderTroopsPanel();
   if (name === 'mission') renderMissionPanel();
 }
@@ -1668,6 +1674,7 @@ function renderBuildPanel() {
 
     const card = document.createElement('div');
     card.className = 'build-card-new' + (locked ? ' locked' : '');
+    card.dataset.type = type;
     
     const costVal = lv1.cost.mineral || lv1.cost.oxygen || 0;
     const costIcon = lv1.cost.mineral !== undefined ? '<img src="mineral_icon.svg" class="inline-icon">' : '<img src="oxygen_icon.svg" class="inline-icon">';
@@ -1978,14 +1985,14 @@ function claimMissionReward(id) {
   if (m.rewardType === 'mineral') {
     G.base.resources.mineral += m.reward;
     clampResources();
-    notify(`${t('reward_claimed_success')}: +${m.reward} <img src="mineral_icon.svg" class="inline-icon">`, 'success');
+    notify(`+${m.reward} <img src="mineral_icon.svg" class="inline-icon">`, 'success');
   } else if (m.rewardType === 'energy') {
     G.base.resources.energy += m.reward;
     clampResources();
-    notify(`${t('reward_claimed_success')}: +${m.reward} <img src="energy_icon.svg" class="inline-icon">`, 'success');
+    notify(`+${m.reward} <img src="energy_icon.svg" class="inline-icon">`, 'success');
   } else {
     G.base.gems = (G.base.gems || 0) + m.reward;
-    notify(`${t('reward_claimed_success')}: +${m.reward} <img src="gems_icon.svg" class="inline-icon">`, 'success');
+    notify(`+${m.reward} <img src="gems_icon.svg" class="inline-icon">`, 'success');
   }
   
   updateHUD();
@@ -3364,7 +3371,7 @@ function updateTutorialStep() {
     btn.textContent = "Continuar";
   } else if (currentTutorialStep === 1) {
     textEl.textContent = "Primeiro, precisamos de Minério. Clique no botão de Construir (+).";
-    pointArrowToElement('fab-build', 'top');
+    pointArrowToElement('nav-build', 'top');
   } else if (currentTutorialStep === 2) {
     textEl.textContent = "Excelente! Agora selecione o 'Extrator de Minério'.";
     pointArrowToBuildingCard('mineral_extractor');
@@ -3431,7 +3438,7 @@ function pointArrowToBuildingCard(bldId) {
   const cards = document.querySelectorAll('.build-card-new');
   let target = null;
   for (let c of cards) {
-    if (c.onclick && c.onclick.toString().includes(`'${bldId}'`)) {
+    if (c.dataset.type === bldId) {
       target = c;
       break;
     }
