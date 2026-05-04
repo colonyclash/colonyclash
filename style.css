@@ -1784,3 +1784,14 @@ html, body {
   .troop-card-modern { padding: 5px; }
   .tc-cost-bar { font-size: 10px; }
 }
+
+@media (max-width: 768px) {
+  #hud { flex-wrap: wrap; height: auto; padding: 5px; }
+  .hud-resources { gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .res-bar-container { min-width: 65px; height: 16px; padding-right: 10px; }
+  .res-icon { width: 20px; height: 20px; right: -6px; }
+  .res-val { font-size: 9px; }
+  .hud-meta { flex-direction: row; gap: 10px; align-items: center; width: 100%; justify-content: space-between; }
+  .hud-name { font-size: 12px; max-width: none; }
+  .hud-cc { font-size: 11px; }
+}

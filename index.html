@@ -159,7 +159,7 @@
     <p id="popup-desc"></p>
     <div class="popup-buttons">
       <button class="pbtn btn-upgrade" id="popup-upgrade">⬆ Melhorar</button>
-      <button class="pbtn btn-speed"   id="popup-speedup">⚡ Acelerar</button>
+      <button class="pbtn btn-speed"   id="popup-speedup"><img src="energy_icon.svg" class="inline-icon"> Acelerar</button>
       <button class="pbtn btn-cancel"  id="popup-cancel-up">✕ Cancelar</button>
       <button class="pbtn btn-profile" id="popup-profile">👤 Perfil</button>
       <button class="pbtn btn-clan"    id="popup-clan">🏰 Clã</button>
@@ -188,7 +188,7 @@
       <div class="tab" onclick="filterBuildTab('shop')"><img src="gems.png" class="tab-img"></div>
       <div class="tab" onclick="filterBuildTab('res')"><img src="resources.png" class="tab-img"></div>
       <div class="tab" onclick="filterBuildTab('shield')"><img src="shield.png" class="tab-img"></div>
-      <div class="tab" onclick="filterBuildTab('builders')"><span style="font-size: 28px;">👨‍🚀</span></div>
+      <div class="tab" onclick="filterBuildTab('builders')"><img src="astronaut_builder.svg" style="width:28px;height:28px;"></div>
     </div>
     <div class="panel-inner">
       <div class="panel-head-new" id="build-panel-head" data-t="available_buildings">CONSTRUÇÕES DISPONÍVEIS</div>
@@ -234,7 +234,7 @@
           </div>
           <button class="btn-accelerate-modern" onclick="speedUpTotalTraining()">
             <span data-t="accelerate">ACELERAR</span>
-            <span id="accelerate-cost-modern">0 💎</span>
+            <span id="accelerate-cost-modern">0 <img src="gems_icon.svg" class="inline-icon"></span>
           </button>
         </div>
 
@@ -425,8 +425,8 @@
     <div class="atk-header-left">
       <div class="atk-label" data-t="battle_label">⚔️ BATALHA LUNAR</div>
       <div class="atk-loot-modern" id="atk-loot">
-        <div class="loot-item">⛏️ <span id="loot-min">0</span></div>
-        <div class="loot-item">💨 <span id="loot-oxy">0</span></div>
+        <div class="loot-item"><img src="mineral_icon.svg" class="inline-icon"> <span id="loot-min">0</span></div>
+        <div class="loot-item"><img src="oxygen_icon.svg" class="inline-icon"> <span id="loot-oxy">0</span></div>
       </div>
     </div>
     <div class="atk-header-right">
@@ -473,8 +473,8 @@
       </div>
       
       <div class="res-resources">
-        <div class="res-loot-row">⛏️ <span id="res-min">0</span></div>
-        <div class="res-loot-row">💨 <span id="res-oxy">0</span></div>
+        <div class="res-loot-row"><img src="mineral_icon.svg" class="inline-icon"> <span id="res-min">0</span></div>
+        <div class="res-loot-row"><img src="oxygen_icon.svg" class="inline-icon"> <span id="res-oxy">0</span></div>
       </div>
     </div>
 
@@ -498,10 +498,10 @@
     <input type="text" id="admin-target-uid" placeholder="UID do Jogador" style="width:100%; padding: 10px; margin-bottom: 10px; background: #0f172a; border: 1px solid #334; color: white; border-radius: 5px; outline:none;">
     
     <select id="admin-give-type" style="width:100%; padding: 10px; margin-bottom: 10px; background: #0f172a; border: 1px solid #334; color: white; border-radius: 5px; outline:none;">
-      <option value="mineral">⛏️ Minério</option>
-      <option value="oxygen">💨 Oxigênio</option>
-      <option value="energy">⚡ Energia</option>
-      <option value="gems">💎 Gemas (Cristais)</option>
+      <option value="mineral">Minério</option>
+      <option value="oxygen">Oxigênio</option>
+      <option value="energy">Energia</option>
+      <option value="gems">Gemas (Cristais)</option>
       <option value="trophies">🏆 Troféus</option>
       <option value="tank">🚀 Adicionar 100 Tanques</option>
     </select>
@@ -527,14 +527,14 @@
       <div class="tutorial-title" data-t="welcome">BEM-VINDO À COLÔNIA LUNAR!</div>
     </div>
     <div class="tutorial-body">
-      <p>Você começa com <strong>1.500 ⛏️ Minério</strong>, <strong>1.000 💨 Oxigênio</strong> e <strong>500 ⚡ Energia</strong>.</p>
+      <p>Você começa com <strong>1.500 <img src="mineral_icon.svg" class="inline-icon"> Minério</strong>, <strong>1.000 <img src="oxygen_icon.svg" class="inline-icon"> Oxigênio</strong> e <strong>500 <img src="energy_icon.svg" class="inline-icon"> Energia</strong>.</p>
       <div class="tutorial-steps">
-        <div class="tstep"><span class="tstep-num">1</span><span>Construa um <b>Extrator de Minério</b> (100⛏️) — gera minério passivamente.</span></div>
-        <div class="tstep"><span class="tstep-num">2</span><span>Construa um <b>Extrator de Oxigênio</b> (150⛏️) — gera oxigênio passivamente.</span></div>
-        <div class="tstep"><span class="tstep-num">3</span><span>Construa um <b>Quartel</b> (500⛏️ + 200💨) para treinar tropas.</span></div>
-        <div class="tstep"><span class="tstep-num">4</span><span>Construa um <b>Acampamento</b> (250⛏️ + 100💨) para abrigar as tropas.</span></div>
+        <div class="tstep"><span class="tstep-num">1</span><span>Construa um <b>Extrator de Minério</b> (100<img src="mineral_icon.svg" class="inline-icon">) — gera minério passivamente.</span></div>
+        <div class="tstep"><span class="tstep-num">2</span><span>Construa um <b>Extrator de Oxigênio</b> (150<img src="mineral_icon.svg" class="inline-icon">) — gera oxigênio passivamente.</span></div>
+        <div class="tstep"><span class="tstep-num">3</span><span>Construa um <b>Quartel</b> (500<img src="mineral_icon.svg" class="inline-icon"> + 200<img src="oxygen_icon.svg" class="inline-icon">) para treinar tropas.</span></div>
+        <div class="tstep"><span class="tstep-num">4</span><span>Construa um <b>Acampamento</b> (250<img src="mineral_icon.svg" class="inline-icon"> + 100<img src="oxygen_icon.svg" class="inline-icon">) para abrigar as tropas.</span></div>
         <div class="tstep"><span class="tstep-num">5</span><span data-t="tutorial_step5">Melhore o CC para nível 2 e 3 para desbloquear mais construções.</span></div>
-        <div class="tstep"><span class="tstep-num">6</span><span data-t="tutorial_step6">No CC nível 3 o Laboratório é desbloqueado — pesquise melhorias de tropas com ⚡ Energia.</span></div>
+        <div class="tstep"><span class="tstep-num">6</span><span data-t="tutorial_step6">No CC nível 3 o Laboratório é desbloqueado — pesquise melhorias de tropas com <img src="energy_icon.svg" class="inline-icon"> Energia.</span></div>
       </div>
       <div class="tutorial-tip" data-t="tutorial_tip">💡 Dica: Construa Armazéns para aumentar sua capacidade de recursos!</div>
     </div>
@@ -557,7 +557,7 @@
 <!-- ===================== CC PATH MODAL (Percurso do Astronauta) ===================== -->
 <div class="modal-overlay" id="cc-path-modal">
   <div class="modal-box cc-path-box">
-    <div class="modal-icon">👨‍🚀</div>
+    <div class="modal-icon"><img src="astronaut_builder.svg" style="width:32px;height:32px;"></div>
     <div class="modal-title">PERCURSO DO ASTRONAUTA</div>
     <div id="cc-path-body" style="margin:12px 0; max-height:55vh; overflow-y:auto; text-align: left;">
       <!-- Conteúdo dinâmico -->

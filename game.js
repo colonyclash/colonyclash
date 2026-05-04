@@ -292,7 +292,7 @@ function processOfflineResources() {
   clampResources();
   if (elapsed > 60 && (gain.mineral > 1 || gain.oxygen > 1)) {
     setTimeout(() =>
-      notify(`Offline ${fmtTime(elapsed)}: +${fmtNum(gain.mineral)} ⛏️  +${fmtNum(gain.oxygen)} 💨`, 'success'),
+      notify(`Offline ${fmtTime(elapsed)}: +${fmtNum(gain.mineral)} <img src="mineral_icon.svg" class="inline-icon">  +${fmtNum(gain.oxygen)} <img src="oxygen_icon.svg" class="inline-icon">`, 'success'),
     1500);
   }
 }
@@ -491,13 +491,13 @@ window.showBuildersModal = function() {
   const cost = costs[current];
   
   const modal = gel('upgrade-modal');
-  gel('modal-icon').textContent  = '👨‍🚀';
+  gel('modal-icon').innerHTML  = '<img src="astronaut_builder.svg" class="inline-icon">';
   gel('modal-title').textContent = 'Contratar Astronauta Construtor';
   gel('modal-desc').textContent  = `Deseja contratar mais um astronauta para realizar construções simultâneas?\nAtual: ${current} | Novo: ${current + 1}`;
   
   const costsEl = gel('modal-costs');
   const affordable = (G.base.gems || 0) >= cost;
-  costsEl.innerHTML = `<span class="modal-cost-item" style="color:${affordable ? 'var(--c-gem)' : 'var(--c-danger)'}">💎 ${cost}</span>`;
+  costsEl.innerHTML = `<span class="modal-cost-item" style="color:${affordable ? 'var(--c-gem)' : 'var(--c-danger)'}"><img src="gems_icon.svg" class="inline-icon"> ${cost}</span>`;
   
   const confirmBtn = gel('modal-confirm');
   confirmBtn.disabled = !affordable;
@@ -922,7 +922,7 @@ function showBldPopup(bId, cx, cy) {
   } else if (b.upgradeFinish && b.upgradeFinish > Date.now()) {
     desc = '⚡ ' + t('upgrading') + '... ' + fmtTime((b.upgradeFinish - Date.now()) / 1000);
   } else if (def.isResource && lvl.production) {
-    const icon = { mineral: '⛏️', oxygen: '💨', energy: '⚡' }[def.resourceType] || '';
+    const icon = { mineral: '<img src="mineral_icon.svg" class="inline-icon">', oxygen: '<img src="oxygen_icon.svg" class="inline-icon">', energy: '<img src="energy_icon.svg" class="inline-icon">' }[def.resourceType] || '';
     desc += `\n${icon} +${lvl.production}/min`;
   } else if (b.type === 'camp') {
     desc += `\n${t('capacity')}: ${lvl.capacity}`;
@@ -1004,7 +1004,7 @@ function showBldPopup(bId, cx, cy) {
     const finish = b.buildFinish > Date.now() ? b.buildFinish : b.upgradeFinish;
     const remSeconds = (finish - Date.now()) / 1000;
     const gemCost = Math.max(1, Math.ceil(remSeconds / 60));
-    speedBtn.innerHTML = `⚡ ACELERAR <span style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;margin-left:5px">💎 ${gemCost}</span>`;
+    speedBtn.innerHTML = `<img src="energy_icon.svg" class="inline-icon"> ACELERAR <span style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;margin-left:5px"><img src="gems_icon.svg" class="inline-icon"> ${gemCost}</span>`;
     speedBtn.onclick = () => speedUpBuilding(bId, gemCost);
     
     if (isUpgrading) {
@@ -1018,7 +1018,7 @@ function showBldPopup(bId, cx, cy) {
   const delBtn = gel('popup-destroy');
   if (def.isObstacle) {
     delBtn.style.display = 'block';
-    delBtn.textContent = `🗑️ Remover (100 ⛏️)`;
+    delBtn.innerHTML = `🗑️ Remover (100 <img src="mineral_icon.svg" class="inline-icon">)`;
     delBtn.onclick = () => removeObstacle(bId);
     moveBtn.style.display = 'none';
   } else {
@@ -1042,7 +1042,7 @@ function showBuildingDetails(bId) {
   
   if (def.isResource) {
     const resNames = { mineral: t('mineral'), oxygen: t('oxygen'), energy: t('energy') };
-    html += `<li style="margin-bottom:8px;">💎 <b>${t('production')}:</b> ${lvl.production}/min (${resNames[def.resourceType]})</li>`;
+    html += `<li style="margin-bottom:8px;"><img src="${def.resourceType === 'oxygen' ? 'oxygen_icon.svg' : (def.resourceType === 'energy' ? 'energy_icon.svg' : 'mineral_icon.svg')}" class="inline-icon"> <b>${t('production')}:</b> ${lvl.production}/min (${resNames[def.resourceType]})</li>`;
   }
   if (def.isDefense) {
     html += `<li style="margin-bottom:8px;">⚔️ <b>${t('damage')}:</b> ${lvl.damage}</li>`;
@@ -1107,15 +1107,15 @@ function showUpgradeModal(bId) {
   costsEl.innerHTML = '';
   if (nextLvl.cost?.mineral > 0) {
     const affordable = G.base.resources.mineral >= nextLvl.cost.mineral;
-    costsEl.innerHTML += `<span class="modal-cost-item" style="color:${affordable ? '#7EC8E3' : '#FF4466'}">⛏️ ${fmtNum(nextLvl.cost.mineral)}</span>`;
+    costsEl.innerHTML += `<span class="modal-cost-item" style="color:${affordable ? '#7EC8E3' : '#FF4466'}"><img src="mineral_icon.svg" class="inline-icon"> ${fmtNum(nextLvl.cost.mineral)}</span>`;
   }
   if (nextLvl.cost?.oxygen > 0) {
     const affordable = G.base.resources.oxygen >= nextLvl.cost.oxygen;
-    costsEl.innerHTML += `<span class="modal-cost-item" style="color:${affordable ? '#78E89C' : '#FF4466'}">💨 ${fmtNum(nextLvl.cost.oxygen)}</span>`;
+    costsEl.innerHTML += `<span class="modal-cost-item" style="color:${affordable ? '#78E89C' : '#FF4466'}"><img src="oxygen_icon.svg" class="inline-icon"> ${fmtNum(nextLvl.cost.oxygen)}</span>`;
   }
   if (nextLvl.cost?.energy > 0) {
     const affordable = G.base.resources.energy >= nextLvl.cost.energy;
-    costsEl.innerHTML += `<span class="modal-cost-item" style="color:${affordable ? '#FFE55C' : '#FF4466'}">⚡ ${fmtNum(nextLvl.cost.energy)}</span>`;
+    costsEl.innerHTML += `<span class="modal-cost-item" style="color:${affordable ? '#FFE55C' : '#FF4466'}"><img src="energy_icon.svg" class="inline-icon"> ${fmtNum(nextLvl.cost.energy)}</span>`;
   }
   if (!nextLvl.cost?.mineral && !nextLvl.cost?.oxygen && !nextLvl.cost?.energy) {
     costsEl.innerHTML = '<span style="color:rgba(255,255,255,0.4)">Gratuito</span>';
@@ -1670,7 +1670,7 @@ function renderBuildPanel() {
     card.className = 'build-card-new' + (locked ? ' locked' : '');
     
     const costVal = lv1.cost.mineral || lv1.cost.oxygen || 0;
-    const costIcon = lv1.cost.mineral !== undefined ? '⛏️' : '💨';
+    const costIcon = lv1.cost.mineral !== undefined ? '<img src="mineral_icon.svg" class="inline-icon">' : '<img src="oxygen_icon.svg" class="inline-icon">';
 
     card.innerHTML = `
       <div class="bn-title">${t(type)}</div>
@@ -1735,12 +1735,12 @@ function renderBuildersTab() {
   card.className = 'build-card-new';
   card.innerHTML = `
     <div class="bn-title">Astronauta Construtor</div>
-    <div style="font-size:50px;margin:15px 0">👨‍🚀</div>
+    <img src="astronaut_builder.svg" style="width:50px;height:50px;margin:15px 0">
     <div class="bn-desc" style="font-size:10px; color:#888; text-align:center; margin-bottom:10px;">
       Contrate mais um astronauta para construir e melhorar edifícios simultaneamente.
     </div>
     <div class="bn-cost-bar" style="background:${affordable ? '#2ecc71' : '#e74c3c'}">
-      <span class="bn-cost-icon">💎</span>
+      <span class="bn-cost-icon"><img src="gems_icon.svg" class="inline-icon"></span>
       <span class="bn-cost-val">${cost}</span>
     </div>
   `;
@@ -1762,9 +1762,9 @@ function renderShopTab() {
   grid.innerHTML = '';
   
   const packages = [
-    { name: 'Punhado de Gemas', gems: 100, price: 'R$ 4,90', icon: '💎' },
-    { name: 'Pilha de Gemas', gems: 500, price: 'R$ 19,90', icon: '💎💎' },
-    { name: 'Caixa de Gemas', gems: 1200, price: 'R$ 39,90', icon: '💎💎💎' }
+    { name: 'Punhado de Gemas', gems: 100, price: 'R$ 4,90', icon: '<img src="gems_icon.svg" class="inline-icon">' },
+    { name: 'Pilha de Gemas', gems: 500, price: 'R$ 19,90', icon: '<img src="gems_icon.svg" class="inline-icon">' },
+    { name: 'Caixa de Gemas', gems: 1200, price: 'R$ 39,90', icon: '<img src="gems_icon.svg" class="inline-icon">' }
   ];
 
   packages.forEach(pkg => {
@@ -1773,7 +1773,7 @@ function renderShopTab() {
     card.innerHTML = `
       <div class="bn-title">${pkg.name}</div>
       <div style="font-size:40px;margin:15px 0">${pkg.icon}</div>
-      <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${pkg.gems} 💎</div>
+      <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${pkg.gems} <img src="gems_icon.svg" class="inline-icon"></div>
       <div class="bn-cost-bar" style="background:#444">
         <span class="bn-cost-val" style="font-size:9px">EM BREVE</span>
       </div>
@@ -1789,9 +1789,9 @@ function renderResourcesTab() {
   grid.innerHTML = '';
   
   const offers = [
-    { name: 'Minérios', amount: 10000, cost: 50, icon: '⛏️', type: 'mineral' },
-    { name: 'Oxigênio', amount: 10000, cost: 50, icon: '💨', type: 'oxygen' },
-    { name: 'Energia',  amount: 5000,  cost: 50, icon: '⚡', type: 'energy' }
+    { name: 'Minérios', amount: 10000, cost: 50, icon: '<img src="mineral_icon.svg" class="inline-icon">', type: 'mineral' },
+    { name: 'Oxigênio', amount: 10000, cost: 50, icon: '<img src="oxygen_icon.svg" class="inline-icon">', type: 'oxygen' },
+    { name: 'Energia',  amount: 5000,  cost: 50, icon: '<img src="energy_icon.svg" class="inline-icon">', type: 'energy' }
   ];
 
   offers.forEach(off => {
@@ -1802,7 +1802,7 @@ function renderResourcesTab() {
       <div style="font-size:40px;margin:15px 0">${off.icon}</div>
       <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">+${fmtNum(off.amount)}</div>
       <div class="bn-cost-bar">
-        <span class="bn-cost-val">${off.cost} 💎</span>
+        <span class="bn-cost-val">${off.cost} <img src="gems_icon.svg" class="inline-icon"></span>
       </div>
     `;
     card.onclick = () => {
@@ -1837,7 +1837,7 @@ function renderShieldTab() {
       <img src="shield.png" style="width:50px; height:50px; object-fit:contain; margin:15px 0">
       <div class="bn-count" style="bottom:50px; right:auto; width:100%; text-align:center;">${s.hours}h</div>
       <div class="bn-cost-bar">
-        <span class="bn-cost-val">${s.cost} 💎</span>
+        <span class="bn-cost-val">${s.cost} <img src="gems_icon.svg" class="inline-icon"></span>
       </div>
     `;
     card.onclick = () => {
@@ -1978,14 +1978,14 @@ function claimMissionReward(id) {
   if (m.rewardType === 'mineral') {
     G.base.resources.mineral += m.reward;
     clampResources();
-    notify(`${t('reward_claimed_success')}: +${m.reward} ⛏️`, 'success');
+    notify(`${t('reward_claimed_success')}: +${m.reward} <img src="mineral_icon.svg" class="inline-icon">`, 'success');
   } else if (m.rewardType === 'energy') {
     G.base.resources.energy += m.reward;
     clampResources();
-    notify(`${t('reward_claimed_success')}: +${m.reward} ⚡`, 'success');
+    notify(`${t('reward_claimed_success')}: +${m.reward} <img src="energy_icon.svg" class="inline-icon">`, 'success');
   } else {
     G.base.gems = (G.base.gems || 0) + m.reward;
-    notify(`${t('reward_claimed_success')}: +${m.reward} 💎`, 'success');
+    notify(`${t('reward_claimed_success')}: +${m.reward} <img src="gems_icon.svg" class="inline-icon">`, 'success');
   }
   
   updateHUD();
@@ -2038,7 +2038,7 @@ function renderTrainTabContent(totalCap, usedSpace) {
   if (queue.length === 0) {
     queueList.innerHTML = `<div style="grid-column:1/-1; color:#555; text-align:center; font-size:11px; padding:20px;">Nenhuma tropa em treinamento</div>`;
     gel('total-training-time-modern').textContent = '0s';
-    gel('accelerate-cost-modern').textContent = '0 💎';
+    gel('accelerate-cost-modern').innerHTML = '0 <img src="gems_icon.svg" class="inline-icon">';
   } else {
     let totalTime = 0;
     let totalGemCost = 0;
@@ -2091,7 +2091,7 @@ function renderTrainTabContent(totalCap, usedSpace) {
       totalGemCost += Math.max(1, Math.ceil(itRem / 60));
     });
     gel('total-training-time-modern').textContent = fmtTime(totalTime);
-    gel('accelerate-cost-modern').textContent = `${totalGemCost} 💎`;
+    gel('accelerate-cost-modern').innerHTML = `${totalGemCost} <img src="gems_icon.svg" class="inline-icon">`;
   }
 
   // 2. Available Troops
@@ -2117,9 +2117,9 @@ function renderTrainTabContent(totalCap, usedSpace) {
         <span class="tc-info-btn" onclick="event.stopPropagation(); showTroopInfo('${troopId}')">ⓘ</span>
         <img src="${td.asset}" class="tc-card-img">
         <div class="tc-cost-bar" style="color:${affordable ? '#fff' : 'var(--c-danger)'}">
-          ${minCost > 0 ? `⛏️${fmtNum(minCost)} ` : ''}
-          ${oxyCost > 0 ? `💨${fmtNum(oxyCost)} ` : ''}
-          ${eneCost > 0 ? `⚡${fmtNum(eneCost)} ` : ''}
+          ${minCost > 0 ? `<img src="mineral_icon.svg" class="inline-icon">${fmtNum(minCost)} ` : ''}
+          ${oxyCost > 0 ? `<img src="oxygen_icon.svg" class="inline-icon">${fmtNum(oxyCost)} ` : ''}
+          ${eneCost > 0 ? `<img src="energy_icon.svg" class="inline-icon">${fmtNum(eneCost)} ` : ''}
           ${!minCost && !oxyCost && !eneCost ? 'Grátis' : ''}
         </div>
         ${full && canTrain ? '<div style="position:absolute; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; border-radius:15px; font-size:10px; color:#ff4466; font-weight:bold; pointer-events:none;">CHEIO</div>' : ''}
@@ -2218,7 +2218,7 @@ function renderInfoPanel() {
 
   let nameChangeBtn = '';
   if (!G.base.nameChanged) {
-    nameChangeBtn = `<button onclick="promptChangeName()" style="margin-left:8px; background:rgba(46,204,113,0.2); border:1px solid var(--c-gem); border-radius:6px; color:var(--c-gem); font-size:9px; padding:3px 8px; cursor:pointer; font-family:var(--font-hd); vertical-align:middle;">💎 100</button>`;
+    nameChangeBtn = `<button onclick="promptChangeName()" style="margin-left:8px; background:rgba(46,204,113,0.2); border:1px solid var(--c-gem); border-radius:6px; color:var(--c-gem); font-size:9px; padding:3px 8px; cursor:pointer; font-family:var(--font-hd); vertical-align:middle;"><img src="gems_icon.svg" class="inline-icon"> 100</button>`;
   }
 
   content.innerHTML = `
@@ -2229,9 +2229,9 @@ function renderInfoPanel() {
     <div style="padding:0 16px; margin-bottom:12px; background:rgba(255,255,255,0.03); border-radius:12px; margin:0 16px 12px;">
       <div style="font-family:var(--font-hd); font-size:9px; color:#888; letter-spacing:2px; padding:10px 0 6px" data-t="storage">💼 ARMAZENAMENTO</div>
       <div style="display:flex; flex-direction:column; gap:6px; padding-bottom:10px;">
-        <div style="display:flex; justify-content:space-between; font-size:11px;"><span>⛏️ ${t('mineral')}</span><span style="color:var(--c-mineral)">${fmtNum(G.base.resources?.mineral)} / ${fmtNum(maxMin)}</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px;"><span>💨 ${t('oxygen')}</span><span style="color:var(--c-oxygen)">${fmtNum(G.base.resources?.oxygen)} / ${fmtNum(maxOxy)}</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px;"><span>⚡ ${t('energy')}</span><span style="color:var(--c-energy)">${fmtNum(G.base.resources?.energy)} / ${fmtNum(maxEne)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:11px;"><span><img src="mineral_icon.svg" class="inline-icon"> ${t('mineral')}</span><span style="color:var(--c-mineral)">${fmtNum(G.base.resources?.mineral)} / ${fmtNum(maxMin)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:11px;"><span><img src="oxygen_icon.svg" class="inline-icon"> ${t('oxygen')}</span><span style="color:var(--c-oxygen)">${fmtNum(G.base.resources?.oxygen)} / ${fmtNum(maxOxy)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:11px;"><span><img src="energy_icon.svg" class="inline-icon"> ${t('energy')}</span><span style="color:var(--c-energy)">${fmtNum(G.base.resources?.energy)} / ${fmtNum(maxEne)}</span></div>
       </div>
     </div>
     <table class="info-table">
@@ -2561,7 +2561,7 @@ async function startMatchmaking() {
   try {
     const myEnergy = G.base.resources?.energy || 0;
     if (myEnergy < 10) {
-      area.innerHTML = `<div class="mm-status" style="color:var(--c-energy)">⚡ Energia insuficiente para buscar (10 necessária)</div>
+      area.innerHTML = `<div class="mm-status" style="color:var(--c-energy)"><img src="energy_icon.svg" class="inline-icon"> Energia insuficiente para buscar (10 necessária)</div>
         <button class="mm-btn" onclick="closePanels()">FECHAR</button>`;
       return;
     }
@@ -2606,12 +2606,12 @@ async function startMatchmaking() {
         <div class="opp-info">
           <div class="opp-name">${op.playerName || 'Colono'}</div>
           <div class="opp-stats">${league.emoji} ${league.name} · CC${op.ccLevel||1} · 🏆${op.trophies||0}</div>
-          <div class="opp-stats">${(op.buildings||[]).length} construções · ⛏️${fmtNum(op.resources?.mineral||0)} 💨${fmtNum(op.resources?.oxygen||0)}</div>
+          <div class="opp-stats">${(op.buildings||[]).length} construções · <img src="mineral_icon.svg" class="inline-icon">${fmtNum(op.resources?.mineral||0)} <img src="oxygen_icon.svg" class="inline-icon">${fmtNum(op.resources?.oxygen||0)}</div>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:12px">
         <button class="mm-btn" onclick="confirmMatchmaking()" data-t="attack_btn">${t('attack') || '⚔️ ATACAR!'}</button>
-        <button class="mm-btn mm-btn-skip" onclick="startMatchmaking()" data-t="next_btn">⚡ 10 · ${t('next') || 'Próximo'}</button>
+        <button class="mm-btn mm-btn-skip" onclick="startMatchmaking()" data-t="next_btn"><img src="energy_icon.svg" class="inline-icon"> 10 · ${t('next') || 'Próximo'}</button>
       </div>`;
   } catch (e) {
     area.innerHTML = `<div style="color:var(--c-danger);text-align:center;font-size:12px">Erro: ${e.message}</div>
@@ -3284,7 +3284,7 @@ function speedUpBuilding(bId, cost) {
   } else if (b.buildFinish && b.buildFinish > Date.now()) {
     b.buildFinish = 0;
     refreshBldEl(bId);
-    notify('⚡ Construção concluída instantaneamente!', 'success');
+    notify('<img src="energy_icon.svg" class="inline-icon"> Construção concluída instantaneamente!', 'success');
   }
   
   updateHUD();
@@ -3305,15 +3305,15 @@ function speedUpTraining(finishTime, cost) {
   item.finishTime = Date.now();
   updateHUD();
   saveData();
-  notify('⚡ Tropa pronta instantaneamente!', 'success');
+  notify('<img src="energy_icon.svg" class="inline-icon"> Tropa pronta instantaneamente!', 'success');
 }
 
 function renderShopPanel() {
   const grid = gel('shop-grid');
   if (!grid) return;
   const items = [
-    { gems: 100,  desc: 'Carga de Satélite', price: 'R$ 4,90',  icon: '💎' },
-    { gems: 550,  desc: 'Pilha Lunar',      price: 'R$ 19,90', icon: '💎💎' },
+    { gems: 100,  desc: 'Carga de Satélite', price: 'R$ 4,90',  icon: '<img src="gems_icon.svg" class="inline-icon">' },
+    { gems: 550,  desc: 'Pilha Lunar',      price: 'R$ 19,90', icon: '<img src="gems_icon.svg" class="inline-icon">' },
     { gems: 1200, desc: 'Caixa de Orion',    price: 'R$ 39,90', icon: '📦' },
     { gems: 3000, desc: 'Recipiente Solar',  price: 'R$ 89,90', icon: '🚀' }
   ];
@@ -3757,7 +3757,7 @@ async function createClan() {
 
   const minerals = G.base.resources?.mineral || 0;
   if (minerals < 1000) {
-    notify('Minério insuficiente! (Custo: 1.000 ⛏️)', 'error');
+    notify('Minério insuficiente! (Custo: 1.000 <img src="mineral_icon.svg" class="inline-icon">)', 'error');
     return;
   }
 
