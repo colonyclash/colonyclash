@@ -59,6 +59,7 @@ const G = {
   battle: null,
   db: null,
   auth: null,
+  analytics: null,
   timers: { resource: null, save: null, queue: null }
 };
 
@@ -75,8 +76,42 @@ const hide  = id => gel(id)?.classList.add('hidden');
 function notify(msg, type = 'info') {
   const stack = qsel('.notif-stack');
   if (!stack) return;
+
+  // Stacking logic: find any active identical notification
+  let existing = null;
+  for (let i = 0; i < stack.children.length; i++) {
+    const child = stack.children[i];
+    if (child.dataset.msg === msg && child.dataset.type === type && child.style.opacity !== '0') {
+      existing = child;
+      break;
+    }
+  }
+
+  if (existing) {
+    let count = parseInt(existing.dataset.count || 1) + 1;
+    existing.dataset.count = count;
+    const content = existing.querySelector('.notif-content');
+    if (content) {
+      content.innerHTML = `${msg} <span style="margin-left: 8px; font-weight: 800; color: #fff; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 10px; font-size: 10px;">${count}x</span>`;
+    }
+    
+    existing.style.transform = 'scale(1.05)';
+    setTimeout(() => { if (existing) existing.style.transform = 'none'; }, 150);
+
+    if (existing.notifTimeout) clearTimeout(existing.notifTimeout);
+    existing.notifTimeout = setTimeout(() => {
+      existing.style.opacity = '0';
+      existing.style.transform = 'translateX(20px)';
+      setTimeout(() => existing.remove(), 300);
+    }, 4000);
+    return;
+  }
+
   const el = document.createElement('div');
   el.className = `notif ${type}`;
+  el.dataset.msg = msg;
+  el.dataset.type = type;
+  el.dataset.count = 1;
   
   let icon = '🛰️';
   if (type === 'success') icon = '✅';
@@ -89,7 +124,12 @@ function notify(msg, type = 'info') {
   `;
   
   stack.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
+  
+  el.notifTimeout = setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => el.remove(), 300);
+  }, 4000);
 }
 
 // ============================================================
@@ -106,6 +146,9 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     G.db   = firebase.firestore();
     G.auth = firebase.auth();
+    if (typeof firebase.analytics === 'function') {
+      G.analytics = firebase.analytics();
+    }
     return true;
   } catch (e) { console.warn('Firebase init failed:', e); return false; }
 }
@@ -476,6 +519,8 @@ window.adminGiveToPlayer = async function() {
     notify('Erro ao enviar', 'error');
   }
 };
+
+
 
 // ============================================================
 // BUILDERS SYSTEM
@@ -1209,8 +1254,8 @@ function enterBuildMode(type) {
 
   if (type === 'mineral_extractor') advanceTutorialIf(2);
   if (type === 'oxygen_extractor')  advanceTutorialIf(7);
-  if (type === 'barracks')          advanceTutorialIf(10);
-  if (type === 'camp')              advanceTutorialIf(13);
+  if (type === 'barracks')          advanceTutorialIf(17);
+  if (type === 'camp')              advanceTutorialIf(20);
 
   closePanels();
   gel('map-container').classList.add('build-mode');
@@ -1349,17 +1394,23 @@ function confirmPlace() {
   };
   G.base.buildings.push(nb);
   if (lvl1.buildTime > 0) {
-    setTimeout(() => { nb.buildFinish = 0; refreshBldEl(nb.id); notify(`${t(buildType)} ${t('ready')}!`, 'success'); saveData(); }, lvl1.buildTime * 1000);
+    setTimeout(() => {
+      const bld = G.base.buildings.find(x => x.id === nb.id);
+      if (bld && bld.buildFinish === 0) return; // already sped up
+      nb.buildFinish = 0;
+      refreshBldEl(nb.id);
+      notify(`${t(buildType)} ${t('ready')}!`, 'success');
+      saveData();
+    }, lvl1.buildTime * 1000);
   }
   spawnBldEl(nb);
   exitBuildMode();
   updateHUD();
   saveData();
   if (buildType === 'mineral_extractor') advanceTutorialIf(3);
-  if (buildType === 'oxygen_extractor')  advanceTutorialIf(6);
-  if (buildType === 'barracks')          advanceTutorialIf(9);
-  if (buildType === 'camp')              advanceTutorialIf(12);
-  notify(`${t(buildType)} ${t('ready')}!`, 'success');
+  if (buildType === 'oxygen_extractor')  advanceTutorialIf(8);
+  if (buildType === 'barracks')          advanceTutorialIf(11);
+  if (buildType === 'camp')              advanceTutorialIf(14);
 }
 
 // ============================================================
@@ -2279,6 +2330,7 @@ function renderInfoPanel() {
       <tr><td>🤖 ${t('robot')}</td><td>${G.base.troops?.robot || 0}</td></tr>
       <tr><td>🚀 ${t('tank')}</td><td>${G.base.troops?.tank || 0}</td></tr>
     </table>
+    <button class="btn-auth" onclick="resetTutorial()" style="width:100%; margin-bottom: 10px; font-size:12px; background:var(--c-gold); color:black;" data-t="reset_tutorial">Reiniciar Tutorial</button>
     <button class="btn-logout" onclick="logout()">🚹 ${t('logout')}</button>
   `;
 }
@@ -2354,7 +2406,7 @@ function trainTroop(type) {
   if (!G.base.tutorialTroopCount) G.base.tutorialTroopCount = 0;
   if ((G.base.tutorialStep || 0) === 16) {
     G.base.tutorialTroopCount++;
-    if (G.base.tutorialTroopCount >= 3) advanceTutorialIf(16);
+    if (G.base.tutorialTroopCount >= 8) advanceTutorialIf(16);
   }
 }
 
@@ -3409,19 +3461,36 @@ let tutorialArrowInterval = null;
 
 function showTutorial() {
   if (G.base.tutorialDone) return;
+  
+  // Verificação inicial do estado da base para pular passos já concluídos
+  let step = G.base.tutorialStep || 0;
+  
+  const hasMineral = getBuildingCountOfType('mineral_extractor') > 0;
+  const hasOxygen = getBuildingCountOfType('oxygen_extractor') > 0;
+  const hasBarracks = getBuildingCountOfType('barracks') > 0;
+  const hasCamp = getBuildingCountOfType('camp') > 0;
+  
+  const usedSpace = getTotalTroopSpace(G.base.troops);
+  const queueSpace = (G.base.queue || []).reduce((acc, it) => acc + (TROOPS[it.type]?.space || 0), 0);
+  const hasTroops = (usedSpace + queueSpace) >= 3;
+
+  if (step < 6 && hasMineral) step = 6;
+  if (step < 9 && hasOxygen) step = 9;
+  if (step < 12 && hasBarracks) step = 12;
+  if (step < 15 && hasCamp) step = 15;
+  if (step < 18 && hasTroops) step = 18;
+
+  G.base.tutorialStep = step;
+  
   const dialog = gel('tutorial-dialog');
   if (dialog) {
     dialog.classList.remove('hidden');
     dialog.classList.add('visible');
-    updateTutorialStep();
   }
+  updateTutorialStep();
 }
 
 function updateTutorialStep() {
-  if (G.ui.screen !== 'game') {
-    closeTutorialDialog(); // Esconde apenas o diálogo, a seta já é tratada no switchScreen
-    return;
-  }
 
   const textEl = gel('tutorial-text');
   const arrow = gel('tutorial-arrow');
@@ -3433,6 +3502,7 @@ function updateTutorialStep() {
   if (tutorialArrowInterval) {
     clearTimeout(tutorialArrowInterval);
     clearInterval(tutorialArrowInterval);
+    tutorialArrowInterval = null;
   }
 
   checkTutorialAutoAdvance();
@@ -3447,59 +3517,70 @@ function updateTutorialStep() {
   }
 
   if (step === 0) {
-    textEl.textContent = "Bem-vindo, Comandante! Vou te guiar nos primeiros passos.";
+    textEl.textContent = t('tut_step0');
     btn.style.display = 'block';
-    btn.textContent = "Continuar";
+    btn.textContent = t('continue');
   } else if (step === 1) {
-    textEl.textContent = "Primeiro, precisamos de Minério. Clique no botão de Construir (+).";
+    textEl.textContent = t('tut_step1');
     pointArrowToElement('nav-build', 'top');
   } else if (step === 2) {
-    textEl.textContent = "Excelente! Agora selecione o 'Extrator de Minério'.";
+    textEl.textContent = t('tut_step2');
     pointArrowToBuildingCard('mineral_extractor');
-  } else if (step === 3 || step === 8 || step === 11 || step === 14) {
-    textEl.textContent = "Escolha um local na grade e confirme clicando no ✓.";
+  } else if (step === 3 || step === 10 || step === 13) {
+    textEl.textContent = t('tut_step3');
     pointArrowToGhost();
-  } else if (step === 4) {
-    textEl.textContent = "A construção demora um pouco. Clique no prédio que você acabou de colocar.";
+  } else if (step === 4 || step === 8 || step === 11 || step === 14) {
+    // After placement: instruct to speedup
+    textEl.textContent = t('tut_step4');
     pointArrowToLastBuilding();
-  } else if (step === 5) {
-    textEl.textContent = "Clique em 'ACELERAR' para terminar a construção instantaneamente usando Gemas!";
+  } else if (step === 5 || step === 9 || step === 12 || step === 15) {
+    textEl.textContent = t('tut_step5');
     pointArrowToElement('popup-speedup', 'top');
   } else if (step === 6) {
-    textEl.textContent = "Agora precisamos de Oxigênio. Clique no botão de Construir (+).";
+    textEl.textContent = t('tut_step6');
     pointArrowToElement('nav-build', 'top');
   } else if (step === 7) {
-    textEl.textContent = "Selecione o 'Extrator de Oxigênio'.";
+    textEl.textContent = t('tut_step7');
     pointArrowToBuildingCard('oxygen_extractor');
-  } else if (step === 9) {
-    textEl.textContent = "Para treinar tropas, precisamos de um Quartel. Clique em Construir (+).";
+  } else if (step === 16) {
+    textEl.textContent = t('tut_step9');
     pointArrowToElement('nav-build', 'top');
-  } else if (step === 10) {
-    textEl.textContent = "Selecione o 'Quartel'.";
+  } else if (step === 17) {
+    textEl.textContent = t('tut_step10');
     pointArrowToBuildingCard('barracks');
-  } else if (step === 12) {
-    textEl.textContent = "Para abrigar tropas, precisamos de um Acampamento. Clique em Construir (+).";
+  } else if (step === 19) {
+    textEl.textContent = t('tut_step12');
     pointArrowToElement('nav-build', 'top');
-  } else if (step === 13) {
-    textEl.textContent = "Selecione o 'Acampamento'.";
+  } else if (step === 20) {
+    textEl.textContent = t('tut_step13');
     pointArrowToBuildingCard('camp');
   } else if (step === 15) {
-    textEl.textContent = "Ótimo! Agora vamos treinar tropas. Clique no ícone de Tropas.";
+    textEl.textContent = t('tut_step15');
     pointArrowToElement('nav-troops', 'top');
   } else if (step === 16) {
-    textEl.textContent = "Treine 3 Drones para o seu exército.";
+    textEl.textContent = t('tut_step16');
     pointArrowToBuildingCard('drone'); 
   } else if (step === 17) {
-    textEl.textContent = "Suas tropas estão prontas! Clique na aba 'TROPAS' para vê-las.";
+    textEl.textContent = t('tut_step17');
     pointArrowToElement('ttab-troops', 'bottom');
   } else if (step === 18) {
-    textEl.textContent = "Exército pronto! Vamos testar seu poder. Clique no botão de Ataque.";
+    textEl.textContent = t('tut_step18');
     pointArrowToElement('btn-attack-modern', 'top');
   } else if (step === 19) {
-    textEl.textContent = "Oponente encontrado! Clique em 'ATACAR!' para iniciar a invasão.";
+    textEl.textContent = t('tut_step19');
     pointArrowToElement('mm-confirm-btn', 'bottom');
   } else if (step === 20) {
-    textEl.textContent = "Vença a batalha para provar seu valor!";
+    textEl.textContent = t('tut_step20');
+  } else if (step === 21) {
+    textEl.textContent = t('tut_step21');
+    if (btn) {
+      btn.style.display = 'block';
+      btn.textContent = t('tut_finish');
+    }
+  } else if (step > 21) {
+    closeTutorial();
+  }
+}alha para provar seu valor!";
   } else if (step === 21) {
     textEl.textContent = "Parabéns, Comandante! Você concluiu o treinamento básico. Verifique as MISSÕES para continuar progredindo.";
     if (btn) {
@@ -3619,23 +3700,19 @@ function pointArrowToElement(id, direction='top') {
 }
 
 function pointArrowToBuildingCard(bldId) {
-  if (G.ui.screen !== 'game' && G.ui.panel !== 'build' && G.ui.panel !== 'troops') {
-     // Apenas tenta se o painel estiver aberto (para cards) ou se for tela de jogo
-  }
   const cards = document.querySelectorAll('.build-card-new, .troop-card-modern');
   let target = null;
   for (let c of cards) {
-    if (c.dataset.type === bldId) {
-      target = c;
-      break;
-    }
+    if (c.dataset.type === bldId) { target = c; break; }
   }
   if (!target || target.offsetParent === null) {
-    tutorialArrowInterval = setTimeout(() => pointArrowToBuildingCard(bldId), 200);
+    if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); clearTimeout(tutorialArrowInterval); tutorialArrowInterval = null; }
+    tutorialArrowInterval = setTimeout(() => pointArrowToBuildingCard(bldId), 250);
     return;
   }
   const arrow = gel('tutorial-arrow');
   if (arrow) arrow.classList.remove('hidden');
+  if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
   tutorialArrowInterval = setInterval(() => {
     if (G.ui.screen !== 'game') {
       clearInterval(tutorialArrowInterval);
@@ -3645,34 +3722,34 @@ function pointArrowToBuildingCard(bldId) {
     const rect = target.getBoundingClientRect();
     if (arrow) {
       arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-      arrow.style.top = (rect.top - 40) + 'px';
+      arrow.style.top = (rect.top - 44) + 'px';
       arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
     }
-  }, 50);
+  }, 60);
 }
 
 function pointArrowToGhost() {
   const arrow = gel('tutorial-arrow');
   if (arrow) arrow.classList.remove('hidden');
-  const canvas = gel('game-canvas');
-  
+
+  if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
   tutorialArrowInterval = setInterval(() => {
-    if (G.ui.screen !== 'game' || (G.ui.mode !== 'build' && G.ui.mode !== 'move')) {
+    if (G.ui.screen !== 'game' || (!G.ui.buildMode && !G.ui.moveMode)) {
       clearInterval(tutorialArrowInterval);
       if (arrow) arrow.classList.add('hidden');
       return;
     }
-    
-    // Calcula posição da seta baseada no grid atual do mouse/toque
-    const screenX = G.ui.cam.x + G.ui.mouseGridX * TILE_W * G.ui.cam.zoom;
-    const screenY = G.ui.cam.y + G.ui.mouseGridY * TILE_H * G.ui.cam.zoom;
-    
-    if (arrow) {
-      arrow.style.left = (screenX + (TILE_W * G.ui.cam.zoom) / 2 - 20) + 'px';
-      arrow.style.top = (screenY - 50) + 'px';
-      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
+    // Track the ghost DOM element directly
+    const ghost = gel('bld-ghost');
+    if (ghost && ghost.style.display !== 'none') {
+      const rect = ghost.getBoundingClientRect();
+      if (arrow) {
+        arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+        arrow.style.top = (rect.top - 50) + 'px';
+        arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
+      }
     }
-  }, 30);
+  }, 40);
 }
 
 function pointArrowToLastBuilding() {
@@ -3684,19 +3761,26 @@ function pointArrowToLastBuilding() {
 function pointArrowToBuilding(bId) {
   const el = gel('bld-' + bId);
   if (!el || el.offsetParent === null) {
-    tutorialArrowInterval = setTimeout(() => pointArrowToBuilding(bId), 200);
+    if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
+    tutorialArrowInterval = setTimeout(() => pointArrowToBuilding(bId), 250);
     return;
   }
   const arrow = gel('tutorial-arrow');
   if (arrow) arrow.classList.remove('hidden');
+  if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
   tutorialArrowInterval = setInterval(() => {
+    if (G.ui.screen !== 'game') {
+      clearInterval(tutorialArrowInterval);
+      if (arrow) arrow.classList.add('hidden');
+      return;
+    }
     const rect = el.getBoundingClientRect();
     if (arrow) {
       arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
       arrow.style.top = (rect.top - 50) + 'px';
       arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
     }
-  }, 50);
+  }, 60);
 }
 
 // ============================================================
@@ -4407,6 +4491,16 @@ window.copyUID = function() {
   navigator.clipboard.writeText(G.pid).then(() => {
     notify('UID copiado para a área de transferência!', 'success');
   });
+};
+
+window.resetTutorial = function() {
+  if (!confirm(t('confirm_reset_tutorial'))) return;
+  G.base.tutorialStep = 0;
+  G.base.tutorialDone = false;
+  closePanels();
+  saveData();
+  showTutorial();
+  notify("Tutorial reiniciado!", "success");
 };
 
 // Override old functions to close the new modal

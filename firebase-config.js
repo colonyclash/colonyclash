@@ -8,5 +8,6 @@ const firebaseConfig = {
   projectId: "colonyclash2026",
   storageBucket: "colonyclash2026.firebasestorage.app",
   messagingSenderId: "40563644974",
-  appId: "1:40563644974:web:3035c98fcb7752fbda1dbf"
+  appId: "1:40563644974:web:3035c98fcb7752fbda1dbf",
+  measurementId: "G-X725JS7CZB"
 };

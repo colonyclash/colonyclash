@@ -1942,3 +1942,65 @@ html, body {
 @media (max-width: 600px) {
   .tutorial-skip-btn { top: -8px; right: -8px; padding: 3px 8px; font-size: 8px; }
 }
+
+/* ========== TUTORIAL DIALOG (bottom, above FAB, behind panels) ========== */
+.tutorial-dialog {
+  position: fixed;
+  bottom: 100px;     /* above FAB bar */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;       /* behind panels (100) and modals (300+) */
+  background: rgba(10, 16, 40, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 16px;
+  padding: 10px 14px;
+  width: min(340px, 90vw);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: opacity 0.3s;
+}
+.tutorial-dialog.hidden { display: none !important; }
+.tutorial-dialog.visible { display: flex; }
+
+.tutorial-dialog-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tutorial-dialog-avatar img {
+  width: 32px;
+  height: 32px;
+}
+
+.tutorial-dialog-text {
+  font-family: var(--font-body, 'Rajdhani', sans-serif);
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.tutorial-btn {
+  align-self: flex-end;
+  padding: 6px 18px;
+  background: var(--c-primary, #00D4FF);
+  border: none;
+  border-radius: 20px;
+  color: #000;
+  font-family: var(--font-hd, 'Orbitron', sans-serif);
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.tutorial-btn:hover { transform: scale(1.05); }
+
+@media (max-width: 600px) {
+  .tutorial-dialog { bottom: 90px; padding: 8px 12px; }
+  .tutorial-dialog-text { font-size: 11px; }
+  .tutorial-dialog-avatar img { width: 28px; height: 28px; }
+}
