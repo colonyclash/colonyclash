@@ -3582,17 +3582,8 @@ function updateTutorialStep() {
   } else if (step > 21) {
     closeTutorial();
   }
-}alha para provar seu valor!";
-  } else if (step === 21) {
-    textEl.textContent = "Parabéns, Comandante! Você concluiu o treinamento básico. Verifique as MISSÕES para continuar progredindo.";
-    if (btn) {
-      btn.style.display = 'block';
-      btn.textContent = "Finalizar Tutorial";
-    }
-  } else if (step > 21) {
-    closeTutorial();
-  }
 }
+
 
 function nextTutorialStep() {
   G.base.tutorialStep = (G.base.tutorialStep || 0) + 1;
