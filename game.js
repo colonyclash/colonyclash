@@ -315,7 +315,7 @@ function createStarterBase() {
     ccLevel: 1,
     trophies: 100,
     gems: 10,
-    builders: 1,
+    builders: 2,
     troopUpgrades: {},
     playerName: G.user?.displayName || 'Colono',
     nameChanged: false,
@@ -3496,7 +3496,10 @@ function updateTutorialStep() {
   const textEl = gel('tutorial-text');
   const btn    = gel('tutorial-next-btn');
   
-  if (btn)   btn.style.display = 'none';
+  if (btn) {
+    btn.style.display = 'block';
+    btn.textContent = t('continue') || 'Continuar';
+  }
 
   clearTutorialGlow();
 
@@ -3523,7 +3526,6 @@ function updateTutorialStep() {
   // 19=click attack button, 20=click attack confirm, 21=battle, 22=done
   if (step === 0) {
     textEl.textContent = t('tut_step0');
-    if (btn) { btn.style.display = 'block'; btn.textContent = t('continue'); }
   } else if (step === 1) {
     textEl.textContent = t('tut_step1');
     pointGlowToElement('nav-build');
