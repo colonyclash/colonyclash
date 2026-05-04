@@ -205,7 +205,7 @@
   <div class="panel troop-design" id="troops-panel">
     <div class="troop-tabs">
       <div class="t-tab active" id="ttab-train" onclick="switchTroopTab('train')" data-t="train_troops_tab">Treinar Tropas</div>
-      <div class="t-tab" id="ttab-troops" onclick="switchTroopTab('troops')" data-t="troops_tab">Tropas</div>
+      <div class="t-tab" id="ttab-troops" onclick="advanceTutorialIf(17); switchTroopTab('troops')" data-t="troops_tab">Tropas</div>
     </div>
 
     <div class="troop-inner">
@@ -251,7 +251,7 @@
           <!-- Dynamic: Trained troop cards -->
         </div>
         <div style="flex:1"></div>
-        <button class="btn-attack-modern" onclick="closePanels(); startMatchmaking();" data-t="attack_label">ATACAR</button>
+        <button class="btn-attack-modern" onclick="advanceTutorialIf(18); closePanels(); startMatchmaking();" data-t="attack_label">ATACAR</button>
       </div>
     </div>
   </div>

@@ -77,9 +77,19 @@ function notify(msg, type = 'info') {
   if (!stack) return;
   const el = document.createElement('div');
   el.className = `notif ${type}`;
-  el.textContent = msg;
+  
+  let icon = '🛰️';
+  if (type === 'success') icon = '✅';
+  if (type === 'error')   icon = '⚠️';
+  if (type === 'info')    icon = 'ℹ️';
+
+  el.innerHTML = `
+    <div class="notif-icon">${icon}</div>
+    <div class="notif-content">${msg}</div>
+  `;
+  
   stack.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  setTimeout(() => el.remove(), 4000);
 }
 
 // ============================================================
@@ -903,6 +913,8 @@ function showBldPopup(bId, cx, cy) {
   popup.style.left = left + 'px';
   popup.style.top  = top + 'px';
 
+  advanceTutorialIf(4);
+
   gel('popup-img').src   = def.getAsset(b.level, b.id);
   
   // Atualiza nome mantendo o botão (i)
@@ -1007,7 +1019,7 @@ function showBldPopup(bId, cx, cy) {
     const remSeconds = (finish - Date.now()) / 1000;
     const gemCost = Math.max(1, Math.ceil(remSeconds / 60));
     speedBtn.innerHTML = `<img src="energy_icon.svg" class="inline-icon"> ACELERAR <span style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;margin-left:5px"><img src="gems_icon.svg" class="inline-icon"> ${gemCost}</span>`;
-    speedBtn.onclick = () => speedUpBuilding(bId, gemCost);
+    speedBtn.onclick = () => { advanceTutorialIf(5); speedUpBuilding(bId, gemCost); };
     
     if (isUpgrading) {
       cancelBtn.onclick = () => cancelUpgrade(bId);
@@ -2464,6 +2476,15 @@ function switchScreen(name) {
     void target.offsetWidth;
   }
   G.ui.screen = name;
+
+  if (name !== 'game') {
+    const arrow = gel('tutorial-arrow');
+    if (arrow) arrow.classList.add('hidden');
+    if (tutorialArrowInterval) {
+      clearTimeout(tutorialArrowInterval);
+      clearInterval(tutorialArrowInterval);
+    }
+  }
   
   // Pequeno delay para garantir renderização antes de disparar eventos dependentes de layout
   setTimeout(() => {
@@ -2533,7 +2554,7 @@ function spawnLoginStars() {
 // ============================================================
 async function showOpponentScreen() {
   // Check if under attack by showing matchmaking
-  advanceTutorialIf(15);
+  advanceTutorialIf(18);
   startMatchmaking();
 }
 
@@ -2627,18 +2648,34 @@ async function startMatchmaking() {
     const league = getLeague(op.trophies || 0);
     const init = (op.playerName || 'C')[0].toUpperCase();
     G._pendingOpponent = op;
+    if ((G.base.tutorialStep || 0) === 19) {
+       // Fictitious base for tutorial
+       G._pendingOpponent = {
+         playerName: 'Base de Treinamento',
+         trophies: 0,
+         ccLevel: 1,
+         buildings: [
+           { id: 'tut-cc', type: 'command_center', level: 1, x: 9, y: 9, hp: 500, maxHp: 500 },
+           { id: 'tut-min', type: 'mineral_extractor', level: 1, x: 12, y: 9, hp: 200, maxHp: 200 }
+         ],
+         resources: { mineral: 500, oxygen: 500 }
+       };
+    }
+    const finalOp = G._pendingOpponent;
+    const finalLeague = getLeague(finalOp.trophies || 0);
+
     area.innerHTML = `
       <div class="mm-found" data-t="opponent_found">${t('opponent_found') || '⚔️ Oponente Encontrado!'}</div>
       <div class="opp-card mm-card">
-        <div class="opp-avatar" style="background:linear-gradient(135deg,${league.color}44,${league.color}22)">${init}</div>
+        <div class="opp-avatar" style="background:linear-gradient(135deg,${finalLeague.color}44,${finalLeague.color}22)">${(finalOp.playerName||'C')[0].toUpperCase()}</div>
         <div class="opp-info">
-          <div class="opp-name">${op.playerName || 'Colono'}</div>
-          <div class="opp-stats">${league.emoji} ${league.name} · CC${op.ccLevel||1} · 🏆${op.trophies||0}</div>
-          <div class="opp-stats">${(op.buildings||[]).length} construções · <img src="mineral_icon.svg" class="inline-icon">${fmtNum(op.resources?.mineral||0)} <img src="oxygen_icon.svg" class="inline-icon">${fmtNum(op.resources?.oxygen||0)}</div>
+          <div class="opp-name">${finalOp.playerName || 'Colono'}</div>
+          <div class="opp-stats">${finalLeague.emoji} ${finalLeague.name} · CC${finalOp.ccLevel||1} · 🏆${finalOp.trophies||0}</div>
+          <div class="opp-stats">${(finalOp.buildings||[]).length} construções · <img src="mineral_icon.svg" class="inline-icon">${fmtNum(finalOp.resources?.mineral||0)} <img src="oxygen_icon.svg" class="inline-icon">${fmtNum(finalOp.resources?.oxygen||0)}</div>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:12px">
-        <button class="mm-btn" onclick="confirmMatchmaking()" data-t="attack_btn">${t('attack') || '⚔️ ATACAR!'}</button>
+        <button id="mm-confirm-btn" class="mm-btn" onclick="advanceTutorialIf(19); confirmMatchmaking()" data-t="attack_btn">${t('attack') || '⚔️ ATACAR!'}</button>
         <button class="mm-btn mm-btn-skip" onclick="startMatchmaking()" data-t="next_btn"><img src="energy_icon.svg" class="inline-icon"> 10 · ${t('next') || 'Próximo'}</button>
       </div>`;
   } catch (e) {
@@ -3265,7 +3302,7 @@ async function endBattle() {
   G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
-    advanceTutorialIf(16);
+    advanceTutorialIf(20);
   }
 
   await saveData();
@@ -3397,53 +3434,65 @@ function updateTutorialStep() {
     textEl.textContent = "Excelente! Agora selecione o 'Extrator de Minério'.";
     pointArrowToBuildingCard('mineral_extractor');
   } else if (step === 3) {
-    textEl.textContent = "Ótimo! Mova o mapa se precisar. Escolha um local na grade e confirme clicando no ✔.";
+    textEl.textContent = "Escolha um local na grade e confirme clicando no ✔.";
     pointArrowToCanvasCenter();
   } else if (step === 4) {
+    textEl.textContent = "A construção demora um pouco. Clique no prédio que você acabou de colocar.";
+    pointArrowToLastBuilding();
+  } else if (step === 5) {
+    textEl.textContent = "Clique em 'ACELERAR' para terminar a construção instantaneamente usando Gemas!";
+    pointArrowToElement('popup-speedup', 'top');
+  } else if (step === 6) {
     textEl.textContent = "Agora precisamos de Oxigênio. Clique no botão de Construir (+).";
     pointArrowToElement('nav-build', 'top');
-  } else if (step === 5) {
+  } else if (step === 7) {
     textEl.textContent = "Selecione o 'Extrator de Oxigênio'.";
     pointArrowToBuildingCard('oxygen_extractor');
-  } else if (step === 6) {
+  } else if (step === 8) {
     textEl.textContent = "Posicione-o na grade e confirme.";
     pointArrowToCanvasCenter();
-  } else if (step === 7) {
+  } else if (step === 9) {
     textEl.textContent = "Para treinar tropas, precisamos de um Quartel. Clique em Construir (+).";
     pointArrowToElement('nav-build', 'top');
-  } else if (step === 8) {
+  } else if (step === 10) {
     textEl.textContent = "Selecione o 'Quartel'.";
     pointArrowToBuildingCard('barracks');
-  } else if (step === 9) {
+  } else if (step === 11) {
     textEl.textContent = "Posicione o Quartel na grade.";
     pointArrowToCanvasCenter();
-  } else if (step === 10) {
+  } else if (step === 12) {
     textEl.textContent = "Para abrigar tropas, precisamos de um Acampamento. Clique em Construir (+).";
     pointArrowToElement('nav-build', 'top');
-  } else if (step === 11) {
+  } else if (step === 13) {
     textEl.textContent = "Selecione o 'Acampamento'.";
     pointArrowToBuildingCard('camp');
-  } else if (step === 12) {
+  } else if (step === 14) {
     textEl.textContent = "Posicione o Acampamento na grade.";
     pointArrowToCanvasCenter();
-  } else if (step === 13) {
+  } else if (step === 15) {
     textEl.textContent = "Ótimo! Agora vamos treinar tropas. Clique no ícone de Tropas.";
     pointArrowToElement('nav-troops', 'top');
-  } else if (step === 14) {
+  } else if (step === 16) {
     textEl.textContent = "Treine 3 Drones para o seu exército.";
     pointArrowToBuildingCard('drone'); 
-  } else if (step === 15) {
-    textEl.textContent = "Exército pronto! Vamos testar seu poder. Clique no botão de Ataque.";
-    pointArrowToElement('nav-attack', 'top');
-  } else if (step === 16) {
-    textEl.textContent = "Vença a batalha para provar seu valor!";
   } else if (step === 17) {
+    textEl.textContent = "Suas tropas estão prontas! Clique na aba 'TROPAS' para vê-las.";
+    pointArrowToElement('ttab-troops', 'bottom');
+  } else if (step === 18) {
+    textEl.textContent = "Exército pronto! Vamos testar seu poder. Clique no botão de Ataque.";
+    pointArrowToElement('btn-attack-modern', 'top');
+  } else if (step === 19) {
+    textEl.textContent = "Oponente encontrado! Clique em 'ATACAR!' para iniciar a invasão.";
+    pointArrowToElement('mm-confirm-btn', 'bottom');
+  } else if (step === 20) {
+    textEl.textContent = "Vença a batalha para provar seu valor!";
+  } else if (step === 21) {
     textEl.textContent = "Parabéns, Comandante! Você concluiu o treinamento básico. Verifique as MISSÕES para continuar progredindo.";
     if (btn) {
       btn.style.display = 'block';
       btn.textContent = "Finalizar Tutorial";
     }
-  } else if (step > 17) {
+  } else if (step > 21) {
     closeTutorial();
   }
 }
@@ -3532,6 +3581,30 @@ function pointArrowToCanvasCenter() {
     if (arrow) {
       arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
       arrow.style.top = (rect.top + rect.height / 2 - 50) + 'px';
+      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
+    }
+  }, 50);
+}
+
+function pointArrowToLastBuilding() {
+  const b = G.base.buildings[G.base.buildings.length - 1];
+  if (!b) return;
+  pointArrowToBuilding(b.id);
+}
+
+function pointArrowToBuilding(bId) {
+  const el = gel('bld-' + bId);
+  if (!el || el.offsetParent === null) {
+    tutorialArrowInterval = setTimeout(() => pointArrowToBuilding(bId), 200);
+    return;
+  }
+  const arrow = gel('tutorial-arrow');
+  if (arrow) arrow.classList.remove('hidden');
+  tutorialArrowInterval = setInterval(() => {
+    const rect = el.getBoundingClientRect();
+    if (arrow) {
+      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+      arrow.style.top = (rect.top - 50) + 'px';
       arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
     }
   }, 50);
