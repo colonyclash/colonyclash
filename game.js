@@ -1019,7 +1019,7 @@ function showBldPopup(bId, cx, cy) {
     const remSeconds = (finish - Date.now()) / 1000;
     const gemCost = Math.max(1, Math.ceil(remSeconds / 60));
     speedBtn.innerHTML = `<img src="energy_icon.svg" class="inline-icon"> ACELERAR <span style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px;margin-left:5px"><img src="gems_icon.svg" class="inline-icon"> ${gemCost}</span>`;
-    speedBtn.onclick = () => { advanceTutorialIf(5); speedUpBuilding(bId, gemCost); };
+    speedBtn.onclick = () => { speedUpBuilding(bId, gemCost); };
     
     if (isUpgrading) {
       cancelBtn.onclick = () => cancelUpgrade(bId);
@@ -1208,9 +1208,9 @@ function enterBuildMode(type) {
   G.ui.ghostX = -1; G.ui.ghostY = -1;
 
   if (type === 'mineral_extractor') advanceTutorialIf(2);
-  if (type === 'oxygen_extractor')  advanceTutorialIf(5);
-  if (type === 'barracks')          advanceTutorialIf(8);
-  if (type === 'camp')              advanceTutorialIf(11);
+  if (type === 'oxygen_extractor')  advanceTutorialIf(7);
+  if (type === 'barracks')          advanceTutorialIf(10);
+  if (type === 'camp')              advanceTutorialIf(13);
 
   closePanels();
   gel('map-container').classList.add('build-mode');
@@ -2041,6 +2041,7 @@ window.switchTroopTab = function(tab) {
     if (G.ui.troopTab === 'troops') content.style.flexDirection = 'column';
   }
 
+  if (G.ui.troopTab === 'troops') advanceTutorialIf(17);
   renderTroopsPanel();
 };
 
@@ -2351,9 +2352,9 @@ function trainTroop(type) {
   notify(`${t('training')} ${t(type)}... (${fmtTime(td.trainTime)})`, 'info');
 
   if (!G.base.tutorialTroopCount) G.base.tutorialTroopCount = 0;
-  if ((G.base.tutorialStep || 0) === 14) {
+  if ((G.base.tutorialStep || 0) === 16) {
     G.base.tutorialTroopCount++;
-    if (G.base.tutorialTroopCount >= 3) advanceTutorialIf(14);
+    if (G.base.tutorialTroopCount >= 3) advanceTutorialIf(16);
   }
 }
 
@@ -3344,6 +3345,7 @@ function speedUpBuilding(bId, cost) {
   if (!b) return;
   
   G.base.gems = (G.base.gems || 0) - cost;
+  advanceTutorialIf(5);
 
   // If it was an upgrade in progress, complete it now
   if (b.upgradeFinish && b.upgradeFinish > Date.now()) {
@@ -3416,6 +3418,11 @@ function showTutorial() {
 }
 
 function updateTutorialStep() {
+  if (G.ui.screen !== 'game') {
+    closeTutorialDialog(); // Esconde apenas o diálogo, a seta já é tratada no switchScreen
+    return;
+  }
+
   const textEl = gel('tutorial-text');
   const arrow = gel('tutorial-arrow');
   const btn = gel('tutorial-next-btn');
@@ -3430,6 +3437,14 @@ function updateTutorialStep() {
 
   checkTutorialAutoAdvance();
   const step = G.base.tutorialStep || 0;
+  
+  const dialog = gel('tutorial-dialog');
+  if (!G.base.tutorialDone && dialog) {
+    dialog.classList.remove('hidden');
+    dialog.classList.add('visible');
+  } else {
+    closeTutorialDialog();
+  }
 
   if (step === 0) {
     textEl.textContent = "Bem-vindo, Comandante! Vou te guiar nos primeiros passos.";
@@ -3508,6 +3523,14 @@ function advanceTutorialIf(step) {
   }
 }
 
+function skipTutorial() {
+  G.base.tutorialStep = 99;
+  G.base.tutorialDone = true;
+  saveData();
+  closeTutorial();
+  notify("Tutorial pulado com sucesso!", "info");
+}
+
 function checkTutorialAutoAdvance() {
   const step = G.base.tutorialStep || 0;
   if (G.base.tutorialDone) return;
@@ -3549,6 +3572,12 @@ function checkTutorialAutoAdvance() {
 }
 
 function closeTutorial() {
+  closeTutorialDialog();
+  G.base.tutorialDone = true;
+  saveData();
+}
+
+function closeTutorialDialog() {
   const dialog = gel('tutorial-dialog');
   const arrow = gel('tutorial-arrow');
   if (dialog) {
@@ -3556,10 +3585,11 @@ function closeTutorial() {
     dialog.classList.add('hidden');
   }
   if (arrow) arrow.classList.add('hidden');
-  if (tutorialArrowInterval) clearInterval(tutorialArrowInterval);
-  if (tutorialArrowInterval) clearTimeout(tutorialArrowInterval);
-  G.base.tutorialDone = true;
-  saveData();
+  if (tutorialArrowInterval) {
+    clearInterval(tutorialArrowInterval);
+    clearTimeout(tutorialArrowInterval);
+    tutorialArrowInterval = null;
+  }
 }
 
 function pointArrowToElement(id, direction='top') {
@@ -3573,6 +3603,11 @@ function pointArrowToElement(id, direction='top') {
   if (arrow) arrow.classList.remove('hidden');
   
   tutorialArrowInterval = setInterval(() => {
+    if (G.ui.screen !== 'game') {
+      clearInterval(tutorialArrowInterval);
+      if (arrow) arrow.classList.add('hidden');
+      return;
+    }
     const rect = el.getBoundingClientRect();
     if (arrow) {
       arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
@@ -3602,6 +3637,11 @@ function pointArrowToBuildingCard(bldId) {
   const arrow = gel('tutorial-arrow');
   if (arrow) arrow.classList.remove('hidden');
   tutorialArrowInterval = setInterval(() => {
+    if (G.ui.screen !== 'game') {
+      clearInterval(tutorialArrowInterval);
+      if (arrow) arrow.classList.add('hidden');
+      return;
+    }
     const rect = target.getBoundingClientRect();
     if (arrow) {
       arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
@@ -3617,7 +3657,7 @@ function pointArrowToGhost() {
   const canvas = gel('game-canvas');
   
   tutorialArrowInterval = setInterval(() => {
-    if (G.ui.mode !== 'build' && G.ui.mode !== 'move') {
+    if (G.ui.screen !== 'game' || (G.ui.mode !== 'build' && G.ui.mode !== 'move')) {
       clearInterval(tutorialArrowInterval);
       if (arrow) arrow.classList.add('hidden');
       return;
