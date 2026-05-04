@@ -2539,12 +2539,7 @@ function switchScreen(name) {
   G.ui.screen = name;
 
   if (name !== 'game') {
-    const arrow = gel('tutorial-arrow');
-    if (arrow) arrow.classList.add('hidden');
-    if (tutorialArrowInterval) {
-      clearTimeout(tutorialArrowInterval);
-      clearInterval(tutorialArrowInterval);
-    }
+    if (typeof clearTutorialGlow === 'function') clearTutorialGlow();
   }
   
   // Pequeno delay para garantir renderização antes de disparar eventos dependentes de layout
@@ -3499,17 +3494,11 @@ function updateTutorialStep() {
   if (G.ui.screen !== 'game') { closeTutorialDialog(); return; }
 
   const textEl = gel('tutorial-text');
-  const arrow  = gel('tutorial-arrow');
   const btn    = gel('tutorial-next-btn');
   
-  if (arrow) arrow.classList.add('hidden');
   if (btn)   btn.style.display = 'none';
 
-  if (tutorialArrowInterval) {
-    clearTimeout(tutorialArrowInterval);
-    clearInterval(tutorialArrowInterval);
-    tutorialArrowInterval = null;
-  }
+  clearTutorialGlow();
 
   checkTutorialAutoAdvance();
   const step = G.base.tutorialStep || 0;
@@ -3537,43 +3526,43 @@ function updateTutorialStep() {
     if (btn) { btn.style.display = 'block'; btn.textContent = t('continue'); }
   } else if (step === 1) {
     textEl.textContent = t('tut_step1');
-    pointArrowToElement('nav-build', 'top');
+    pointGlowToElement('nav-build');
   } else if (step === 2) {
     textEl.textContent = t('tut_step2');
-    pointArrowToBuildingCard('mineral_extractor');
+    pointGlowToBuildingCard('mineral_extractor');
   } else if (step === 3 || step === 8 || step === 12 || step === 15) {
     textEl.textContent = t('tut_step3');
-    pointArrowToGhost();
+    pointGlowToGhost();
   } else if (step === 4 || step === 9 || step === 13 || step === 16) {
     textEl.textContent = t('tut_step4');
-    pointArrowToLastBuilding();
+    pointGlowToLastBuilding();
   } else if (step === 5 || step === 10 || step === 14 || step === 17) {
     textEl.textContent = t('tut_step5');
-    pointArrowToElement('popup-speedup', 'top');
+    pointGlowToElement('popup-speedup');
   } else if (step === 6) {
     textEl.textContent = t('tut_step6');
-    pointArrowToElement('nav-build', 'top');
+    pointGlowToElement('nav-build');
   } else if (step === 7) {
     textEl.textContent = t('tut_step7');
-    pointArrowToBuildingCard('oxygen_extractor');
+    pointGlowToBuildingCard('oxygen_extractor');
   } else if (step === 11) {
     textEl.textContent = t('tut_step10');
-    pointArrowToBuildingCard('barracks');
+    pointGlowToBuildingCard('barracks');
   } else if (step === 18) {
     textEl.textContent = t('tut_step15');
-    pointArrowToElement('nav-troops', 'top');
+    pointGlowToElement('nav-troops');
   } else if (step === 19) {
     textEl.textContent = t('tut_step16');
-    pointArrowToBuildingCard('drone');
+    pointGlowToBuildingCard('drone');
   } else if (step === 20) {
     textEl.textContent = t('tut_step17');
-    pointArrowToElement('ttab-troops', 'bottom');
+    pointGlowToElement('ttab-troops');
   } else if (step === 21) {
     textEl.textContent = t('tut_step18');
-    pointArrowToElement('btn-attack-modern', 'top');
+    pointGlowToElement('btn-attack-modern');
   } else if (step === 22) {
     textEl.textContent = t('tut_step19');
-    pointArrowToElement('mm-confirm-btn', 'bottom');
+    pointGlowToElement('mm-confirm-btn');
   } else if (step === 23) {
     textEl.textContent = t('tut_step20');
   } else if (step === 24) {
@@ -3645,127 +3634,69 @@ function closeTutorial() {
 
 function closeTutorialDialog() {
   const dialog = gel('tutorial-dialog');
-  const arrow = gel('tutorial-arrow');
   if (dialog) {
     dialog.classList.remove('visible');
     dialog.classList.add('hidden');
   }
-  if (arrow) arrow.classList.add('hidden');
-  if (tutorialArrowInterval) {
-    clearInterval(tutorialArrowInterval);
-    clearTimeout(tutorialArrowInterval);
-    tutorialArrowInterval = null;
+  clearTutorialGlow();
+}
+
+let tutorialGlowInterval = null;
+
+function clearTutorialGlow() {
+  document.querySelectorAll('.tutorial-glow').forEach(el => el.classList.remove('tutorial-glow'));
+  if (tutorialGlowInterval) {
+    clearTimeout(tutorialGlowInterval);
+    tutorialGlowInterval = null;
   }
 }
 
-function pointArrowToElement(id, direction='top') {
-  if (G.ui.screen !== 'game') return; // NUNCA mostrar seta fora da tela de jogo
+function pointGlowToElement(id) {
+  if (G.ui.screen !== 'game') return;
   const el = gel(id);
   if (!el || el.offsetParent === null) {
-    tutorialArrowInterval = setTimeout(() => pointArrowToElement(id, direction), 200);
+    tutorialGlowInterval = setTimeout(() => pointGlowToElement(id), 250);
     return;
   }
-  const arrow = gel('tutorial-arrow');
-  if (arrow) arrow.classList.remove('hidden');
-  
-  tutorialArrowInterval = setInterval(() => {
-    if (G.ui.screen !== 'game') {
-      clearInterval(tutorialArrowInterval);
-      if (arrow) arrow.classList.add('hidden');
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    if (arrow) {
-      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-      arrow.style.top = (rect.top - 50) + 'px';
-      // Seta apontando pra baixo para o FAB
-      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
-    }
-  }, 50);
+  el.classList.add('tutorial-glow');
 }
 
-function pointArrowToBuildingCard(bldId) {
+function pointGlowToBuildingCard(bldId) {
   const cards = document.querySelectorAll('.build-card-new, .troop-card-modern');
   let target = null;
   for (let c of cards) {
     if (c.dataset.type === bldId) { target = c; break; }
   }
   if (!target || target.offsetParent === null) {
-    if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); clearTimeout(tutorialArrowInterval); tutorialArrowInterval = null; }
-    tutorialArrowInterval = setTimeout(() => pointArrowToBuildingCard(bldId), 250);
+    tutorialGlowInterval = setTimeout(() => pointGlowToBuildingCard(bldId), 250);
     return;
   }
-  const arrow = gel('tutorial-arrow');
-  if (arrow) arrow.classList.remove('hidden');
-  if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
-  tutorialArrowInterval = setInterval(() => {
-    if (G.ui.screen !== 'game') {
-      clearInterval(tutorialArrowInterval);
-      if (arrow) arrow.classList.add('hidden');
-      return;
-    }
-    const rect = target.getBoundingClientRect();
-    if (arrow) {
-      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-      arrow.style.top = (rect.top - 44) + 'px';
-      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
-    }
-  }, 60);
+  target.classList.add('tutorial-glow');
 }
 
-function pointArrowToGhost() {
-  const arrow = gel('tutorial-arrow');
-  if (arrow) arrow.classList.remove('hidden');
-
-  if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
-  tutorialArrowInterval = setInterval(() => {
-    if (G.ui.screen !== 'game' || (!G.ui.buildMode && !G.ui.moveMode)) {
-      clearInterval(tutorialArrowInterval);
-      if (arrow) arrow.classList.add('hidden');
-      return;
-    }
-    // Track the ghost DOM element directly
-    const ghost = gel('bld-ghost');
-    if (ghost && ghost.style.display !== 'none') {
-      const rect = ghost.getBoundingClientRect();
-      if (arrow) {
-        arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-        arrow.style.top = (rect.top - 50) + 'px';
-        arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
-      }
-    }
-  }, 40);
+function pointGlowToGhost() {
+  if (G.ui.screen !== 'game' || (!G.ui.buildMode && !G.ui.moveMode)) return;
+  const ghost = gel('bld-ghost');
+  if (ghost && ghost.style.display !== 'none') {
+    ghost.classList.add('tutorial-glow');
+  } else {
+    tutorialGlowInterval = setTimeout(() => pointGlowToGhost(), 250);
+  }
 }
 
-function pointArrowToLastBuilding() {
+function pointGlowToLastBuilding() {
   const b = G.base.buildings[G.base.buildings.length - 1];
   if (!b) return;
-  pointArrowToBuilding(b.id);
+  pointGlowToBuilding(b.id);
 }
 
-function pointArrowToBuilding(bId) {
+function pointGlowToBuilding(bId) {
   const el = gel('bld-' + bId);
   if (!el || el.offsetParent === null) {
-    if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
-    tutorialArrowInterval = setTimeout(() => pointArrowToBuilding(bId), 250);
+    tutorialGlowInterval = setTimeout(() => pointGlowToBuilding(bId), 250);
     return;
   }
-  const arrow = gel('tutorial-arrow');
-  if (arrow) arrow.classList.remove('hidden');
-  if (tutorialArrowInterval) { clearInterval(tutorialArrowInterval); tutorialArrowInterval = null; }
-  tutorialArrowInterval = setInterval(() => {
-    if (G.ui.screen !== 'game') {
-      clearInterval(tutorialArrowInterval);
-      if (arrow) arrow.classList.add('hidden');
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    if (arrow) {
-      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-      arrow.style.top = (rect.top - 50) + 'px';
-      arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
-    }
-  }, 60);
+  el.classList.add('tutorial-glow');
 }
 
 // ============================================================

@@ -1950,13 +1950,13 @@ html, body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 95;       /* behind panels (100) and modals (300+) */
-  background: rgba(10, 16, 40, 0.92);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 212, 255, 0.35);
-  border-radius: 16px;
-  padding: 10px 14px;
-  width: min(340px, 90vw);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  background: rgba(10, 16, 40, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  width: min(300px, 90vw);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1972,8 +1972,8 @@ html, body {
 }
 
 .tutorial-dialog-avatar img {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
 }
 
 .tutorial-dialog-text {
@@ -2000,7 +2000,20 @@ html, body {
 .tutorial-btn:hover { transform: scale(1.05); }
 
 @media (max-width: 600px) {
-  .tutorial-dialog { bottom: 90px; padding: 8px 12px; }
+  .tutorial-dialog { bottom: 90px; padding: 6px 10px; width: min(280px, 95vw); }
   .tutorial-dialog-text { font-size: 11px; }
-  .tutorial-dialog-avatar img { width: 28px; height: 28px; }
+  .tutorial-dialog-avatar img { width: 22px; height: 22px; }
+}
+
+/* ========== TUTORIAL GLOW ANIMATION ========== */
+@keyframes tutorial-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+}
+
+.tutorial-glow {
+  animation: tutorial-pulse 1.5s infinite !important;
+  border: 2px solid var(--c-primary) !important;
+  border-radius: inherit; /* Assumes target element has a border-radius */
 }
