@@ -146,9 +146,11 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     G.db   = firebase.firestore();
     G.auth = firebase.auth();
-    if (typeof firebase.analytics === 'function') {
-      G.analytics = firebase.analytics();
-    }
+    try {
+      if (typeof firebase.analytics === 'function') {
+        G.analytics = firebase.analytics();
+      }
+    } catch (ae) { console.warn('Analytics init skipped:', ae); }
     return true;
   } catch (e) { console.warn('Firebase init failed:', e); return false; }
 }
@@ -3894,7 +3896,22 @@ async function init() {
     return;
   }
 
+  let authResolved = false;
+
+  // Timeout fallback — if auth never fires (e.g. network issue), go to login
+  const authTimeout = setTimeout(() => {
+    if (!authResolved) {
+      console.warn('Auth timeout — redirecting to login');
+      setLoadProgress(100);
+      switchScreen('login');
+    }
+  }, 10000);
+
   G.auth.onAuthStateChanged(async user => {
+    if (authResolved) return;
+    authResolved = true;
+    clearTimeout(authTimeout);
+
     console.log('Auth state change:', user ? user.uid : 'null');
     if (user) {
       G.user = user;
