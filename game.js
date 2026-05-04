@@ -272,6 +272,8 @@ function createStarterBase() {
     totalObstaclesRemoved: 0,
     totalResearch: 0,
     totalDronesTrained: 0,
+    tutorialStep: 0,
+    tutorialTroopCount: 0,
     missions: { currentId: 0, completed: [], claimed: [], progress: 0, allProgress: {} }
   };
 }
@@ -1194,6 +1196,9 @@ function enterBuildMode(type) {
   G.ui.ghostX = -1; G.ui.ghostY = -1;
 
   if (type === 'mineral_extractor') advanceTutorialIf(2);
+  if (type === 'oxygen_extractor')  advanceTutorialIf(5);
+  if (type === 'barracks')          advanceTutorialIf(8);
+  if (type === 'camp')              advanceTutorialIf(11);
 
   closePanels();
   gel('map-container').classList.add('build-mode');
@@ -1339,6 +1344,9 @@ function confirmPlace() {
   updateHUD();
   saveData();
   if (buildType === 'mineral_extractor') advanceTutorialIf(3);
+  if (buildType === 'oxygen_extractor')  advanceTutorialIf(6);
+  if (buildType === 'barracks')          advanceTutorialIf(9);
+  if (buildType === 'camp')              advanceTutorialIf(12);
   notify(`${t(buildType)} ${t('ready')}!`, 'success');
 }
 
@@ -1636,8 +1644,14 @@ function showPanel(name) {
   if (name === 'build') {
     renderBuildPanel();
     advanceTutorialIf(1);
+    advanceTutorialIf(4);
+    advanceTutorialIf(7);
+    advanceTutorialIf(10);
   }
-  if (name === 'troops')  renderTroopsPanel();
+  if (name === 'troops') {
+    renderTroopsPanel();
+    advanceTutorialIf(13);
+  }
   if (name === 'mission') renderMissionPanel();
 }
 
@@ -2120,7 +2134,7 @@ function renderTrainTabContent(totalCap, usedSpace) {
                        (G.base.resources.energy >= eneCost);
 
     troopsHtml += `
-      <div class="troop-card-modern ${canTrain ? '' : 'locked'}" onclick="${canTrain ? `trainTroop('${troopId}')` : `notify('${t('need_barracks')}', 'info')`}">
+      <div class="troop-card-modern ${canTrain ? '' : 'locked'}" data-type="${troopId}" onclick="${canTrain ? `trainTroop('${troopId}')` : `notify('${t('need_barracks')}', 'info')`}">
         <span class="tc-info-btn" onclick="event.stopPropagation(); showTroopInfo('${troopId}')">ⓘ</span>
         <img src="${td.asset}" class="tc-card-img">
         <div class="tc-cost-bar" style="color:${affordable ? '#fff' : 'var(--c-danger)'}">
@@ -2320,6 +2334,12 @@ function trainTroop(type) {
   updateHUD();
   saveData();
   notify(`${t('training')} ${t(type)}... (${fmtTime(td.trainTime)})`, 'info');
+
+  if (!G.base.tutorialTroopCount) G.base.tutorialTroopCount = 0;
+  if ((G.base.tutorialStep || 0) === 14) {
+    G.base.tutorialTroopCount++;
+    if (G.base.tutorialTroopCount >= 3) advanceTutorialIf(14);
+  }
 }
 
 function finishTraining(type, finishTime) {
@@ -2513,6 +2533,7 @@ function spawnLoginStars() {
 // ============================================================
 async function showOpponentScreen() {
   // Check if under attack by showing matchmaking
+  advanceTutorialIf(15);
   startMatchmaking();
 }
 
@@ -3244,6 +3265,7 @@ async function endBattle() {
   G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
+    advanceTutorialIf(16);
   }
 
   await saveData();
@@ -3341,7 +3363,6 @@ function renderShopPanel() {
 // ============================================================
 // INTERACTIVE TUTORIAL
 // ============================================================
-let currentTutorialStep = 0;
 let tutorialArrowInterval = null;
 
 function showTutorial() {
@@ -3350,7 +3371,6 @@ function showTutorial() {
   if (dialog) {
     dialog.classList.remove('hidden');
     dialog.classList.add('visible');
-    currentTutorialStep = 0;
     updateTutorialStep();
   }
 }
@@ -3359,43 +3379,83 @@ function updateTutorialStep() {
   const textEl = gel('tutorial-text');
   const arrow = gel('tutorial-arrow');
   const btn = gel('tutorial-next-btn');
+  const step = G.base.tutorialStep || 0;
   
   if (tutorialArrowInterval) clearTimeout(tutorialArrowInterval);
   if (tutorialArrowInterval) clearInterval(tutorialArrowInterval);
   if (arrow) arrow.classList.add('hidden');
   if (btn) btn.style.display = 'none';
 
-  if (currentTutorialStep === 0) {
+  if (step === 0) {
     textEl.textContent = "Bem-vindo, Comandante! Vou te guiar nos primeiros passos.";
     btn.style.display = 'block';
     btn.textContent = "Continuar";
-  } else if (currentTutorialStep === 1) {
+  } else if (step === 1) {
     textEl.textContent = "Primeiro, precisamos de Minério. Clique no botão de Construir (+).";
     pointArrowToElement('nav-build', 'top');
-  } else if (currentTutorialStep === 2) {
+  } else if (step === 2) {
     textEl.textContent = "Excelente! Agora selecione o 'Extrator de Minério'.";
     pointArrowToBuildingCard('mineral_extractor');
-  } else if (currentTutorialStep === 3) {
-    textEl.textContent = "Ótimo! Mova o mapa se precisar. Escolha um local na grade (onde fica verde) e confirme a construção clicando no ✔.";
+  } else if (step === 3) {
+    textEl.textContent = "Ótimo! Mova o mapa se precisar. Escolha um local na grade e confirme clicando no ✔.";
     pointArrowToCanvasCenter();
-  } else if (currentTutorialStep === 4) {
-    textEl.textContent = "Pronto! Você acaba de dar o primeiro passo. Siga as missões (ícone no topo) para evoluir a base!";
+  } else if (step === 4) {
+    textEl.textContent = "Agora precisamos de Oxigênio. Clique no botão de Construir (+).";
+    pointArrowToElement('nav-build', 'top');
+  } else if (step === 5) {
+    textEl.textContent = "Selecione o 'Extrator de Oxigênio'.";
+    pointArrowToBuildingCard('oxygen_extractor');
+  } else if (step === 6) {
+    textEl.textContent = "Posicione-o na grade e confirme.";
+    pointArrowToCanvasCenter();
+  } else if (step === 7) {
+    textEl.textContent = "Para treinar tropas, precisamos de um Quartel. Clique em Construir (+).";
+    pointArrowToElement('nav-build', 'top');
+  } else if (step === 8) {
+    textEl.textContent = "Selecione o 'Quartel'.";
+    pointArrowToBuildingCard('barracks');
+  } else if (step === 9) {
+    textEl.textContent = "Posicione o Quartel na grade.";
+    pointArrowToCanvasCenter();
+  } else if (step === 10) {
+    textEl.textContent = "Para abrigar tropas, precisamos de um Acampamento. Clique em Construir (+).";
+    pointArrowToElement('nav-build', 'top');
+  } else if (step === 11) {
+    textEl.textContent = "Selecione o 'Acampamento'.";
+    pointArrowToBuildingCard('camp');
+  } else if (step === 12) {
+    textEl.textContent = "Posicione o Acampamento na grade.";
+    pointArrowToCanvasCenter();
+  } else if (step === 13) {
+    textEl.textContent = "Ótimo! Agora vamos treinar tropas. Clique no ícone de Tropas.";
+    pointArrowToElement('nav-troops', 'top');
+  } else if (step === 14) {
+    textEl.textContent = "Treine 3 Drones para o seu exército.";
+    pointArrowToBuildingCard('drone'); 
+  } else if (step === 15) {
+    textEl.textContent = "Exército pronto! Vamos testar seu poder. Clique no botão de Ataque.";
+    pointArrowToElement('nav-attack', 'top');
+  } else if (step === 16) {
+    textEl.textContent = "Vença a batalha para provar seu valor!";
+  } else if (step === 17) {
+    textEl.textContent = "Parabéns, Comandante! Você concluiu o treinamento básico. Verifique as MISSÕES para continuar progredindo.";
     if (btn) {
       btn.style.display = 'block';
-      btn.textContent = "Entendido, Começar!";
+      btn.textContent = "Finalizar Tutorial";
     }
-  } else if (currentTutorialStep > 4) {
+  } else if (step > 17) {
     closeTutorial();
   }
 }
 
 function nextTutorialStep() {
-  currentTutorialStep++;
+  G.base.tutorialStep = (G.base.tutorialStep || 0) + 1;
+  saveData();
   updateTutorialStep();
 }
 
 function advanceTutorialIf(step) {
-  if (!G.base.tutorialDone && currentTutorialStep === step) {
+  if (!G.base.tutorialDone && (G.base.tutorialStep || 0) === step) {
     nextTutorialStep();
   }
 }
@@ -3415,6 +3475,7 @@ function closeTutorial() {
 }
 
 function pointArrowToElement(id, direction='top') {
+  if (G.ui.screen !== 'game') return; // NUNCA mostrar seta fora da tela de jogo
   const el = gel(id);
   if (!el || el.offsetParent === null) {
     tutorialArrowInterval = setTimeout(() => pointArrowToElement(id, direction), 200);
@@ -3435,7 +3496,10 @@ function pointArrowToElement(id, direction='top') {
 }
 
 function pointArrowToBuildingCard(bldId) {
-  const cards = document.querySelectorAll('.build-card-new');
+  if (G.ui.screen !== 'game' && G.ui.panel !== 'build' && G.ui.panel !== 'troops') {
+     // Apenas tenta se o painel estiver aberto (para cards) ou se for tela de jogo
+  }
+  const cards = document.querySelectorAll('.build-card-new, .troop-card-modern');
   let target = null;
   for (let c of cards) {
     if (c.dataset.type === bldId) {
