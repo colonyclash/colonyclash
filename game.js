@@ -1407,6 +1407,7 @@ function initMapEvents() {
     if (!moved) {
       if (G.ui.buildMode || G.ui.moveMode) confirmPlace();
       else hideBldPopup();
+      updateTutorialStep(); // Checa avanço após ação no mapa
     }
   });
 
@@ -1656,15 +1657,17 @@ function showPanel(name) {
   if (name === 'build') {
     renderBuildPanel();
     advanceTutorialIf(1);
-    advanceTutorialIf(4);
-    advanceTutorialIf(7);
-    advanceTutorialIf(10);
+    advanceTutorialIf(6);
+    advanceTutorialIf(9);
+    advanceTutorialIf(12);
   }
   if (name === 'troops') {
     renderTroopsPanel();
-    advanceTutorialIf(13);
+    advanceTutorialIf(15);
   }
   if (name === 'mission') renderMissionPanel();
+  
+  updateTutorialStep(); // Checa avanço automático
 }
 
 function openShop() {
@@ -3416,12 +3419,17 @@ function updateTutorialStep() {
   const textEl = gel('tutorial-text');
   const arrow = gel('tutorial-arrow');
   const btn = gel('tutorial-next-btn');
-  const step = G.base.tutorialStep || 0;
   
-  if (tutorialArrowInterval) clearTimeout(tutorialArrowInterval);
-  if (tutorialArrowInterval) clearInterval(tutorialArrowInterval);
   if (arrow) arrow.classList.add('hidden');
   if (btn) btn.style.display = 'none';
+
+  if (tutorialArrowInterval) {
+    clearTimeout(tutorialArrowInterval);
+    clearInterval(tutorialArrowInterval);
+  }
+
+  checkTutorialAutoAdvance();
+  const step = G.base.tutorialStep || 0;
 
   if (step === 0) {
     textEl.textContent = "Bem-vindo, Comandante! Vou te guiar nos primeiros passos.";
@@ -3433,9 +3441,9 @@ function updateTutorialStep() {
   } else if (step === 2) {
     textEl.textContent = "Excelente! Agora selecione o 'Extrator de Minério'.";
     pointArrowToBuildingCard('mineral_extractor');
-  } else if (step === 3) {
-    textEl.textContent = "Escolha um local na grade e confirme clicando no ✔.";
-    pointArrowToCanvasCenter();
+  } else if (step === 3 || step === 8 || step === 11 || step === 14) {
+    textEl.textContent = "Escolha um local na grade e confirme clicando no ✓.";
+    pointArrowToGhost();
   } else if (step === 4) {
     textEl.textContent = "A construção demora um pouco. Clique no prédio que você acabou de colocar.";
     pointArrowToLastBuilding();
@@ -3448,27 +3456,18 @@ function updateTutorialStep() {
   } else if (step === 7) {
     textEl.textContent = "Selecione o 'Extrator de Oxigênio'.";
     pointArrowToBuildingCard('oxygen_extractor');
-  } else if (step === 8) {
-    textEl.textContent = "Posicione-o na grade e confirme.";
-    pointArrowToCanvasCenter();
   } else if (step === 9) {
     textEl.textContent = "Para treinar tropas, precisamos de um Quartel. Clique em Construir (+).";
     pointArrowToElement('nav-build', 'top');
   } else if (step === 10) {
     textEl.textContent = "Selecione o 'Quartel'.";
     pointArrowToBuildingCard('barracks');
-  } else if (step === 11) {
-    textEl.textContent = "Posicione o Quartel na grade.";
-    pointArrowToCanvasCenter();
   } else if (step === 12) {
     textEl.textContent = "Para abrigar tropas, precisamos de um Acampamento. Clique em Construir (+).";
     pointArrowToElement('nav-build', 'top');
   } else if (step === 13) {
     textEl.textContent = "Selecione o 'Acampamento'.";
     pointArrowToBuildingCard('camp');
-  } else if (step === 14) {
-    textEl.textContent = "Posicione o Acampamento na grade.";
-    pointArrowToCanvasCenter();
   } else if (step === 15) {
     textEl.textContent = "Ótimo! Agora vamos treinar tropas. Clique no ícone de Tropas.";
     pointArrowToElement('nav-troops', 'top');
@@ -3505,6 +3504,46 @@ function nextTutorialStep() {
 
 function advanceTutorialIf(step) {
   if (!G.base.tutorialDone && (G.base.tutorialStep || 0) === step) {
+    nextTutorialStep();
+  }
+}
+
+function checkTutorialAutoAdvance() {
+  const step = G.base.tutorialStep || 0;
+  if (G.base.tutorialDone) return;
+
+  // Detecção de construções concluídas (ou em andamento)
+  const hasMineral = getBuildingCountOfType('mineral_extractor') > 0;
+  const hasOxygen = getBuildingCountOfType('oxygen_extractor') > 0;
+  const hasBarracks = getBuildingCountOfType('barracks') > 0;
+  const hasCamp = getBuildingCountOfType('camp') > 0;
+
+  if (step === 3 && hasMineral) nextTutorialStep();
+  if (step === 8 && hasOxygen) nextTutorialStep();
+  if (step === 11 && hasBarracks) nextTutorialStep();
+  if (step === 14 && hasCamp) nextTutorialStep();
+
+  // Detecção de UI
+  const mmVisible = gel('opponent-screen')?.classList.contains('visible');
+  if (step === 18 && mmVisible) nextTutorialStep();
+
+  if (step === 1 && G.ui.panel === 'build') {
+    nextTutorialStep(); // Painel abriu
+  } else if (step === 2 && G.ui.mode === 'build') {
+    nextTutorialStep(); // Entrou no modo construção
+  } else if (step === 6 && G.ui.panel === 'build') {
+    nextTutorialStep();
+  } else if (step === 7 && G.ui.mode === 'build' && G.ui.buildType === 'oxygen_extractor') {
+    nextTutorialStep();
+  } else if (step === 9 && G.ui.panel === 'build') {
+    nextTutorialStep();
+  } else if (step === 10 && G.ui.mode === 'build' && G.ui.buildType === 'barracks') {
+    nextTutorialStep();
+  } else if (step === 12 && G.ui.panel === 'build') {
+    nextTutorialStep();
+  } else if (step === 13 && G.ui.mode === 'build' && G.ui.buildType === 'camp') {
+    nextTutorialStep();
+  } else if (step === 15 && G.ui.panel === 'troops') {
     nextTutorialStep();
   }
 }
@@ -3572,18 +3611,28 @@ function pointArrowToBuildingCard(bldId) {
   }, 50);
 }
 
-function pointArrowToCanvasCenter() {
+function pointArrowToGhost() {
   const arrow = gel('tutorial-arrow');
   if (arrow) arrow.classList.remove('hidden');
   const canvas = gel('game-canvas');
+  
   tutorialArrowInterval = setInterval(() => {
-    const rect = canvas.getBoundingClientRect();
+    if (G.ui.mode !== 'build' && G.ui.mode !== 'move') {
+      clearInterval(tutorialArrowInterval);
+      if (arrow) arrow.classList.add('hidden');
+      return;
+    }
+    
+    // Calcula posição da seta baseada no grid atual do mouse/toque
+    const screenX = G.ui.cam.x + G.ui.mouseGridX * TILE_W * G.ui.cam.zoom;
+    const screenY = G.ui.cam.y + G.ui.mouseGridY * TILE_H * G.ui.cam.zoom;
+    
     if (arrow) {
-      arrow.style.left = (rect.left + rect.width / 2 - 20) + 'px';
-      arrow.style.top = (rect.top + rect.height / 2 - 50) + 'px';
+      arrow.style.left = (screenX + (TILE_W * G.ui.cam.zoom) / 2 - 20) + 'px';
+      arrow.style.top = (screenY - 50) + 'px';
       arrow.innerHTML = `<svg viewBox="0 0 24 24" fill="#00D4FF" width="40" height="40"><path d="M12 21l-8-8h5V3h6v10h5z"/></svg>`;
     }
-  }, 50);
+  }, 30);
 }
 
 function pointArrowToLastBuilding() {
