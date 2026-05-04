@@ -1260,6 +1260,7 @@ function enterBuildMode(type) {
   if (type === 'camp')              advanceTutorialIf(20);
 
   closePanels();
+  document.body.classList.add('is-building');
   gel('map-container').classList.add('build-mode');
   gel('build-cancel-bar').classList.add('visible');
   gel('build-mode-label').textContent =
@@ -1295,6 +1296,7 @@ function enterMoveMode(bId) {
   if (el) el.style.display = 'none';
 
   gel('map-container').classList.add('build-mode');
+  document.body.classList.add('is-building');
   gel('build-cancel-bar').classList.add('visible');
   gel('build-mode-label').textContent = `Movendo: ${BUILDINGS[b.type]?.name || b.type}`;
 
@@ -1323,6 +1325,7 @@ function exitBuildMode() {
   G.ui.buildMode = false; G.ui.buildType = null;
   G.ui.moveMode = false; G.ui.moveBldId = null;
   G.ui.ghostX = -1; G.ui.ghostY = -1;
+  document.body.classList.remove('is-building');
   gel('map-container').classList.remove('build-mode');
   gel('build-cancel-bar').classList.remove('visible');
   const ghost = gel('bld-ghost'); if (ghost) ghost.remove();
