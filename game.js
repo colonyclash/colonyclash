@@ -225,6 +225,7 @@ async function loadData() {
       if (!G.base.missions.allProgress) G.base.missions.allProgress = {};
       if (!G.base.missions.claimed) G.base.missions.claimed = [];
       
+      checkDailyStreak();
       processOfflineResources();
       processOfflineQueue();
       processOfflineBuildings();
@@ -234,6 +235,7 @@ async function loadData() {
       listenToUserData();
     } else {
       createStarterBase();
+      checkDailyStreak();
       await saveData();
       listenToUserData();
     }
@@ -1256,8 +1258,8 @@ function enterBuildMode(type) {
 
   if (type === 'mineral_extractor') advanceTutorialIf(2);
   if (type === 'oxygen_extractor')  advanceTutorialIf(7);
-  if (type === 'barracks')          advanceTutorialIf(17);
-  if (type === 'camp')              advanceTutorialIf(20);
+  if (type === 'barracks')          advanceTutorialIf(9);
+  if (type === 'camp')              advanceTutorialIf(11);
 
   closePanels();
   document.body.classList.add('is-building');
@@ -1714,12 +1716,12 @@ function showPanel(name) {
     renderBuildPanel();
     advanceTutorialIf(1);
     advanceTutorialIf(6);
-    advanceTutorialIf(9);
-    advanceTutorialIf(12);
+    advanceTutorialIf(8);
+    advanceTutorialIf(10);
   }
   if (name === 'troops') {
     renderTroopsPanel();
-    advanceTutorialIf(15);
+    advanceTutorialIf(12);
   }
   if (name === 'mission') renderMissionPanel();
   
@@ -2097,7 +2099,7 @@ window.switchTroopTab = function(tab) {
     if (G.ui.troopTab === 'troops') content.style.flexDirection = 'column';
   }
 
-  if (G.ui.troopTab === 'troops') advanceTutorialIf(17);
+  if (G.ui.troopTab === 'troops') advanceTutorialIf(14); // This might be used for final check, but step 14 is final.
   renderTroopsPanel();
 };
 
@@ -2409,11 +2411,10 @@ function trainTroop(type) {
   notify(`${t('training')} ${t(type)}... (${fmtTime(td.trainTime)})`, 'info');
 
   if (!G.base.tutorialTroopCount) G.base.tutorialTroopCount = 0;
-  if ((G.base.tutorialStep || 0) === 19) {
+  if ((G.base.tutorialStep || 0) === 13) {
     G.base.tutorialTroopCount++;
     if (G.base.tutorialTroopCount >= 8) {
-      G.base.tutorialStep = 20;
-      updateTutorialStep();
+      nextTutorialStep();
     }
   }
 }
@@ -2612,8 +2613,6 @@ function spawnLoginStars() {
 // MATCHMAKING
 // ============================================================
 async function showOpponentScreen() {
-  // Check if under attack by showing matchmaking
-  advanceTutorialIf(18);
   startMatchmaking();
 }
 
@@ -2734,7 +2733,7 @@ async function startMatchmaking() {
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:12px">
-        <button id="mm-confirm-btn" class="mm-btn" onclick="advanceTutorialIf(19); confirmMatchmaking()" data-t="attack_btn">${t('attack') || '⚔️ ATACAR!'}</button>
+        <button id="mm-confirm-btn" class="mm-btn" onclick="confirmMatchmaking()" data-t="attack_btn">${t('attack') || '⚔️ ATACAR!'}</button>
         <button class="mm-btn mm-btn-skip" onclick="startMatchmaking()" data-t="next_btn"><img src="energy_icon.svg" class="inline-icon"> 10 · ${t('next') || 'Próximo'}</button>
       </div>`;
   } catch (e) {
@@ -2831,8 +2830,10 @@ function launchBattle(opponent) {
       userZoom: 1.0,
       lootedMin: 0,
       lootedOxy: 0,
+      lootedEne: 0,
       totalStealMin: Math.floor((opponent.resources?.mineral || 0) * 0.3),
       totalStealOxy: Math.floor((opponent.resources?.oxygen || 0) * 0.3),
+      totalStealEne: Math.floor((opponent.resources?.energy || 0) * 0.3),
       timer: 180,
       lastTick: Date.now(),
       isPanning: false,
@@ -2849,6 +2850,7 @@ function launchBattle(opponent) {
     storages.forEach(b => {
       b.lMin = Math.floor(G.battle.totalStealMin / count);
       b.lOxy = Math.floor(G.battle.totalStealOxy / count);
+      b.lEne = Math.floor(G.battle.totalStealEne / count);
     });
 
     renderDeployBar();
@@ -3012,6 +3014,7 @@ function updateBattleUI() {
   
   gel('loot-min').textContent = fmtNum(bs.lootedMin);
   gel('loot-oxy').textContent = fmtNum(bs.lootedOxy);
+  if (gel('loot-ene')) gel('loot-ene').textContent = fmtNum(bs.lootedEne);
   
   const m = Math.floor(bs.timer / 60);
   const s = Math.floor(bs.timer % 60);
@@ -3080,6 +3083,7 @@ function processBattleLogic(dt) {
             bs.destroyed++;
             if (target.lMin) bs.lootedMin += target.lMin;
             if (target.lOxy) bs.lootedOxy += target.lOxy;
+            if (target.lEne) bs.lootedEne += target.lEne;
             createExplosion(tx, ty);
             if (bs.destroyed >= bs.totalBld) endBattle();
           }
@@ -3324,6 +3328,7 @@ async function endBattle() {
   G.base.trophies = Math.max(0, (G.base.trophies || 0) + tGain);
   G.base.resources.mineral = Math.min(G.base.resources.mineral + bs.lootedMin, getStorageCapacity(G.base.buildings, 'mineral'));
   G.base.resources.oxygen  = Math.min(G.base.resources.oxygen  + bs.lootedOxy, getStorageCapacity(G.base.buildings, 'oxygen'));
+  G.base.resources.energy  = Math.min(G.base.resources.energy  + bs.lootedEne, getStorageCapacity(G.base.buildings, 'energy'));
 
   // Consume ALL deployed troops (USER REQUEST)
   Object.keys(bs.deployPool).forEach(type => {
@@ -3352,6 +3357,7 @@ async function endBattle() {
           trophies: Math.max(0, (od.trophies || 0) - oTrophyLoss),
           'resources.mineral': Math.max(0, (od.resources?.mineral || 0) - bs.lootedMin),
           'resources.oxygen': Math.max(0, (od.resources?.oxygen || 0) - bs.lootedOxy),
+          'resources.energy': Math.max(0, (od.resources?.energy || 0) - bs.lootedEne),
           shieldUntil: Date.now() + (won ? 3600000 * 12 : 0)
         });
       }
@@ -3361,7 +3367,6 @@ async function endBattle() {
   G.base.totalDestroyed = (G.base.totalDestroyed || 0) + bs.destroyed;
   if (won) {
     G.base.totalWins = (G.base.totalWins || 0) + 1;
-    advanceTutorialIf(20);
   }
 
   await saveData();
@@ -3376,6 +3381,7 @@ async function endBattle() {
   gel('res-trophy').style.color = tGain >= 0 ? 'var(--c-success)' : 'var(--c-danger)';
   gel('res-min').textContent = fmtNum(bs.lootedMin);
   gel('res-oxy').textContent = fmtNum(bs.lootedOxy);
+  if (gel('res-ene')) gel('res-ene').textContent = fmtNum(bs.lootedEne);
   
   gel('battle-result').classList.add('visible');
 }
@@ -3460,8 +3466,6 @@ function renderShopPanel() {
 // ============================================================
 // INTERACTIVE TUTORIAL
 // ============================================================
-let tutorialArrowInterval = null;
-
 function showTutorial() {
   if (G.base.tutorialDone) return;
   
@@ -3471,17 +3475,16 @@ function showTutorial() {
   const hasOxygen   = getBuildingCountOfType('oxygen_extractor') > 0;
   const hasBarracks = getBuildingCountOfType('barracks') > 0;
   const hasCamp     = getBuildingCountOfType('camp') > 0;
-  
   const usedSpace   = getTotalTroopSpace(G.base.troops);
   const queueSpace  = (G.base.queue || []).reduce((acc, it) => acc + (TROOPS[it.type]?.space || 0), 0);
-  const hasTroops   = (usedSpace + queueSpace) >= 8;
+  const totalDrones = (G.base.tutorialTroopCount || 0);
 
-  // Skip steps for already-built items (using the new step numbering)
-  if (step < 4  && hasMineral)  step = 4;   // skip to speedup after mineral
-  if (step < 8  && hasOxygen)   step = 8;   // skip to speedup after oxygen
-  if (step < 11 && hasBarracks) step = 11;  // skip to speedup after barracks
-  if (step < 14 && hasCamp)     step = 14;  // skip to speedup after camp
-  if (step < 22 && hasTroops)   step = 22;  // skip past troop training
+  // Skip logic if things are already done
+  if (step < 4 && hasMineral) step = 4;
+  if (step < 8 && hasOxygen) step = 8;
+  if (step < 10 && hasBarracks) step = 10;
+  if (step < 12 && hasCamp) step = 12;
+  if (step < 14 && totalDrones >= 8) step = 14;
 
   G.base.tutorialStep = step;
   
@@ -3505,11 +3508,11 @@ function updateTutorialStep() {
   }
 
   clearTutorialGlow();
-
   checkTutorialAutoAdvance();
+
   const step = G.base.tutorialStep || 0;
-  
   const dialog = gel('tutorial-dialog');
+
   if (!G.base.tutorialDone && dialog) {
     dialog.classList.remove('hidden');
     dialog.classList.add('visible');
@@ -3519,65 +3522,72 @@ function updateTutorialStep() {
 
   if (!textEl) return;
 
-  // Step flow:
-  // 0=welcome, 1=open build panel, 2=select mineral, 3=place mineral,
-  // 4=click building, 5=speedup mineral,
-  // 6=open build panel, 7=select oxygen, 8=place oxygen, 9=speedup oxygen,
-  // 10=open build panel, 11=select barracks, 12=place barracks (wait speedup),
-  // 13=open build panel, 14=select camp, 15=place camp (wait speedup),
-  // 16=open troops panel, 17=train 8 drones, 18=click troops tab,
-  // 19=click attack button, 20=click attack confirm, 21=battle, 22=done
+  // New Step Flow (0-14)
   if (step === 0) {
     textEl.textContent = t('tut_step0');
   } else if (step === 1) {
     textEl.textContent = t('tut_step1');
     pointGlowToElement('nav-build');
+    if (btn) btn.style.display = 'none';
   } else if (step === 2) {
     textEl.textContent = t('tut_step2');
     pointGlowToBuildingCard('mineral_extractor');
-  } else if (step === 3 || step === 8 || step === 12 || step === 15) {
+    if (btn) btn.style.display = 'none';
+  } else if (step === 3) {
     textEl.textContent = t('tut_step3');
     pointGlowToGhost();
-  } else if (step === 4 || step === 9 || step === 13 || step === 16) {
+    if (btn) btn.style.display = 'none';
+  } else if (step === 4) {
     textEl.textContent = t('tut_step4');
     pointGlowToLastBuilding();
-  } else if (step === 5 || step === 10 || step === 14 || step === 17) {
+    if (btn) btn.style.display = 'none';
+  } else if (step === 5) {
     textEl.textContent = t('tut_step5');
     pointGlowToElement('popup-speedup');
+    if (btn) btn.style.display = 'none';
   } else if (step === 6) {
     textEl.textContent = t('tut_step6');
     pointGlowToElement('nav-build');
+    if (btn) btn.style.display = 'none';
   } else if (step === 7) {
     textEl.textContent = t('tut_step7');
     pointGlowToBuildingCard('oxygen_extractor');
-  } else if (step === 11) {
-    textEl.textContent = t('tut_step10');
+    if (btn) btn.style.display = 'none';
+  } else if (step === 8) {
+    textEl.textContent = t('tut_step8');
+    pointGlowToElement('nav-build');
+    if (btn) btn.style.display = 'none';
+  } else if (step === 9) {
+    textEl.textContent = t('tut_step9');
     pointGlowToBuildingCard('barracks');
-  } else if (step === 18) {
-    textEl.textContent = t('tut_step15');
+    if (btn) btn.style.display = 'none';
+  } else if (step === 10) {
+    textEl.textContent = t('tut_step10');
+    pointGlowToElement('nav-build');
+    if (btn) btn.style.display = 'none';
+  } else if (step === 11) {
+    textEl.textContent = t('tut_step11');
+    pointGlowToBuildingCard('camp');
+    if (btn) btn.style.display = 'none';
+  } else if (step === 12) {
+    textEl.textContent = t('tut_step12');
     pointGlowToElement('nav-troops');
-  } else if (step === 19) {
-    textEl.textContent = t('tut_step16');
+    if (btn) btn.style.display = 'none';
+  } else if (step === 13) {
+    textEl.textContent = t('tut_step13');
     pointGlowToBuildingCard('drone');
-  } else if (step === 20) {
-    textEl.textContent = t('tut_step17');
-    pointGlowToElement('ttab-troops');
-  } else if (step === 21) {
-    textEl.textContent = t('tut_step18');
-    pointGlowToElement('btn-attack-modern');
-  } else if (step === 22) {
-    textEl.textContent = t('tut_step19');
-    pointGlowToElement('mm-confirm-btn');
-  } else if (step === 23) {
-    textEl.textContent = t('tut_step20');
-  } else if (step === 24) {
-    textEl.textContent = t('tut_step21');
-    if (btn) { btn.style.display = 'block'; btn.textContent = t('tut_finish'); }
-  } else if (step > 24) {
+    if (btn) btn.style.display = 'none';
+  } else if (step === 14) {
+    textEl.textContent = t('tut_step14');
+    if (btn) {
+      btn.style.display = 'block';
+      btn.textContent = t('tut_finish') || 'Finalizar Tutorial';
+      btn.onclick = closeTutorial;
+    }
+  } else {
     closeTutorial();
   }
 }
-
 
 function nextTutorialStep() {
   G.base.tutorialStep = (G.base.tutorialStep || 0) + 1;
@@ -3592,11 +3602,11 @@ function advanceTutorialIf(step) {
 }
 
 function skipTutorial() {
-  G.base.tutorialStep = 99;
+  G.base.tutorialStep = 15;
   G.base.tutorialDone = true;
   saveData();
   closeTutorial();
-  notify("Tutorial pulado com sucesso!", "info");
+  notify("Tutorial pulado!", "info");
 }
 
 function checkTutorialAutoAdvance() {
@@ -3608,27 +3618,19 @@ function checkTutorialAutoAdvance() {
   const hasBarracks = getBuildingCountOfType('barracks') > 0;
   const hasCamp     = getBuildingCountOfType('camp') > 0;
 
-  // After placement, advance from ghost step to click-building step
-  if (step === 3  && hasMineral)  { nextTutorialStep(); return; }
-  if (step === 8  && hasOxygen)   { nextTutorialStep(); return; }
-  if (step === 12 && hasBarracks) { nextTutorialStep(); return; }
-  if (step === 15 && hasCamp)     { nextTutorialStep(); return; }
-
-  // UI detection
-  if (step === 1  && G.ui.panel === 'build')  { nextTutorialStep(); return; }
-  if (step === 2  && G.ui.buildMode && G.ui.buildType === 'mineral_extractor') { nextTutorialStep(); return; }
-  if (step === 6  && G.ui.panel === 'build')  { nextTutorialStep(); return; }
-  if (step === 7  && G.ui.buildMode && G.ui.buildType === 'oxygen_extractor')  { nextTutorialStep(); return; }
-  if (step === 10 && G.ui.panel === 'build')  { nextTutorialStep(); return; }
-  if (step === 11 && G.ui.buildMode && G.ui.buildType === 'barracks')          { nextTutorialStep(); return; }
-  if (step === 13 && G.ui.panel === 'build')  { nextTutorialStep(); return; }
-  if (step === 14 && G.ui.buildMode && G.ui.buildType === 'camp')              { nextTutorialStep(); return; }
-  if (step === 18 && G.ui.panel === 'troops') { nextTutorialStep(); return; }
-  if (step === 20 && G.ui.panel === 'troops' && G.ui.troopTab === 'troops') { nextTutorialStep(); return; }
-
-  // Matchmaking opened
-  const mmVisible = gel('opponent-screen')?.classList.contains('visible');
-  if (step === 21 && mmVisible) { nextTutorialStep(); return; }
+  if (step === 1 && G.ui.panel === 'build') { nextTutorialStep(); return; }
+  if (step === 2 && G.ui.buildMode && G.ui.buildType === 'mineral_extractor') { nextTutorialStep(); return; }
+  if (step === 3 && hasMineral) { nextTutorialStep(); return; }
+  // Step 4 (click building) is handled when the popup shows
+  // Step 5 (speedup) is handled in speedUpBuilding
+  if (step === 6 && G.ui.panel === 'build') { nextTutorialStep(); return; }
+  if (step === 7 && G.ui.buildMode && G.ui.buildType === 'oxygen_extractor') { nextTutorialStep(); return; }
+  if (step === 8 && G.ui.panel === 'build') { nextTutorialStep(); return; }
+  if (step === 9 && G.ui.buildMode && G.ui.buildType === 'barracks') { nextTutorialStep(); return; }
+  if (step === 10 && G.ui.panel === 'build') { nextTutorialStep(); return; }
+  if (step === 11 && G.ui.buildMode && G.ui.buildType === 'camp') { nextTutorialStep(); return; }
+  if (step === 12 && G.ui.panel === 'troops') { nextTutorialStep(); return; }
+  // Step 13 (train 8 drones) is handled in trainTroop
 }
 
 function closeTutorial() {
@@ -4040,7 +4042,7 @@ window.modernCreateClan = function() {
 
 window.toggleClanChat = function() {
   if (!canAccessClans()) {
-    notify('Chat do clã bloqueado!', 'error');
+    notify(t('clan_chat_locked'), 'error');
     return;
   }
   const overlay = gel('clan-chat-overlay');
@@ -4145,18 +4147,18 @@ async function createClan() {
   if (!nameInput) return;
   const name = nameInput.value.trim();
   
-  if (!name || name.length < 3) { notify('Nome muito curto! (Mínimo 3 letras)', 'error'); return; }
-  if (!G.db) { notify('Firebase não configurado.', 'error'); return; }
-  if (G.base.clanId) { notify('Você já está em um clã!', 'error'); return; }
+  if (!name || name.length < 3) { notify(t('name_too_short'), 'error'); return; }
+  if (!G.db) { notify(t('firebase_not_set'), 'error'); return; }
+  if (G.base.clanId) { notify(t('already_in_clan'), 'error'); return; }
 
   const minerals = G.base.resources?.mineral || 0;
   if (minerals < 1000) {
-    notify('Minério insuficiente! (Custo: 1.000 <img src="mineral_icon.svg" class="inline-icon">)', 'error');
+    notify(t('clan_cost_mineral'), 'error');
     return;
   }
 
   try {
-    notify('Criando clã...', 'info');
+    notify(t('creating_clan'), 'info');
     const clanRef = await G.db.collection('clans').add({
       name: name,
       owner: G.pid,
@@ -4169,7 +4171,7 @@ async function createClan() {
     G.base.clanName = name;
     
     await saveData();
-    notify('Clã criado com sucesso!', 'success');
+    notify(t('clan_created'), 'success');
     
     nameInput.value = '';
     
@@ -4178,7 +4180,7 @@ async function createClan() {
     updateHUD();
   } catch (e) { 
     console.error('CreateClan Error:', e);
-    notify('Erro na criação do clã.', 'error'); 
+    notify(t('clan_creation_error'), 'error'); 
   }
 }
 
@@ -4238,7 +4240,7 @@ function returnToHome() {
 
 async function addFriend(fid, fname) {
   if (!G.base.friends) G.base.friends = [];
-  if (G.base.friends.some(f => f.id === fid)) { notify('Já é seu amigo!', 'info'); return; }
+  if (G.base.friends.some(f => f.id === fid)) { notify(t('already_friend'), 'info'); return; }
   G.base.friends.push({ id: fid, name: fname });
   await saveData();
   notify(t('friend_added'), 'success');
@@ -4276,7 +4278,7 @@ window.closeUnifiedModal = function() {
 
 window.switchModernTab = function(tab) {
   if (tab === 'clan' && !canAccessClans()) {
-    notify('Acesso bloqueado! Requer CC Nível 4 e Torre do Clã construída.', 'error');
+    notify(t('access_blocked_cc4'), 'error');
     switchModernTab('profile');
     return;
   }
@@ -4290,6 +4292,7 @@ window.switchModernTab = function(tab) {
   if (tab === 'profile') updateModernProfileUI();
   if (tab === 'social') switchSocialSubtab('search');
   if (tab === 'clan') switchClanSubtab('my');
+  if (tab === 'streak') renderDailyStreak();
 };
 
 window.updateModernProfileUI = function() {
@@ -4445,7 +4448,7 @@ window.renderModernFriendsList = function() {
 
 window.copyUID = function() {
   navigator.clipboard.writeText(G.pid).then(() => {
-    notify('UID copiado para a área de transferência!', 'success');
+    notify(t('uid_copied'), 'success');
   });
 };
 
@@ -4522,4 +4525,227 @@ function showCCPath() {
   
   body.innerHTML = html;
   gel('cc-path-modal').classList.add('visible');
+}
+
+/* ========== DAILY STREAK LOGIC ========== */
+function checkDailyStreak() {
+  if (!G.base) return;
+  const now = Date.now();
+  const last = G.base.lastClaimDate || 0;
+  
+  if (last === 0) {
+    G.base.dailyStreak = 0;
+    return;
+  }
+
+  const oneDay = 24 * 60 * 60 * 1000;
+  const diff = now - last;
+
+  // Se passou mais de 48h desde o último resgate, reseta o streak
+  if (diff > oneDay * 2) {
+    G.base.dailyStreak = 0;
+    notify(t('streak_reset'), 'info');
+  }
+}
+
+function renderDailyStreak() {
+  const grid = gel('streak-grid');
+  if (!grid) return;
+
+  const streak = G.base.dailyStreak || 0;
+  const last = G.base.lastClaimDate || 0;
+  const now = Date.now();
+  const isToday = new Date(last).toDateString() === new Date(now).toDateString();
+
+  let html = '';
+  for (let i = 0; i < 15; i++) {
+    const dayNum = i + 1;
+    const rew = DAILY_REWARDS[i];
+    let status = 'locked';
+    if (dayNum <= streak) status = 'claimed';
+    else if (dayNum === streak + 1 && !isToday) status = 'current';
+    else if (dayNum === streak + 1 && isToday) status = 'waiting';
+
+    html += `
+      <div class="streak-day-card ${status}">
+        <div class="sd-label">${t('streak_day').replace('{day}', dayNum)}</div>
+        <img src="${rew.icon}" class="sd-icon">
+        <div class="sd-amount">${fmtNum(rew.amount)}</div>
+        ${status === 'claimed' ? '<div class="sd-check">✓</div>' : ''}
+        ${status === 'current' ? '<div style="position:absolute; bottom:-15px; font-size:8px; color:var(--c-primary); font-weight:bold;">HOJE!</div>' : ''}
+      </div>
+    `;
+  }
+  grid.innerHTML = html;
+
+  const btn = gel('btn-claim-streak');
+  if (btn) {
+    if (isToday) {
+      btn.disabled = true;
+      btn.textContent = t('streak_claimed');
+    } else {
+      btn.disabled = false;
+      btn.textContent = t('claim_daily');
+    }
+  }
+}
+
+async function claimDailyReward() {
+  const streak = G.base.dailyStreak || 0;
+  const nextDay = streak + 1;
+  const rew = DAILY_REWARDS[streak]; // index streak is for nextDay
+
+  if (!rew) return;
+
+  const last = G.base.lastClaimDate || 0;
+  const now = Date.now();
+  if (new Date(last).toDateString() === new Date(now).toDateString()) {
+    notify(t('streak_claimed'), 'info');
+    return;
+  }
+
+  // Add resources
+  if (rew.type === 'gems') {
+    G.base.gems = (G.base.gems || 0) + rew.amount;
+  } else {
+    G.base.resources[rew.type] = (G.base.resources[rew.type] || 0) + rew.amount;
+  }
+
+  G.base.dailyStreak = (streak % 15) + 1;
+  G.base.lastClaimDate = now;
+
+  await saveData();
+  updateHUD();
+  renderDailyStreak();
+  notify(`Recompensa do Dia ${G.base.dailyStreak} resgatada: ${rew.amount} ${t(rew.type)}!`, 'success');
+}
+
+/* ========== ROULETTE LOGIC ========== */
+let isSpinning = false;
+
+function openRoulette() {
+  const modal = gel('roulette-modal');
+  if (!modal) return;
+  modal.classList.add('visible');
+  renderRouletteWheel();
+  updateRouletteStatus();
+}
+
+function closeRoulette() {
+  if (isSpinning) return;
+  gel('roulette-modal')?.classList.remove('visible');
+}
+
+function renderRouletteWheel() {
+  const wheel = gel('roulette-wheel');
+  if (!wheel) return;
+  
+  const total = ROULETTE_PRIZES.length;
+  const angleStep = 360 / total;
+  
+  let html = '';
+  ROULETTE_PRIZES.forEach((p, i) => {
+    const angle = i * angleStep;
+    html += `
+      <div class="wheel-sector" style="transform: rotate(${angle}deg); background: ${p.color};">
+        <div class="sector-content">
+          <img src="${p.icon}" class="sector-icon">
+          <span class="sector-label">${p.label}</span>
+        </div>
+      </div>
+    `;
+  });
+  wheel.innerHTML = html;
+}
+
+function updateRouletteStatus() {
+  const btn = gel('btn-spin');
+  const timer = gel('roulette-timer');
+  if (!btn || !timer) return;
+
+  const now = Date.now();
+  const lastFree = G.base.lastFreeSpin || 0;
+  const cooldown = 12 * 60 * 60 * 1000; // 12 horas
+
+  if (now - lastFree >= cooldown) {
+    btn.textContent = t('roulette_free');
+    btn.dataset.mode = 'free';
+    timer.textContent = '';
+  } else {
+    btn.textContent = t('roulette_cost');
+    btn.dataset.mode = 'paid';
+    
+    const remaining = cooldown - (now - lastFree);
+    timer.textContent = t('roulette_wait').replace('{time}', fmtTime(remaining / 1000));
+  }
+}
+
+async function spinRoulette() {
+  if (isSpinning) return;
+  
+  const btn = gel('btn-spin');
+  const mode = btn.dataset.mode;
+
+  if (mode === 'paid') {
+    if ((G.base.gems || 0) < 5) {
+      notify(t('not_enough_gems'), 'error');
+      return;
+    }
+  }
+
+  isSpinning = true;
+  btn.disabled = true;
+
+  // Weighted random
+  const totalWeight = ROULETTE_PRIZES.reduce((acc, p) => acc + p.weight, 0);
+  let r = Math.random() * totalWeight;
+  let winner = ROULETTE_PRIZES[0];
+  
+  for (const p of ROULETTE_PRIZES) {
+    if (r < p.weight) {
+      winner = p;
+      break;
+    }
+    r -= p.weight;
+  }
+
+  // Animation
+  const wheel = gel('roulette-wheel');
+  const totalSectors = ROULETTE_PRIZES.length;
+  const sectorAngle = 360 / totalSectors;
+  const targetAngle = 3600 + (360 - (winner.id * sectorAngle)); // 10 voltas + offset
+
+  wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0, 0.15, 1)';
+  wheel.style.transform = `rotate(${targetAngle}deg)`;
+
+  if (mode === 'paid') {
+    G.base.gems -= 5;
+  } else {
+    G.base.lastFreeSpin = Date.now();
+  }
+  
+  updateHUD();
+  await saveData();
+
+  setTimeout(async () => {
+    isSpinning = false;
+    btn.disabled = false;
+    wheel.style.transition = 'none';
+    wheel.style.transform = `rotate(${targetAngle % 360}deg)`;
+    
+    // Give reward
+    if (winner.type === 'gems') {
+      G.base.gems = (G.base.gems || 0) + winner.amount;
+    } else if (winner.type === 'shield') {
+      const currentShield = G.base.shieldUntil || Date.now();
+      G.base.shieldUntil = Math.max(currentShield, Date.now()) + (winner.amount * 3600000);
+    } else {
+      G.base.resources[winner.type] = (G.base.resources[winner.type] || 0) + winner.amount;
+    }
+    
+    await saveData();
+    updateHUD();
+    updateRouletteStatus();
+    notify(t('roulette_won').replace('{prize}', winner.label), 'success');
+  }, 4100);
 }

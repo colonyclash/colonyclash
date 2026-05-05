@@ -130,18 +130,21 @@
     
     <!-- Floating Action Buttons -->
     <div id="fab-group">
-      <button class="fab-btn fab-build"  id="nav-build"  onclick="showPanel('build')"   title="Construir">
+      <button class="fab-btn fab-build"  id="nav-build"  onclick="showPanel('build')"   data-title="build">
         <img src="build.png" class="fab-img">
       </button>
-      <button class="fab-btn fab-mission" id="nav-mission" onclick="showPanel('mission')" title="Missões">
+      <button class="fab-btn fab-mission" id="nav-mission" onclick="showPanel('mission')" data-title="mission_title">
         <img src="mission.png" class="fab-img">
         <div id="mission-badge" class="badge" style="display: none;">0</div>
       </button>
-      <button class="fab-btn fab-attack" id="nav-attack" onclick="showOpponentScreen()" title="Atacar">
+      <button class="fab-btn fab-attack" id="nav-attack" onclick="showOpponentScreen()" data-title="attack">
         <img src="attack.png" class="fab-img">
       </button>
-      <button class="fab-btn fab-troops" id="nav-troops" onclick="showPanel('troops')"  title="Tropas">
+      <button class="fab-btn fab-troops" id="nav-troops" onclick="showPanel('troops')"  data-title="troops">
         <img src="troops.png" class="fab-img">
+      </button>
+      <button class="fab-btn fab-roulette" id="nav-roulette" onclick="openRoulette()" data-title="roulette_title">
+        <img src="gems.png" class="fab-img">
       </button>
     </div>
   </div>
@@ -159,22 +162,22 @@
     <div class="popup-hp-bar"><div id="popup-hp-fill" class="popup-hp-fill"></div></div>
     <p id="popup-desc"></p>
     <div class="popup-buttons">
-      <button class="pbtn btn-upgrade" id="popup-upgrade">⬆ Melhorar</button>
-      <button class="pbtn btn-speed"   id="popup-speedup"><img src="energy_icon.svg" class="inline-icon"> Acelerar</button>
-      <button class="pbtn btn-cancel"  id="popup-cancel-up">✕ Cancelar</button>
-      <button class="pbtn btn-profile" id="popup-profile">👤 Perfil</button>
-      <button class="pbtn btn-clan"    id="popup-clan">🏰 Clã</button>
-      <button class="pbtn btn-lab"     id="popup-lab">🔬 Laboratório</button>
-      <button class="pbtn btn-move"    id="popup-move">↔ Mover</button>
-      <button class="pbtn btn-destroy" id="popup-destroy">🗑️ Destruir</button>
+      <button class="pbtn btn-upgrade" id="popup-upgrade" data-t="upgrade">Mejorar</button>
+      <button class="pbtn btn-speed"   id="popup-speedup" data-t="speedup">Acelerar</button>
+      <button class="pbtn btn-cancel"  id="popup-cancel-up" data-t="cancel">Cancelar</button>
+      <button class="pbtn btn-profile" id="popup-profile" data-t="profile">Perfil</button>
+      <button class="pbtn btn-clan"    id="popup-clan" data-t="clan">Clã</button>
+      <button class="pbtn btn-lab"     id="popup-lab" data-t="laboratory">Laboratório</button>
+      <button class="pbtn btn-move"    id="popup-move" data-t="move">Mover</button>
+      <button class="pbtn btn-destroy" id="popup-destroy" data-t="destroy">Destruir</button>
     </div>
   </div>
 
   <!-- Build/Move mode bar -->
   <div id="build-cancel-bar">
-    <button class="btn-confirm-build" onclick="confirmPlace()">✓ Confirmar</button>
-    <span id="build-mode-label">Posicionando...</span>
-    <button class="btn-cancel-build" onclick="cancelCurrentMode()">✕ Cancelar</button>
+    <button class="btn-confirm-build" onclick="confirmPlace()" data-t="confirm">✓ Confirmar</button>
+    <span id="build-mode-label" data-t="positioning">Posicionando...</span>
+    <button class="btn-cancel-build" onclick="cancelCurrentMode()" data-t="cancel">✕ Cancelar</button>
   </div>
 </div>
 
@@ -270,6 +273,7 @@
           <button onclick="setLanguage('es')" class="btn-auth" style="flex:1; font-size: 10px; padding: 10px;">Español</button>
         </div>
       </div>
+      <button class="btn-auth" onclick="closePanels(); openUnifiedModal('streak')" style="width:100%; margin-bottom: 10px; font-size:12px; background:var(--c-primary); color:white;">Daily Streak</button>
       <button class="btn-auth" onclick="resetTutorial()" style="width:100%; margin-bottom: 10px; font-size:12px; background:var(--c-gold); color:black;" data-t="reset_tutorial">Reiniciar Tutorial</button>
       <button class="btn-logout" onclick="logout()" data-t="logout">Sair da Conta</button>
     </div>
@@ -283,6 +287,7 @@
       <div class="m-tab active" id="tab-m-profile" onclick="switchModernTab('profile')">Meu Perfil</div>
       <div class="m-tab" id="tab-m-clan" onclick="switchModernTab('clan')">Clãs</div>
       <div class="m-tab" id="tab-m-social" onclick="switchModernTab('social')">Social</div>
+      <div class="m-tab" id="tab-m-streak" onclick="switchModernTab('streak')">Daily Streak</div>
     </div>
     <div class="modern-modal-content">
       <button class="modal-close-x" onclick="closeUnifiedModal()">×</button>
@@ -375,6 +380,20 @@
         </div>
       </div>
 
+      <!-- Daily Streak Tab Content -->
+      <div id="m-content-streak" class="modern-tab-content" style="display:none">
+        <div class="streak-header">
+          <div class="streak-title" data-t="daily_streak">DAILY STREAK</div>
+          <div class="streak-desc" data-t="streak_info">Entre todos os dias para ganhar recompensas maiores! Se falhar um dia, o progresso reseta.</div>
+        </div>
+        <div class="streak-grid" id="streak-grid">
+          <!-- Dynamic: Days 1-15 -->
+        </div>
+        <div class="streak-footer">
+          <button id="btn-claim-streak" class="btn-claim-modern" onclick="claimDailyReward()">RESGATAR RECOMPENSA</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -429,6 +448,7 @@
       <div class="atk-loot-modern" id="atk-loot">
         <div class="loot-item"><img src="mineral_icon.svg" class="inline-icon"> <span id="loot-min">0</span></div>
         <div class="loot-item"><img src="oxygen_icon.svg" class="inline-icon"> <span id="loot-oxy">0</span></div>
+        <div class="loot-item"><img src="energy_icon.svg" class="inline-icon"> <span id="loot-ene">0</span></div>
       </div>
     </div>
     <div class="atk-header-right">
@@ -477,6 +497,7 @@
       <div class="res-resources">
         <div class="res-loot-row"><img src="mineral_icon.svg" class="inline-icon"> <span id="res-min">0</span></div>
         <div class="res-loot-row"><img src="oxygen_icon.svg" class="inline-icon"> <span id="res-oxy">0</span></div>
+        <div class="res-loot-row"><img src="energy_icon.svg" class="inline-icon"> <span id="res-ene">0</span></div>
       </div>
     </div>
 
@@ -579,6 +600,22 @@
          <div id="my-clan-members" class="social-list"></div>
          <button onclick="leaveClan()" class="btn-logout" style="width:100%; margin-top:20px;">SAIR DO CLÃ</button>
        </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== ROULETTE MODAL ===================== -->
+<div class="modal-overlay" id="roulette-modal">
+  <div class="modal-box roulette-box">
+    <button class="popup-x" onclick="closeRoulette()">×</button>
+    <div class="roulette-container">
+      <div class="roulette-pointer"></div>
+      <div class="roulette-wheel" id="roulette-wheel"></div>
+    </div>
+    <div class="roulette-info">
+      <div class="roulette-title" data-t="roulette_title">ROLETA LUNAR</div>
+      <div id="roulette-timer" class="roulette-timer"></div>
+      <button id="btn-spin" class="btn-spin-modern" onclick="spinRoulette()">GIRAR</button>
     </div>
   </div>
 </div>

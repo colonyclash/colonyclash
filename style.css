@@ -1946,7 +1946,169 @@ body.is-building .tutorial-dialog {
 }
 
 .tutorial-glow {
-  animation: tutorial-pulse 1.5s infinite !important;
-  border: 2px solid var(--c-primary) !important;
-  border-radius: inherit; /* Assumes target element has a border-radius */
+   animation: tutorial-pulse 1.5s infinite !important;
+   border: 2px solid var(--c-primary) !important;
+   border-radius: inherit; /* Assumes target element has a border-radius */
+ }
+ 
+ /* ========== DAILY STREAK MODERN UI ========== */
+.streak-header { text-align: center; margin-bottom: 25px; padding: 0 10px; }
+.streak-title { font-family: var(--font-hd); font-size: 20px; color: var(--c-primary); letter-spacing: 3px; margin-bottom: 8px; text-shadow: 0 0 15px rgba(0,212,255,0.4); }
+.streak-desc { font-size: 11px; color: #888; line-height: 1.4; max-width: 300px; margin: 0 auto; }
+
+.streak-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.streak-day-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: 0.3s;
+  position: relative;
+  min-height: 80px;
+}
+
+.streak-day-card.claimed { background: rgba(68,255,136,0.1); border-color: rgba(68,255,136,0.3); opacity: 0.7; }
+.streak-day-card.current { background: rgba(0,212,255,0.1); border-color: var(--c-primary); transform: scale(1.05); box-shadow: 0 0 15px rgba(0,212,255,0.2); }
+.streak-day-card.waiting { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.2); opacity: 0.8; }
+.streak-day-card.locked { opacity: 0.5; }
+
+.sd-label { font-family: var(--font-hd); font-size: 8px; color: #888; }
+.streak-day-card.current .sd-label { color: var(--c-primary); }
+.sd-icon { width: 24px; height: 24px; object-fit: contain; }
+.sd-amount { font-family: var(--font-hd); font-size: 10px; font-weight: 700; color: #fff; }
+.sd-check { position: absolute; top: -5px; right: -5px; background: var(--c-success); color: #000; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+.streak-footer { margin-top: 30px; text-align: center; }
+.btn-claim-modern {
+  padding: 16px 40px;
+  background: linear-gradient(135deg, var(--c-primary), #005b88);
+  border: none;
+  border-radius: 15px;
+  color: #fff;
+  font-family: var(--font-hd);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,212,255,0.3);
+  transition: 0.3s;
+}
+.btn-claim-modern:disabled { opacity: 0.4; pointer-events: none; transform: none; box-shadow: none; background: rgba(255,255,255,0.05); }
+.btn-claim-modern:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,212,255,0.5); }
+
+@media (max-width: 600px) {
+  .streak-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .streak-day-card { padding: 8px 4px; }
+  .sd-icon { width: 20px; height: 20px; }
+  .sd-amount { font-size: 9px; }
+}
+
+/* ========== ROULETTE MODERN UI ========== */
+.roulette-box {
+  width: 380px;
+  max-width: 95%;
+  padding: 30px 20px;
+  background: radial-gradient(circle at center, #1a2a4a 0%, #0b0e1a 100%);
+  border: 2px solid var(--c-primary);
+  box-shadow: 0 0 40px rgba(0,212,255,0.4);
+}
+
+.roulette-container {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  margin: 0 auto 30px;
+  border-radius: 50%;
+  border: 8px solid rgba(255,255,255,0.1);
+  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.roulette-wheel {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+}
+
+.roulette-pointer {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 30px solid var(--c-gold);
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+}
+
+.wheel-sector {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  top: 0;
+  left: 50%;
+  transform-origin: 0% 100%;
+  clip-path: polygon(0% 0%, 100% 0%, 0% 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sector-content {
+  position: absolute;
+  top: 35px;
+  left: 15px;
+  transform: rotate(25.7deg); /* Ajustado para alinhar no centro do setor de 7 itens */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  color: #fff;
+  width: 80px;
+}
+
+.sector-icon { width: 22px; height: 22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); }
+.sector-label { font-family: var(--font-hd); font-size: 8px; font-weight: 700; text-align: center; text-shadow: 0 1px 2px #000; }
+
+.roulette-info { text-align: center; }
+.roulette-title { font-family: var(--font-hd); font-size: 22px; color: var(--c-primary); letter-spacing: 5px; margin-bottom: 10px; }
+.roulette-timer { font-family: var(--font-hd); font-size: 12px; color: #888; margin-bottom: 15px; height: 18px; }
+
+.btn-spin-modern {
+  padding: 18px 50px;
+  background: linear-gradient(135deg, var(--c-secondary), #8b4c00);
+  border: none;
+  border-radius: 15px;
+  color: #000;
+  font-family: var(--font-hd);
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 5px 20px rgba(255,140,0,0.3);
+  transition: 0.3s;
+}
+.btn-spin-modern:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 8px 25px rgba(255,140,0,0.5); }
+.btn-spin-modern:disabled { opacity: 0.5; transform: scale(0.95); box-shadow: none; }
+
+@media (max-width: 600px) {
+  .roulette-box { padding: 20px 10px; }
+  .roulette-container { width: 220px; height: 220px; }
+  .sector-content { top: 25px; left: 10px; width: 70px; }
+  .sector-icon { width: 18px; height: 18px; }
+  .sector-label { font-size: 7px; }
 }
