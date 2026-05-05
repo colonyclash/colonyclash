@@ -3826,8 +3826,9 @@ async function init() {
     }
   }, 10000);
 
+  let engineInitialized = false;
+
   G.auth.onAuthStateChanged(async user => {
-    if (authResolved) return;
     authResolved = true;
     clearTimeout(authTimeout);
 
@@ -3836,15 +3837,34 @@ async function init() {
       G.user = user;
       G.pid  = user.uid;
       setLoadProgress(55);
+      switchScreen('loading'); // Show loading UI during transition
       try {
         await loadData();
         G.base.ccLevel = getCurrentCCLevel();
         setLoadProgress(80);
-        completeInitialization('online');
+        
+        if (!engineInitialized) {
+          engineInitialized = true;
+          completeInitialization('online');
+        } else {
+          renderBuildingsLayer();
+          updateHUD();
+          switchScreen('game');
+          centerMap();
+          if (!G.base.tutorialDone) setTimeout(showTutorial, 1000);
+        }
       } catch (e) {
         console.error('Failed to load user data:', e);
         createStarterBase();
-        completeInitialization('error-fallback');
+        if (!engineInitialized) {
+          engineInitialized = true;
+          completeInitialization('error-fallback');
+        } else {
+          renderBuildingsLayer();
+          updateHUD();
+          switchScreen('game');
+          centerMap();
+        }
       }
     } else {
       updateUILanguage();
