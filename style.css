@@ -51,7 +51,7 @@ html, body {
   position: fixed;
   top: 80px;
   right: 16px;
-  z-index: 90; /* Abaixo dos painéis (100) e modals (1000) */
+  z-index: 9999; /* Overlap all other UI elements (modals, panels, etc) */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -77,6 +77,7 @@ html, body {
   max-width: 260px;
   animation: notifEnter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
              notifExit 0.4s ease 3.6s forwards;
+  pointer-events: auto;
 }
 
 @media (max-width: 600px) {
@@ -2013,102 +2014,238 @@ body.is-building .tutorial-dialog {
   .sd-icon { width: 20px; height: 20px; }
   .sd-amount { font-size: 9px; }
 }
-
 /* ========== ROULETTE MODERN UI ========== */
 .roulette-box {
-  width: 380px;
-  max-width: 95%;
-  padding: 30px 20px;
-  background: radial-gradient(circle at center, #1a2a4a 0%, #0b0e1a 100%);
+  width: 420px;
+  max-width: 98vw;
+  padding: 30px 24px 24px;
+  background: radial-gradient(ellipse at top, #12203a 0%, #07091a 100%);
   border: 2px solid var(--c-primary);
-  box-shadow: 0 0 40px rgba(0,212,255,0.4);
-}
-
-.roulette-container {
-  position: relative;
-  width: 260px;
-  height: 260px;
-  margin: 0 auto 30px;
-  border-radius: 50%;
-  border: 8px solid rgba(255,255,255,0.1);
-  box-shadow: 0 0 30px rgba(0,0,0,0.5);
+  box-shadow: 0 0 60px rgba(0,212,255,0.25), inset 0 0 40px rgba(0,0,0,0.4);
+  border-radius: 28px !important;
   overflow: hidden;
+  position: relative;
 }
 
-.roulette-wheel {
+/* Starfield shimmer on the box */
+.roulette-box::before {
+  content: '';
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1);
+  background: radial-gradient(circle at 20% 80%, rgba(0,212,255,0.04) 0%, transparent 60%),
+              radial-gradient(circle at 80% 20%, rgba(255,140,0,0.04) 0%, transparent 60%);
+  pointer-events: none;
 }
 
+/* ---- Title ---- */
+.roulette-title {
+  font-family: var(--font-hd);
+  font-size: 20px;
+  color: var(--c-primary);
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 6px;
+  text-shadow: 0 0 20px rgba(0,212,255,0.5);
+}
+
+/* ---- Strip Roulette ---- */
+.roulette-strip-wrap {
+  position: relative;
+  margin: 20px 0 8px;
+  height: 110px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 2px solid rgba(0,212,255,0.15);
+  background: rgba(0,0,0,0.35);
+}
+
+/* fade edges */
+.roulette-strip-wrap::before,
+.roulette-strip-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 60px;
+  z-index: 5;
+  pointer-events: none;
+}
+.roulette-strip-wrap::before { left: 0;  background: linear-gradient(to right, rgba(7,9,26,0.9), transparent); }
+.roulette-strip-wrap::after  { right: 0; background: linear-gradient(to left,  rgba(7,9,26,0.9), transparent); }
+
+/* Center pointer / window */
 .roulette-pointer {
   position: absolute;
-  top: -10px;
+  top: 0; bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
-  width: 0;
-  height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-top: 30px solid var(--c-gold);
-  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+  width: 100px;
+  border: 3px solid var(--c-gold);
+  border-radius: 14px;
+  z-index: 6;
+  pointer-events: none;
+  box-shadow: 0 0 20px rgba(255,215,0,0.3), inset 0 0 10px rgba(255,215,0,0.05);
+}
+/* top arrow on pointer */
+.roulette-pointer::before {
+  content: '▼';
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--c-gold);
+  font-size: 16px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+}
+/* bottom arrow on pointer */
+.roulette-pointer::after {
+  content: '▲';
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--c-gold);
+  font-size: 16px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
 }
 
-.wheel-sector {
-  position: absolute;
-  width: 50%;
-  height: 50%;
-  top: 0;
-  left: 50%;
-  transform-origin: 0% 100%;
-  clip-path: polygon(0% 0%, 100% 0%, 0% 100%);
+/* The scrolling strip */
+.roulette-strip {
   display: flex;
   align-items: center;
-  justify-content: center;
+  height: 100%;
+  gap: 0;
+  will-change: transform;
+  transform: translateX(0);
 }
 
-.sector-content {
-  position: absolute;
-  top: 35px;
-  left: 15px;
-  transform: rotate(25.7deg); /* Ajustado para alinhar no centro do setor de 7 itens */
+/* Individual prize card in strip */
+.strip-item {
+  flex: 0 0 100px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  color: #fff;
-  width: 80px;
+  justify-content: center;
+  gap: 6px;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  transition: background 0.2s;
+  cursor: default;
+  padding: 10px 8px;
 }
 
-.sector-icon { width: 22px; height: 22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3)); }
-.sector-label { font-family: var(--font-hd); font-size: 8px; font-weight: 700; text-align: center; text-shadow: 0 1px 2px #000; }
+.strip-item img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
 
-.roulette-info { text-align: center; }
-.roulette-title { font-family: var(--font-hd); font-size: 22px; color: var(--c-primary); letter-spacing: 5px; margin-bottom: 10px; }
-.roulette-timer { font-family: var(--font-hd); font-size: 12px; color: #888; margin-bottom: 15px; height: 18px; }
+.strip-item .si-label {
+  font-family: var(--font-hd);
+  font-size: 10px;
+  font-weight: 700;
+  color: #e0e0e0;
+  text-align: center;
+  text-shadow: 0 1px 3px #000;
+  line-height: 1.2;
+}
+
+.strip-item .si-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+/* ---- Info row (timer + button) ---- */
+.roulette-info {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.roulette-timer {
+  font-family: var(--font-hd);
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 14px;
+  min-height: 16px;
+  letter-spacing: 1px;
+}
 
 .btn-spin-modern {
-  padding: 18px 50px;
-  background: linear-gradient(135deg, var(--c-secondary), #8b4c00);
+  padding: 16px 50px;
+  background: linear-gradient(135deg, #FF8C00, #FF5500);
   border: none;
-  border-radius: 15px;
-  color: #000;
+  border-radius: 50px;
+  color: #fff;
   font-family: var(--font-hd);
   font-size: 15px;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 0 5px 20px rgba(255,140,0,0.3);
-  transition: 0.3s;
+  letter-spacing: 2px;
+  box-shadow: 0 6px 24px rgba(255,140,0,0.35);
+  transition: 0.25s;
 }
-.btn-spin-modern:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 8px 25px rgba(255,140,0,0.5); }
-.btn-spin-modern:disabled { opacity: 0.5; transform: scale(0.95); box-shadow: none; }
+.btn-spin-modern:hover:not(:disabled) {
+  transform: scale(1.06);
+  box-shadow: 0 10px 32px rgba(255,140,0,0.55);
+}
+.btn-spin-modern:disabled {
+  opacity: 0.45;
+  transform: scale(0.97);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ---- Inline win toast inside modal ---- */
+.roulette-win-toast {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(0,212,255,0.04));
+  border: 1.5px solid rgba(0,212,255,0.35);
+  border-radius: 14px;
+  animation: fadeInUp 0.4s ease;
+}
+.roulette-win-toast.visible { display: flex; }
+.roulette-win-toast img { width: 30px; height: 30px; object-fit: contain; }
+.rwt-text {
+  font-family: var(--font-hd);
+  font-size: 13px;
+  color: #fff;
+  text-align: left;
+}
+.rwt-text strong {
+  display: block;
+  color: var(--c-gold);
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes roulette-spin-shimmer {
+  0%   { box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+  50%  { box-shadow: 0 0 40px rgba(255,215,0,0.7); }
+  100% { box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+}
+
+.roulette-spinning .roulette-pointer {
+  animation: roulette-spin-shimmer 0.4s infinite;
+}
 
 @media (max-width: 600px) {
-  .roulette-box { padding: 20px 10px; }
-  .roulette-container { width: 220px; height: 220px; }
-  .sector-content { top: 25px; left: 10px; width: 70px; }
-  .sector-icon { width: 18px; height: 18px; }
-  .sector-label { font-size: 7px; }
+  .roulette-box { padding: 20px 12px 20px; width: 100%; }
+  .roulette-strip-wrap { height: 90px; }
+  .strip-item { flex: 0 0 80px; }
+  .strip-item img { width: 26px; height: 26px; }
+  .strip-item .si-label { font-size: 9px; }
+  .roulette-pointer { width: 80px; }
+  .btn-spin-modern { padding: 14px 36px; font-size: 13px; }
 }
+
+

@@ -608,14 +608,27 @@
 <div class="modal-overlay" id="roulette-modal">
   <div class="modal-box roulette-box">
     <button class="popup-x" onclick="closeRoulette()">×</button>
-    <div class="roulette-container">
+    <div class="roulette-title" data-t="roulette_title">ROLETA LUNAR</div>
+
+    <!-- Strip -->
+    <div class="roulette-strip-wrap" id="roulette-strip-wrap">
       <div class="roulette-pointer"></div>
-      <div class="roulette-wheel" id="roulette-wheel"></div>
+      <div class="roulette-strip" id="roulette-strip"></div>
     </div>
+
+    <!-- Info & Button -->
     <div class="roulette-info">
-      <div class="roulette-title" data-t="roulette_title">ROLETA LUNAR</div>
       <div id="roulette-timer" class="roulette-timer"></div>
       <button id="btn-spin" class="btn-spin-modern" onclick="spinRoulette()">GIRAR</button>
+    </div>
+
+    <!-- Inline win notification -->
+    <div class="roulette-win-toast" id="roulette-win-toast">
+      <img id="rwt-icon" src="" alt="">
+      <div class="rwt-text">
+        <span id="rwt-label">Você ganhou!</span>
+        <strong id="rwt-amount"></strong>
+      </div>
     </div>
   </div>
 </div>

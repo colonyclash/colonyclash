@@ -211,6 +211,10 @@ async function loadData() {
     const doc = await G.db.collection('users').doc(G.pid).get();
     if (doc.exists) {
       const d = doc.data();
+      
+      // Reset G.base to a clean starter state before merging to avoid state leakage from previous user
+      createStarterBase();
+      
       // Deep merge of essential objects to avoid losing new fields
       G.base = {
         ...G.base,
@@ -218,7 +222,11 @@ async function loadData() {
         resources: { ...G.base.resources, ...(d.resources || {}) },
         missions:  { ...G.base.missions,  ...(d.missions || {}) },
         troops:    { ...G.base.troops,    ...(d.troops || {}) },
-        troopUpgrades: { ...G.base.troopUpgrades, ...(d.troopUpgrades || {}) }
+        troopUpgrades: { ...G.base.troopUpgrades, ...(d.troopUpgrades || {}) },
+        // Explicitly ensure streak and roulette are carried over if they exist
+        dailyStreak: d.dailyStreak !== undefined ? d.dailyStreak : 0,
+        lastClaimDate: d.lastClaimDate !== undefined ? d.lastClaimDate : 0,
+        lastFreeSpin: d.lastFreeSpin !== undefined ? d.lastFreeSpin : 0
       };
       
       // Ensure all Progress exists
@@ -331,6 +339,11 @@ function createStarterBase() {
     totalDronesTrained: 0,
     tutorialStep: 0,
     tutorialTroopCount: 0,
+    dailyStreak: 0,
+    lastClaimDate: 0,
+    lastFreeSpin: 0,
+    clanId: null,
+    shieldUntil: 0,
     missions: { currentId: 0, completed: [], claimed: [], progress: 0, allProgress: {} }
   };
 }
@@ -3869,6 +3882,16 @@ async function init() {
         }
       }
     } else {
+      G.user = null;
+      G.pid = null;
+      G.battle = null;
+      // Clear timers to prevent background tasks from previous user
+      if (G.timers.resource) clearInterval(G.timers.resource);
+      if (G.timers.save) clearInterval(G.timers.save);
+      if (G.timers.queue) clearInterval(G.timers.queue);
+      G.timers = { resource: null, save: null, queue: null };
+      
+      createStarterBase(); // Reset base data
       updateUILanguage();
       setLoadProgress(100);
       setTimeout(() => switchScreen('login'), 500);
@@ -4620,14 +4643,41 @@ async function claimDailyReward() {
   notify(`Recompensa do Dia ${G.base.dailyStreak} resgatada: ${rew.amount} ${t(rew.type)}!`, 'success');
 }
 
-/* ========== ROULETTE LOGIC ========== */
+/* ========== ROULETTE LOGIC (STRIP) ========== */
 let isSpinning = false;
+const STRIP_ITEM_W = 100; // must match CSS .strip-item flex-basis
+
+function buildRouletteStrip() {
+  const strip = gel('roulette-strip');
+  if (!strip) return;
+  // Build a long looping strip: 4 full cycles so we have room to scroll
+  const cycles = 6;
+  let html = '';
+  for (let c = 0; c < cycles; c++) {
+    for (const p of ROULETTE_PRIZES) {
+      html += `
+        <div class="strip-item" data-id="${p.id}" style="background:${p.color}18;">
+          <div class="si-dot" style="background:${p.color};box-shadow:0 0 8px ${p.color};"></div>
+          <img src="${p.icon}" alt="${p.label}">
+          <div class="si-label">${p.label}</div>
+        </div>`;
+    }
+  }
+  strip.innerHTML = html;
+  // Reset position to show the middle cycle
+  const startOffset = -(2 * ROULETTE_PRIZES.length * STRIP_ITEM_W);
+  strip.style.transition = 'none';
+  strip.style.transform = `translateX(${startOffset}px)`;
+}
 
 function openRoulette() {
   const modal = gel('roulette-modal');
   if (!modal) return;
   modal.classList.add('visible');
-  renderRouletteWheel();
+  // Hide old win toast
+  const toast = gel('roulette-win-toast');
+  if (toast) toast.classList.remove('visible');
+  buildRouletteStrip();
   updateRouletteStatus();
 }
 
@@ -4636,54 +4686,31 @@ function closeRoulette() {
   gel('roulette-modal')?.classList.remove('visible');
 }
 
-function renderRouletteWheel() {
-  const wheel = gel('roulette-wheel');
-  if (!wheel) return;
-  
-  const total = ROULETTE_PRIZES.length;
-  const angleStep = 360 / total;
-  
-  let html = '';
-  ROULETTE_PRIZES.forEach((p, i) => {
-    const angle = i * angleStep;
-    html += `
-      <div class="wheel-sector" style="transform: rotate(${angle}deg); background: ${p.color};">
-        <div class="sector-content">
-          <img src="${p.icon}" class="sector-icon">
-          <span class="sector-label">${p.label}</span>
-        </div>
-      </div>
-    `;
-  });
-  wheel.innerHTML = html;
-}
-
 function updateRouletteStatus() {
-  const btn = gel('btn-spin');
+  const btn   = gel('btn-spin');
   const timer = gel('roulette-timer');
   if (!btn || !timer) return;
 
-  const now = Date.now();
+  const now      = Date.now();
   const lastFree = G.base.lastFreeSpin || 0;
-  const cooldown = 12 * 60 * 60 * 1000; // 12 horas
+  const cooldown = 12 * 60 * 60 * 1000;
 
   if (now - lastFree >= cooldown) {
-    btn.textContent = t('roulette_free');
+    btn.textContent  = t('roulette_free');
     btn.dataset.mode = 'free';
     timer.textContent = '';
   } else {
-    btn.textContent = t('roulette_cost');
+    btn.textContent  = t('roulette_cost');
     btn.dataset.mode = 'paid';
-    
-    const remaining = cooldown - (now - lastFree);
+    const remaining  = cooldown - (now - lastFree);
     timer.textContent = t('roulette_wait').replace('{time}', fmtTime(remaining / 1000));
   }
 }
 
 async function spinRoulette() {
   if (isSpinning) return;
-  
-  const btn = gel('btn-spin');
+
+  const btn  = gel('btn-spin');
   const mode = btn.dataset.mode;
 
   if (mode === 'paid') {
@@ -4696,56 +4723,83 @@ async function spinRoulette() {
   isSpinning = true;
   btn.disabled = true;
 
-  // Weighted random
+  // Hide any previous win toast
+  const toast = gel('roulette-win-toast');
+  if (toast) toast.classList.remove('visible');
+
+  // Weighted random winner
   const totalWeight = ROULETTE_PRIZES.reduce((acc, p) => acc + p.weight, 0);
   let r = Math.random() * totalWeight;
   let winner = ROULETTE_PRIZES[0];
-  
   for (const p of ROULETTE_PRIZES) {
-    if (r < p.weight) {
-      winner = p;
-      break;
-    }
+    if (r < p.weight) { winner = p; break; }
     r -= p.weight;
   }
 
-  // Animation
-  const wheel = gel('roulette-wheel');
-  const totalSectors = ROULETTE_PRIZES.length;
-  const sectorAngle = 360 / totalSectors;
-  const targetAngle = 3600 + (360 - (winner.id * sectorAngle)); // 10 voltas + offset
-
-  wheel.style.transition = 'transform 4s cubic-bezier(0.15, 0, 0.15, 1)';
-  wheel.style.transform = `rotate(${targetAngle}deg)`;
-
+  // Deduct cost / record free spin immediately
   if (mode === 'paid') {
     G.base.gems -= 5;
   } else {
     G.base.lastFreeSpin = Date.now();
   }
-  
   updateHUD();
   await saveData();
+
+  // Add spinning shimmer
+  gel('roulette-strip-wrap')?.classList.add('roulette-spinning');
+
+  // --- Strip animation ---
+  const strip       = gel('roulette-strip');
+  const totalItems  = ROULETTE_PRIZES.length;
+  // We want the strip to scroll so the winner lands in the center window.
+  // Center of the visible area = 0 (strip starts at startOffset).
+  // The visible center pixel from the strip's left edge when transform=0 is half modal width ≈ 210px.
+  // We'll compute the winner's position in the 3rd cycle (index = 2*total + winner.id)
+  const wrapEl      = gel('roulette-strip-wrap');
+  const wrapW       = wrapEl ? wrapEl.offsetWidth : 420;
+  const centerPx    = wrapW / 2 - STRIP_ITEM_W / 2;
+
+  const startCycle  = 2; // which cycle the starting position shows
+  const targetCycle = startCycle + 3; // spin at least 3 full rotations further
+  const targetIndex = targetCycle * totalItems + winner.id;
+  const targetPx    = targetIndex * STRIP_ITEM_W;
+  // We need strip left edge at -(targetPx - centerPx) relative to wrap
+  const finalTranslate = -(targetPx - centerPx);
+
+  strip.style.transition = 'transform 4s cubic-bezier(0.12, 0, 0.15, 1)';
+  strip.style.transform  = `translateX(${finalTranslate}px)`;
 
   setTimeout(async () => {
     isSpinning = false;
     btn.disabled = false;
-    wheel.style.transition = 'none';
-    wheel.style.transform = `rotate(${targetAngle % 360}deg)`;
-    
+    gel('roulette-strip-wrap')?.classList.remove('roulette-spinning');
+
+    // Snap cleanly — reposition to a shorter equivalent offset so strip never runs out
+    const loopOffset = -(2 * totalItems * STRIP_ITEM_W - centerPx);
+    strip.style.transition = 'none';
+    strip.style.transform  = `translateX(${loopOffset + (winner.id * STRIP_ITEM_W)}px)`;
+
     // Give reward
     if (winner.type === 'gems') {
       G.base.gems = (G.base.gems || 0) + winner.amount;
     } else if (winner.type === 'shield') {
       const currentShield = G.base.shieldUntil || Date.now();
-      G.base.shieldUntil = Math.max(currentShield, Date.now()) + (winner.amount * 3600000);
+      G.base.shieldUntil  = Math.max(currentShield, Date.now()) + (winner.amount * 3600000);
     } else {
       G.base.resources[winner.type] = (G.base.resources[winner.type] || 0) + winner.amount;
     }
-    
+
     await saveData();
     updateHUD();
     updateRouletteStatus();
-    notify(t('roulette_won').replace('{prize}', winner.label), 'success');
-  }, 4100);
+
+    // Show inline win toast
+    const winToast = gel('roulette-win-toast');
+    if (winToast) {
+      gel('rwt-icon').src     = winner.icon;
+      gel('rwt-label').textContent = t('roulette_won').replace('{prize}', '');
+      gel('rwt-amount').textContent = winner.label;
+      winToast.classList.add('visible');
+    }
+  }, 4200);
 }
