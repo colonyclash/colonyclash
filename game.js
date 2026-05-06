@@ -1005,7 +1005,7 @@ function showBldPopup(bId, cx, cy) {
   } else if (b.type === 'lunar_rock' && b.removing) {
     desc = '🔨 Removendo... ' + fmtTime((b.removeFinish - Date.now()) / 1000);
   }
-  gel('popup-desc').textContent = desc;
+  gel('popup-desc').innerHTML = desc.replace(/\n/g, '<br>');
 
   const lvlEl = gel('popup-level');
   const themes = { 1: t('ferro'), 2: t('energy'), 3: t('ouro'), 4: t('platina') };
@@ -1700,7 +1700,7 @@ function updateHUD() {
 function updateUILanguage() {
   document.querySelectorAll('[data-t]').forEach(el => {
     const key = el.dataset.t;
-    el.textContent = t(key);
+    el.innerHTML = t(key);
   });
   document.querySelectorAll('[data-t-placeholder]').forEach(el => {
     const key = el.dataset.tPlaceholder;
@@ -2654,10 +2654,10 @@ async function startMatchmaking() {
     area.innerHTML = `
       <div class="mm-status">
         <div style="font-size:40px; margin-bottom:10px;">⏳</div>
-        <div style="color:var(--c-danger); font-weight:bold;">Limite de ataques atingido!</div>
-        <div style="font-size:12px; margin-top:5px;">Você pode fazer 5 ataques por hora.<br>Próximo ataque disponível em <b>${waitMin} min</b>.</div>
+        <div style="color:var(--c-danger); font-weight:bold;">${t('attack_limit')}</div>
+        <div style="font-size:12px; margin-top:5px;">${t('attack_limit_info')}<br>${t('next_attack_in')}: <b>${waitMin} min</b>.</div>
       </div>
-      <button class="mm-btn" onclick="gel('opponent-screen').classList.remove('visible')">VOLTAR</button>
+      <button class="mm-btn" onclick="gel('opponent-screen').classList.remove('visible')">${t('back')}</button>
     `;
     return;
   }
@@ -2665,24 +2665,24 @@ async function startMatchmaking() {
   // Check own shield
   if (G.base.shieldUntil && G.base.shieldUntil > Date.now()) {
     const rem = Math.ceil((G.base.shieldUntil - Date.now()) / 3600000);
-    area.innerHTML = `<div class="mm-status">🛡️ Você está protegido por ${rem}h<br><small>Atacar remove sua proteção!</small></div>
-      <button class="mm-btn" onclick="confirmAttackWithShield()">⚔️ ATACAR MESMO ASSIM</button>`;
+    area.innerHTML = `<div class="mm-status">🛡️ ${t('protected_for')} ${rem}h<br><small>${t('under_attack_shield_tip')}</small></div>
+      <button class="mm-btn" onclick="confirmAttackWithShield()">⚔️ ${t('attack').toUpperCase()}</button>`;
     return;
   }
 
-  area.innerHTML = `<div class="mm-status"><div class="mm-spinner"></div>Procurando oponente...</div>`;
+  area.innerHTML = `<div class="mm-status"><div class="mm-spinner"></div>${t('searching_opponent')}</div>`;
 
   if (!G.db) {
-    area.innerHTML = `<div class="mm-status">⚠️ Configure o Firebase para jogar online!</div>
-      <button class="mm-btn" onclick="(function(){var s=document.getElementById('opponent-screen');s.classList.remove('visible');s.classList.add('hidden');})()" data-t="back">← Voltar</button>`;
+    area.innerHTML = `<div class="mm-status">⚠️ ${t('firebase_not_configured')}</div>
+      <button class="mm-btn" onclick="(function(){var s=document.getElementById('opponent-screen');s.classList.remove('visible');s.classList.add('hidden');})()">${t('back')}</button>`;
     return;
   }
 
   try {
     const myEnergy = G.base.resources?.energy || 0;
     if (myEnergy < 10) {
-      area.innerHTML = `<div class="mm-status" style="color:var(--c-energy)"><img src="energy_icon.svg" class="inline-icon"> Energia insuficiente para buscar (10 necessária)</div>
-        <button class="mm-btn" onclick="closePanels()">FECHAR</button>`;
+      area.innerHTML = `<div class="mm-status" style="color:var(--c-energy)"><img src="energy_icon.svg" class="inline-icon"> ${t('insufficient_energy_detail')}</div>
+        <button class="mm-btn" onclick="closePanels()">${t('close')}</button>`;
       return;
     }
 
@@ -2710,8 +2710,8 @@ async function startMatchmaking() {
           && !(p.shieldUntil && p.shieldUntil > Date.now()));
     }
     if (pool.length === 0) {
-      area.innerHTML = `<div class="mm-status">😴 Nenhum oponente disponível.<br>Tente novamente mais tarde!</div>
-        <button class="mm-btn" onclick="startMatchmaking()">🔄 TENTAR NOVAMENTE</button>`;
+      area.innerHTML = `<div class="mm-status">😴 ${t('no_opponents_available')}<br>${t('try_again_later')}</div>
+        <button class="mm-btn" onclick="startMatchmaking()">🔄 ${t('try_again_btn')}</button>`;
       return;
     }
     // Pick random from pool
@@ -2736,22 +2736,22 @@ async function startMatchmaking() {
     const finalLeague = getLeague(finalOp.trophies || 0);
 
     area.innerHTML = `
-      <div class="mm-found" data-t="opponent_found">${t('opponent_found') || '⚔️ Oponente Encontrado!'}</div>
+      <div class="mm-found" data-t="opponent_found">${t('opponent_found')}</div>
       <div class="opp-card mm-card">
         <div class="opp-avatar" style="background:linear-gradient(135deg,${finalLeague.color}44,${finalLeague.color}22)">${(finalOp.playerName||'C')[0].toUpperCase()}</div>
         <div class="opp-info">
-          <div class="opp-name">${finalOp.playerName || 'Colono'}</div>
+          <div class="opp-name">${finalOp.playerName || t('colono')}</div>
           <div class="opp-stats">${finalLeague.emoji} ${finalLeague.name} · CC${finalOp.ccLevel||1} · 🏆${finalOp.trophies||0}</div>
-          <div class="opp-stats">${(finalOp.buildings||[]).length} construções · <img src="mineral_icon.svg" class="inline-icon">${fmtNum(finalOp.resources?.mineral||0)} <img src="oxygen_icon.svg" class="inline-icon">${fmtNum(finalOp.resources?.oxygen||0)}</div>
+          <div class="opp-stats">${(finalOp.buildings||[]).length} ${t('buildings_label')} · <img src="mineral_icon.svg" class="inline-icon">${fmtNum(finalOp.resources?.mineral||0)} <img src="oxygen_icon.svg" class="inline-icon">${fmtNum(finalOp.resources?.oxygen||0)}</div>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:12px">
-        <button id="mm-confirm-btn" class="mm-btn" onclick="confirmMatchmaking()" data-t="attack_btn">${t('attack') || '⚔️ ATACAR!'}</button>
-        <button class="mm-btn mm-btn-skip" onclick="startMatchmaking()" data-t="next_btn"><img src="energy_icon.svg" class="inline-icon"> 10 · ${t('next') || 'Próximo'}</button>
+        <button id="mm-confirm-btn" class="mm-btn" onclick="confirmMatchmaking()">${t('attack_btn')}</button>
+        <button class="mm-btn mm-btn-skip" onclick="startMatchmaking()"><img src="energy_icon.svg" class="inline-icon"> 10 · ${t('next')}</button>
       </div>`;
   } catch (e) {
-    area.innerHTML = `<div style="color:var(--c-danger);text-align:center;font-size:12px">Erro: ${e.message}</div>
-      <button class="mm-btn" onclick="startMatchmaking()">🔄 TENTAR NOVAMENTE</button>`;
+    area.innerHTML = `<div style="color:var(--c-danger);text-align:center;font-size:12px">${e.message}</div>
+      <button class="mm-btn" onclick="startMatchmaking()">🔄 ${t('try_again_btn')}</button>`;
   }
 }
 
@@ -3537,64 +3537,64 @@ function updateTutorialStep() {
 
   // New Step Flow (0-14)
   if (step === 0) {
-    textEl.textContent = t('tut_step0');
+    textEl.innerHTML = t('tut_step0');
   } else if (step === 1) {
-    textEl.textContent = t('tut_step1');
+    textEl.innerHTML = t('tut_step1');
     pointGlowToElement('nav-build');
     if (btn) btn.style.display = 'none';
   } else if (step === 2) {
-    textEl.textContent = t('tut_step2');
+    textEl.innerHTML = t('tut_step2');
     pointGlowToBuildingCard('mineral_extractor');
     if (btn) btn.style.display = 'none';
   } else if (step === 3) {
-    textEl.textContent = t('tut_step3');
+    textEl.innerHTML = t('tut_step3');
     pointGlowToGhost();
     if (btn) btn.style.display = 'none';
   } else if (step === 4) {
-    textEl.textContent = t('tut_step4');
+    textEl.innerHTML = t('tut_step4');
     pointGlowToLastBuilding();
     if (btn) btn.style.display = 'none';
   } else if (step === 5) {
-    textEl.textContent = t('tut_step5');
+    textEl.innerHTML = t('tut_step5');
     pointGlowToElement('popup-speedup');
     if (btn) btn.style.display = 'none';
   } else if (step === 6) {
-    textEl.textContent = t('tut_step6');
+    textEl.innerHTML = t('tut_step6');
     pointGlowToElement('nav-build');
     if (btn) btn.style.display = 'none';
   } else if (step === 7) {
-    textEl.textContent = t('tut_step7');
+    textEl.innerHTML = t('tut_step7');
     pointGlowToBuildingCard('oxygen_extractor');
     if (btn) btn.style.display = 'none';
   } else if (step === 8) {
-    textEl.textContent = t('tut_step8');
+    textEl.innerHTML = t('tut_step8');
     pointGlowToElement('nav-build');
     if (btn) btn.style.display = 'none';
   } else if (step === 9) {
-    textEl.textContent = t('tut_step9');
+    textEl.innerHTML = t('tut_step9');
     pointGlowToBuildingCard('barracks');
     if (btn) btn.style.display = 'none';
   } else if (step === 10) {
-    textEl.textContent = t('tut_step10');
+    textEl.innerHTML = t('tut_step10');
     pointGlowToElement('nav-build');
     if (btn) btn.style.display = 'none';
   } else if (step === 11) {
-    textEl.textContent = t('tut_step11');
+    textEl.innerHTML = t('tut_step11');
     pointGlowToBuildingCard('camp');
     if (btn) btn.style.display = 'none';
   } else if (step === 12) {
-    textEl.textContent = t('tut_step12');
+    textEl.innerHTML = t('tut_step12');
     pointGlowToElement('nav-troops');
     if (btn) btn.style.display = 'none';
   } else if (step === 13) {
-    textEl.textContent = t('tut_step13');
+    textEl.innerHTML = t('tut_step13');
     pointGlowToBuildingCard('drone');
     if (btn) btn.style.display = 'none';
   } else if (step === 14) {
-    textEl.textContent = t('tut_step14');
+    textEl.innerHTML = t('tut_step14');
     if (btn) {
       btn.style.display = 'block';
-      btn.textContent = t('tut_finish') || 'Finalizar Tutorial';
+      btn.innerHTML = t('tut_finish') || 'Finalizar Tutorial';
       btn.onclick = closeTutorial;
     }
   } else {
@@ -4041,15 +4041,15 @@ window.modernSearchClans = async function() {
             <span class="sp-meta">Membros: ${(c.members || []).length}</span>
           </div>
           <div class="sp-actions">
-            ${isMember ? 
-              `<button class="btn-sp-visit" disabled style="opacity:0.6;">JÁ É MEMBRO</button>` : 
-              `<button class="btn-sp-visit" onclick="joinClan('${doc.id}', '${safeName}')">ENTRAR NO CLÃ</button>`
+            ${isMember ?
+              `<button class="btn-sp-visit" disabled style="opacity:0.6;">${t('already_member')}</button>` :
+              `<button class="btn-sp-visit" onclick="joinClan('${doc.id}', '${safeName}')">${t('join_clan')}</button>`
             }
           </div>
         </div>
       `;
     });
-    resultEl.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">Nenhum clã encontrado.</div>`;
+    resultEl.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">${t('no_clan_found')}</div>`;
   } catch (e) { 
     console.error(e);
     resultEl.innerHTML = '<div style="color:var(--c-danger);text-align:center;">Erro na busca.</div>'; 
@@ -4139,7 +4139,7 @@ window.renderMyClanMembers = async function(clanId) {
     const members = clanDoc.data().members || [];
     
     // In a real app we'd fetch all member details. For now, placeholders or stored data.
-    list.innerHTML = `<div style="text-align:center;padding:10px;color:#888;">Carregando membros...</div>`;
+    list.innerHTML = `<div style="text-align:center;padding:10px;color:#888;">${t('loading_members')}</div>`;
     
     let html = '';
     for (const mid of members) {
@@ -4151,17 +4151,17 @@ window.renderMyClanMembers = async function(clanId) {
         <div class="social-player-card">
           <div class="sp-avatar" style="background:${league.color}">${(p.playerName || 'M')[0].toUpperCase()}</div>
           <div class="sp-info">
-            <span class="sp-name">${p.playerName}${mid === G.pid ? ' (Você)' : ''}</span>
-            <span class="sp-meta">CC Nível ${p.ccLevel || 1} <span>${league.name}</span></span>
+            <span class="sp-name">${p.playerName}${mid === G.pid ? ` (${t('you_label')})` : ''}</span>
+            <span class="sp-meta">${t('command_center')} ${t('level')} ${p.ccLevel || 1} <span>${league.name}</span></span>
           </div>
           <div class="sp-trophy">🏆 ${p.trophies || 0}</div>
         </div>
       `;
     }
-    list.innerHTML = html || '<div style="text-align:center;padding:20px;color:#888;">Sem membros.</div>';
-  } catch (e) { 
-    console.error('Erro ao carregar membros do clã:', e);
-    list.innerHTML = 'Erro ao carregar membros.'; 
+    list.innerHTML = html || `<div style="text-align:center;padding:20px;color:#888;">${t('no_members_found')}</div>`;
+  } catch (e) {
+    console.error('Error loading clan members:', e);
+    list.innerHTML = `<div style="text-align:center;padding:20px;color:var(--c-danger);">${e.message}</div>`;
   }
 };
 
@@ -4332,29 +4332,29 @@ window.updateModernProfileUI = function() {
   // Left & Center
   grid.innerHTML = `
     <div class="profile-left">
-      <div class="profile-cc-lvl">CC Nível ${ccLvl}</div>
+      <div class="profile-cc-lvl">${t('command_center')} ${t('level')} ${ccLvl}</div>
       <img src="cc_lvl${ccLvl}.png" class="profile-cc-img">
       <div class="profile-uid-row">
         <span class="p-uid-text">UID: ${G.pid}</span>
-        <button class="btn-copy-uid" onclick="copyUID()">COPIAR UID</button>
+        <button class="btn-copy-uid" onclick="copyUID()">${t('copy_uid')}</button>
       </div>
     </div>
     <div class="profile-center">
       <div class="profile-user-row">
-        <span class="profile-name">${G.base.playerName || 'Colono'}</span>
+        <span class="profile-name">${G.base.playerName || t('colono')}</span>
         <div class="profile-gems-badge"><img src="gems_icon.svg" class="inline-icon"> ${G.base.gems || 0}</div>
       </div>
       <div class="profile-clan-box">
         <div class="p-clan-avatar">${(G.base.clanName || 'C')[0].toUpperCase()}</div>
         <div class="p-clan-info">
-          <span class="p-clan-name">${G.base.clanName || 'Nenhum Clã'}</span>
-          <span class="p-clan-mems">${G.base.clanId ? 'Membro Ativo' : 'Sem membros'}</span>
+          <span class="p-clan-name">${G.base.clanName || t('no_clan')}</span>
+          <span class="p-clan-mems">${G.base.clanId ? t('active_member') : t('no_members')}</span>
         </div>
       </div>
-      ${isAdmin ? `<button class="btn-admin-panel" onclick="document.getElementById('admin-panel').classList.remove('hidden'); closeUnifiedModal();">ABRIR PAINEL ADMIN</button>` : ''}
+      ${isAdmin ? `<button class="btn-admin-panel" onclick="document.getElementById('admin-panel').classList.remove('hidden'); closeUnifiedModal();">${t('admin_panel')}</button>` : ''}
     </div>
     <div class="profile-right">
-      <span class="p-league-label">LIGA ATUAL</span>
+      <span class="p-league-label">${t('current_league')}</span>
       <span class="p-league-name" style="color:${league.color}">${league.name}</span>
       <div class="p-trophy-badge">🏆 ${G.base.trophies || 0}</div>
     </div>
@@ -4370,7 +4370,7 @@ window.updateModernProfileUI = function() {
   };
 
   storage.innerHTML = `
-    <div class="p-storage-title">ARMAZENAMENTO</div>
+    <div class="p-storage-title">${t('storage').toUpperCase()}</div>
     ${['mineral', 'oxygen', 'energy'].map(type => {
       const pct = Math.min(100, (res[type] / caps[type]) * 100);
       const color = type === 'mineral' ? 'var(--c-mineral)' : type === 'oxygen' ? 'var(--c-oxygen)' : 'var(--c-energy)';
@@ -4402,7 +4402,7 @@ window.modernSearchPlayers = async function() {
   if (!query || !G.db) return;
   
   const results = gel('modern-search-results');
-  results.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Buscando...</div>';
+  results.innerHTML = `<div style="text-align:center;padding:20px;color:#888;">${t('searching')}</div>`;
   
   try {
     // USER REQUEST: Buscar por nome OU por UID
@@ -4428,12 +4428,12 @@ window.modernSearchPlayers = async function() {
           <div class="sp-avatar" style="background:${league.color}">${pName[0].toUpperCase()}</div>
           <div class="sp-info">
             <span class="sp-name">${pName}</span>
-            <span class="sp-meta">CC Nível ${p.ccLevel || 1} <span>${league.name}</span></span>
+            <span class="sp-meta">${t('command_center')} ${t('level')} ${p.ccLevel || 1} <span>${league.name}</span></span>
             <span style="font-size:9px; color:#666;">UID: ${doc.id}</span>
           </div>
           <div class="sp-actions">
-            <button class="btn-sp-visit" onclick="visitPlayer('${doc.id}')">VISITAR</button>
-            <button class="btn-sp-add" onclick="addFriend('${doc.id}', '${pName.replace(/'/g, "\\'")}')">ADD AMIGO</button>
+            <button class="btn-sp-visit" onclick="visitPlayer('${doc.id}')">${t('visit')}</button>
+            <button class="btn-sp-add" onclick="addFriend('${doc.id}', '${pName.replace(/'/g, "\\'")}')">${t('add_friend_btn')}</button>
           </div>
         </div>
       `;
@@ -4448,7 +4448,7 @@ window.renderModernFriendsList = function() {
   const friends = G.base.friends || [];
   
   if (friends.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">Sua lista de amigos está vazia.</div>';
+    list.innerHTML = `<div style="text-align:center;padding:20px;color:#888;">${t('friends_empty')}</div>`;
     return;
   }
 
@@ -4459,10 +4459,10 @@ window.renderModernFriendsList = function() {
       <div class="sp-avatar">${(f.name || 'C')[0].toUpperCase()}</div>
       <div class="sp-info">
         <span class="sp-name">${f.name}</span>
-        <span class="sp-meta">CC Nível ? <span>Amigo</span></span>
+        <span class="sp-meta">${t('command_center')} ? <span>${t('friend_label')}</span></span>
       </div>
       <div class="sp-trophy">🏆 ${f.trophies || '?'}</div>
-      <button class="btn-sp-visit" onclick="visitPlayer('${f.id}')">VISITAR</button>
+      <button class="btn-sp-visit" onclick="visitPlayer('${f.id}')">${t('visit')}</button>
     </div>
   `).join('');
 };
@@ -4482,7 +4482,7 @@ window.resetTutorial = function() {
   closePanels();
   saveData();
   showTutorial();
-  notify("Tutorial reiniciado!", "success");
+  notify(t('tutorial_restarted'), "success");
 };
 
 // Override old functions to close the new modal
@@ -4523,17 +4523,17 @@ function showCCPath() {
     
     html += `
       <div class="cc-path-item ${isCurrent ? 'current' : ''}">
-        ${isCurrent ? '<div style="position:absolute; top:10px; right:15px; font-size:10px; color:var(--c-gold); font-weight:bold;">ATUAL</div>' : ''}
+        ${isCurrent ? `<div style="position:absolute; top:10px; right:15px; font-size:10px; color:var(--c-gold); font-weight:bold;">${t('current_label')}</div>` : ''}
         <div class="cc-path-header">
-          <div class="cc-path-lvl">${t('command_center')} Nível ${i}</div>
+          <div class="cc-path-lvl">${t('command_center')} ${t('level')} ${i}</div>
         </div>
         <div class="cc-path-unlocks">
-          <div class="cc-path-novelty">✨ ${lvl.novelty || 'Novas tecnologias'}</div>
+          <div class="cc-path-novelty">✨ ${lvl.novelty || t('new_tech')}</div>
           <p style="margin:5px 0;">HP: ${lvl.hp} · ${lvl.desc}</p>
           <div class="cc-path-list">
             <div class="cc-unlock-tag">🪖 ${lvl.unlocks.troop_unlock.map(t).join(', ')}</div>
-            <div class="cc-unlock-tag">🏗️ Nív. Máx Edifícios: ${lvl.unlocks.max_building_level}</div>
-            <div class="cc-unlock-tag">⚒️ Quartel Máx: ${lvl.unlocks.barracks_max_level}</div>
+            <div class="cc-unlock-tag">🏗️ ${t('max_building_level')}: ${lvl.unlocks.max_building_level}</div>
+            <div class="cc-unlock-tag">⚒️ ${t('barracks_max')}: ${lvl.unlocks.barracks_max_level}</div>
           </div>
           <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:5px;">
             ${Object.entries(lvl.unlocks.buildings).map(([type, count]) => {
@@ -4578,7 +4578,7 @@ function renderDailyStreak() {
   const streak = G.base.dailyStreak || 0;
   const last = G.base.lastClaimDate || 0;
   const now = Date.now();
-  const isToday = new Date(last).toDateString() === new Date(now).toDateString();
+  const isClaimedToday = new Date(last).toDateString() === new Date(now).toDateString();
 
   let html = '';
   for (let i = 0; i < 15; i++) {
@@ -4586,8 +4586,8 @@ function renderDailyStreak() {
     const rew = DAILY_REWARDS[i];
     let status = 'locked';
     if (dayNum <= streak) status = 'claimed';
-    else if (dayNum === streak + 1 && !isToday) status = 'current';
-    else if (dayNum === streak + 1 && isToday) status = 'waiting';
+    else if (dayNum === streak + 1 && !isClaimedToday) status = 'current';
+    else if (dayNum === streak + 1 && isClaimedToday) status = 'waiting';
 
     html += `
       <div class="streak-day-card ${status}">
@@ -4605,10 +4605,10 @@ function renderDailyStreak() {
   if (btn) {
     if (isToday) {
       btn.disabled = true;
-      btn.textContent = t('streak_claimed');
+      btn.innerHTML = t('streak_claimed');
     } else {
       btn.disabled = false;
-      btn.textContent = t('claim_daily');
+      btn.innerHTML = t('claim_daily');
     }
   }
 }
@@ -4646,28 +4646,34 @@ async function claimDailyReward() {
 /* ========== ROULETTE LOGIC (STRIP) ========== */
 let isSpinning = false;
 const STRIP_ITEM_W = 100; // must match CSS .strip-item flex-basis
+const ROUL_CYCLES  = 14;  // enough cycles so we never run out of content
+const ROUL_START   = 4;   // which cycle is shown on open (safe middle)
 
 function buildRouletteStrip() {
   const strip = gel('roulette-strip');
   if (!strip) return;
-  // Build a long looping strip: 4 full cycles so we have room to scroll
-  const cycles = 6;
   let html = '';
-  for (let c = 0; c < cycles; c++) {
+  for (let c = 0; c < ROUL_CYCLES; c++) {
     for (const p of ROULETTE_PRIZES) {
       html += `
         <div class="strip-item" data-id="${p.id}" style="background:${p.color}18;">
           <div class="si-dot" style="background:${p.color};box-shadow:0 0 8px ${p.color};"></div>
-          <img src="${p.icon}" alt="${p.label}">
+          <img src="${p.icon}" alt="">
           <div class="si-label">${p.label}</div>
         </div>`;
     }
   }
   strip.innerHTML = html;
-  // Reset position to show the middle cycle
-  const startOffset = -(2 * ROULETTE_PRIZES.length * STRIP_ITEM_W);
-  strip.style.transition = 'none';
-  strip.style.transform = `translateX(${startOffset}px)`;
+
+  // Use requestAnimationFrame so offsetWidth is measured after DOM paint
+  requestAnimationFrame(() => {
+    const wrapW   = gel('roulette-strip-wrap')?.offsetWidth || 400;
+    const center  = wrapW / 2 - STRIP_ITEM_W / 2;
+    // Center the first item of ROUL_START cycle
+    const initX = center - (ROUL_START * ROULETTE_PRIZES.length * STRIP_ITEM_W);
+    strip.style.transition = 'none';
+    strip.style.transform  = `translateX(${initX}px)`;
+  });
 }
 
 function openRoulette() {
@@ -4696,11 +4702,11 @@ function updateRouletteStatus() {
   const cooldown = 12 * 60 * 60 * 1000;
 
   if (now - lastFree >= cooldown) {
-    btn.textContent  = t('roulette_free');
+    btn.innerHTML  = t('roulette_free');
     btn.dataset.mode = 'free';
     timer.textContent = '';
   } else {
-    btn.textContent  = t('roulette_cost');
+    btn.innerHTML  = `${t('roulette_cost')} <img src="gems_icon.svg" class="inline-icon" style="width:16px;height:16px;vertical-align:middle;margin-left:2px;">`;
     btn.dataset.mode = 'paid';
     const remaining  = cooldown - (now - lastFree);
     timer.textContent = t('roulette_wait').replace('{time}', fmtTime(remaining / 1000));
@@ -4749,22 +4755,18 @@ async function spinRoulette() {
   gel('roulette-strip-wrap')?.classList.add('roulette-spinning');
 
   // --- Strip animation ---
-  const strip       = gel('roulette-strip');
-  const totalItems  = ROULETTE_PRIZES.length;
-  // We want the strip to scroll so the winner lands in the center window.
-  // Center of the visible area = 0 (strip starts at startOffset).
-  // The visible center pixel from the strip's left edge when transform=0 is half modal width ≈ 210px.
-  // We'll compute the winner's position in the 3rd cycle (index = 2*total + winner.id)
-  const wrapEl      = gel('roulette-strip-wrap');
-  const wrapW       = wrapEl ? wrapEl.offsetWidth : 420;
-  const centerPx    = wrapW / 2 - STRIP_ITEM_W / 2;
+  const strip      = gel('roulette-strip');
+  const totalItems = ROULETTE_PRIZES.length;
+  const wrapEl     = gel('roulette-strip-wrap');
+  const wrapW      = wrapEl ? wrapEl.offsetWidth : 400;
+  const centerPx   = wrapW / 2 - STRIP_ITEM_W / 2;  // left-edge offset for a centered item
 
-  const startCycle  = 2; // which cycle the starting position shows
-  const targetCycle = startCycle + 3; // spin at least 3 full rotations further
+  // The strip starts with item 0 of ROUL_START cycle centered.
+  // We want to land on a cycle far enough ahead (ROUL_START + 5) so the spin looks long.
+  const targetCycle = ROUL_START + 5;
   const targetIndex = targetCycle * totalItems + winner.id;
-  const targetPx    = targetIndex * STRIP_ITEM_W;
-  // We need strip left edge at -(targetPx - centerPx) relative to wrap
-  const finalTranslate = -(targetPx - centerPx);
+  // Translate so that this item's left edge aligns with centerPx
+  const finalTranslate = centerPx - targetIndex * STRIP_ITEM_W;
 
   strip.style.transition = 'transform 4s cubic-bezier(0.12, 0, 0.15, 1)';
   strip.style.transform  = `translateX(${finalTranslate}px)`;
@@ -4774,10 +4776,12 @@ async function spinRoulette() {
     btn.disabled = false;
     gel('roulette-strip-wrap')?.classList.remove('roulette-spinning');
 
-    // Snap cleanly — reposition to a shorter equivalent offset so strip never runs out
-    const loopOffset = -(2 * totalItems * STRIP_ITEM_W - centerPx);
+    // Snap back to a safe mid-strip equivalent so we never run out of content on the next spin.
+    // Pick the same winner.id but in ROUL_START cycle, keeping it centered.
+    const snapIndex     = ROUL_START * totalItems + winner.id;
+    const snapTranslate = centerPx - snapIndex * STRIP_ITEM_W;
     strip.style.transition = 'none';
-    strip.style.transform  = `translateX(${loopOffset + (winner.id * STRIP_ITEM_W)}px)`;
+    strip.style.transform  = `translateX(${snapTranslate}px)`;
 
     // Give reward
     if (winner.type === 'gems') {
@@ -4796,9 +4800,9 @@ async function spinRoulette() {
     // Show inline win toast
     const winToast = gel('roulette-win-toast');
     if (winToast) {
-      gel('rwt-icon').src     = winner.icon;
-      gel('rwt-label').textContent = t('roulette_won').replace('{prize}', '');
-      gel('rwt-amount').textContent = winner.label;
+      gel('rwt-icon').src            = winner.icon;
+      gel('rwt-label').textContent   = t('roulette_won').replace('{prize}', '');
+      gel('rwt-amount').textContent  = winner.label;
       winToast.classList.add('visible');
     }
   }, 4200);
